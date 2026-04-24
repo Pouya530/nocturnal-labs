@@ -69,6 +69,15 @@ export const metadata: Metadata = {
     description,
     images: ['/twitter-image'],
   },
+  icons: {
+    icon: [
+      { url: '/nocturnal-labs-logo.png', sizes: '32x32', type: 'image/png' },
+      { url: '/nocturnal-labs-logo.png', sizes: '16x16', type: 'image/png' },
+      { url: '/nocturnal-labs-logo.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/nocturnal-labs-logo.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: '/nocturnal-labs-logo.png',
+  },
   manifest: '/site.webmanifest',
   other: {
     'theme-color': '#020204',
