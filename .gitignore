@@ -1,0 +1,36 @@
+node_modules
+.next
+out
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+.vercel
+
+# Do not publish internal docs or notes
+*.md
+
+# Sensitive / credentials (never commit)
+*.pem
+*.p12
+*.key
+id_rsa
+id_rsa.pub
+*.secret
+secrets/
+
+# Common local document formats (keep out of public repo)
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# TypeScript incremental cache
+*.tsbuildinfo
+
+# Working copies of brand assets in repo root (canonical files: public/brand/)
+/*.png

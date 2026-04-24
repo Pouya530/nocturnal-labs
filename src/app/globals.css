@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-[#020204] text-zinc-100 antialiased;
+}
+
+/* Framing: circular radial opacity (vignette) so the center stays open and edges fall off */
+.site-bg-radial-opacity {
+  background: radial-gradient(
+    circle at 50% 42%,
+    rgba(2, 2, 4, 0) 0%,
+    rgba(2, 2, 4, 0) 24%,
+    rgba(0, 0, 0, 0.22) 55%,
+    rgba(0, 0, 0, 0.62) 100%
+  );
+}
+
+/* Cinematic intro: logo recedes with --nl-intro (0→1) — see CinematicClientShell & JuliaFractalBackdrop */
+.cinematic-hero-depth {
+  transform: translate3d(0, 0, calc(40px * (1 - var(--nl-intro, 1))))
+    scale(calc(1.1 - 0.1 * var(--nl-intro, 1)));
+  transform-style: preserve-3d;
+}
+
+/* Hero logo: path + spin are split (Logo.tsx) so Y can ease ballistically while rotateX stays linear = no "float" in spin at apex. */
+@keyframes logo-coin-lift-move {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    /* Quick rise, not a long slow ease into the peak */
+    animation-timing-function: cubic-bezier(0.2, 0, 0.35, 1);
+  }
+  50% {
+    transform: translate3d(0, calc(-50dvh + 4.5rem), 0) scale(0.9);
+    /* Let go at the top, fall with weight (faster off the apex than a symmetric in-out) */
+    animation-timing-function: cubic-bezier(0.2, 0, 0.35, 1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Same-direction spin as before: 0 → 1.5turn @ apex → 3turn; linear time = constant flip rate (real toss) */
+@keyframes logo-coin-lift-spin {
+  0% {
+    transform: rotateX(0deg);
+  }
+  50% {
+    transform: rotateX(1.5turn);
+  }
+  100% {
+    transform: rotateX(3turn);
+  }
+}
+
+.logo-coin-lift-animating-move {
+  animation: logo-coin-lift-move 1.5s both;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+.logo-coin-lift-animating-spin {
+  animation: logo-coin-lift-spin 1.5s linear both;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+/* Bottom "coming soon" banner shell — safe area in plain CSS (avoids Tailwind arbitrary max/env quirks in dev) */
+.coming-soon-banner-shell {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Bottom "coming soon" marquee (see ComingSoonBanner) */
+.coming-soon-marquee-motion {
+  overflow: hidden;
+  /* Extra vertical room so `overflow: hidden` + `background-clip: text` do not clip descenders */
+  padding-block: 0.2em;
+}
+
+.coming-soon-marquee-track {
+  /* Normal direction: 0 → -50% = text scrolls right-to-left across the viewport */
+  animation: coming-soon-marquee 45s linear infinite;
+  will-change: transform;
+}
+
+@keyframes coming-soon-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Iridescent text: full-spectrum gradient, shifted for motion */
+.coming-soon-text-iridescent {
+  /* Subvertical padding so gradient clip matches glyph bounds in WebKit */
+  padding: 0.1em 0 0.15em;
+  background-image: linear-gradient(
+    95deg,
+    #ff0080 0%,
+    #c026d3 12%,
+    #7c3aed 24%,
+    #2563eb 36%,
+    #0ea5e9 48%,
+    #14b8a6 60%,
+    #22c55e 72%,
+    #eab308 84%,
+    #f97316 92%,
+    #ff0080 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: coming-soon-iridescent 14s ease-in-out infinite;
+}
+
+@keyframes coming-soon-iridescent {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.coming-soon-marquee-static {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coming-soon-marquee-track {
+    animation: none;
+  }
+
+  .coming-soon-marquee-motion {
+    display: none;
+  }
+
+  .coming-soon-marquee-static {
+    display: block;
+  }
+
+  .coming-soon-text-iridescent {
+    animation: none;
+    background-image: linear-gradient(
+      95deg,
+      #e879f9 0%,
+      #8b5cf6 25%,
+      #38bdf8 50%,
+      #4ade80 75%,
+      #f5ff61 100%
+    );
+    background-size: 100% 100%;
+    background-position: 50% 50%;
+  }
+}
