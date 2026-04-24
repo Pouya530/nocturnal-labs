@@ -160,13 +160,14 @@ export type LogoCoinCanvasProps = {
 export function LogoCoinCanvas({ spin }: LogoCoinCanvasProps): ReactElement {
   return (
     <Canvas
-      className="h-full w-full touch-none"
+      className="logo-coin-canvas-root block h-full w-full min-h-0 touch-none overflow-visible leading-none"
+      resize={{ scroll: true, debounce: 0, offsetSize: true }}
       gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0);
         gl.toneMapping = THREE.NoToneMapping;
       }}
-      camera={{ position: [0, 0.12, 3.35], fov: 36, near: 0.1, far: 24 }}
+      camera={{ position: [0, 0.08, 3.92], fov: 33.5, near: 0.1, far: 24 }}
     >
       <Suspense fallback={null}>
         <CoinMesh spin={spin} />

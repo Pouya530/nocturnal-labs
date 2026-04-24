@@ -3,10 +3,10 @@ import type { ReactElement } from 'react';
 import { dmSans } from '@/lib/fonts';
 
 const segment =
-  "We Are a Full-Service Agency Crafting Standout Digital Experiences for the World's Leading Brands...launching soon! © 2026 Nocturnal Labs · ";
+  "We Are a Full-Service Agency Crafting Standout Digital Experiences for the World's Leading Brands · © 2026 Nocturnal Labs · ";
 
 const announcement =
-  "We Are a Full-Service Agency Crafting Standout Digital Experiences for the World's Leading Brands...launching soon! © 2026 Nocturnal Labs";
+  "We Are a Full-Service Agency Crafting Standout Digital Experiences for the World's Leading Brands · © 2026 Nocturnal Labs";
 
 const announcementA11y = announcement.toUpperCase();
 

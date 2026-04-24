@@ -5,12 +5,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore }
 
 import { JuliaFractalBackdrop } from '@/components/landing/JuliaFractalBackdrop';
 import { ComingSoonBanner } from '@/components/landing/ComingSoonBanner';
+import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { SitePreloader } from '@/components/landing/SitePreloader';
 import { motionPrefs } from '@/core/motion';
 
 /** If set, the portal intro is skipped for the rest of the browser tab session. */
 const SESSION_KEY = 'nl-portal-played';
-const INTRO_MS = 3000;
+const INTRO_MS = 4800;
 
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -86,12 +87,13 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden overflow-y-visible">
+    <div className="relative min-h-[100dvh] w-full">
       <JuliaFractalBackdrop introTRef={introTRef} />
       <div
-        className="site-bg-radial-opacity pointer-events-none fixed inset-0 z-[1] h-[100dvh] w-full"
+        className="site-bg-radial-opacity pointer-events-none fixed inset-0 z-[1] min-h-[100dvh] min-h-[100lvh] h-full w-full"
         aria-hidden
       />
+      <LandingTopNav />
       <div className="relative z-10">{children}</div>
       <ComingSoonBanner />
       <SitePreloader onGone={onPreloaderGone} />

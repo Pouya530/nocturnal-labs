@@ -8,8 +8,10 @@ import type { ReactNode, ReactElement } from 'react';
  */
 export function CinematicHeroStage({ children }: { children: ReactNode }): ReactElement {
   return (
-    <div className="cinematic-hero-perspective w-full [perspective:1500px]">
-      <div className="cinematic-hero-depth w-full [transform-style:preserve-3d]">{children}</div>
+    <div className="cinematic-hero-perspective w-full min-w-0 overflow-visible [perspective:1500px] [-webkit-backface-visibility:visible] [backface-visibility:visible]">
+      <div className="cinematic-hero-depth w-full min-w-0 overflow-visible [transform-style:preserve-3d] [-webkit-backface-visibility:visible] [backface-visibility:visible]">
+        {children}
+      </div>
     </div>
   );
 }

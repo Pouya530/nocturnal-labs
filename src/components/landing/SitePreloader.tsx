@@ -6,8 +6,12 @@ import type { ReactElement } from 'react';
 import { dmSans } from '@/lib/fonts';
 import { motionPrefs } from '@/core/motion';
 
-const MIN_MS = 520;
-const FADE_MS = 520;
+/** Minimum time the mark stays visible so it never flashes away in one frame. */
+const MIN_MS = 720;
+/** Overlay fade to transparent after load + minimum elapsed. */
+const FADE_MS = 1400;
+
+const FADE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 type Phase = 'visible' | 'hiding' | 'gone';
 
@@ -17,8 +21,8 @@ export type SitePreloaderProps = {
 };
 
 /**
- * Full-viewport preloader: waits for window load, enforces a short minimum so the
- * mark does not vanish in a single frame, then cross-fades out. Respects reduced motion.
+ * Full-viewport preloader: waits for window load, enforces a short minimum, then
+ * eases the black veil away. Respects reduced motion (instant hide).
  */
 export function SitePreloader({ onGone }: SitePreloaderProps = {}): ReactElement | null {
   const reduced = useSyncExternalStore(motionPrefs.subscribe, () => motionPrefs.reduced, () => false);
@@ -83,17 +87,24 @@ export function SitePreloader({ onGone }: SitePreloaderProps = {}): ReactElement
 
   if (phase === 'gone') return null;
 
+  const transitionStyle = reduced
+    ? undefined
+    : { transitionDuration: `${FADE_MS}ms`, transitionTimingFunction: FADE_EASE };
+
   return (
     <div
       className={[
         'site-preloader fixed inset-0 z-[100] flex flex-col items-center justify-center',
-        'bg-[#020204] transition-opacity ease-out motion-reduce:transition-none',
+        'bg-[#020204] motion-reduce:transition-none',
         phase === 'hiding' ? 'pointer-events-none opacity-0' : 'opacity-100',
         dmSans.className,
       ]
         .filter(Boolean)
         .join(' ')}
-      style={reduced ? undefined : { transitionDuration: `${FADE_MS}ms` }}
+      style={{
+        ...transitionStyle,
+        transitionProperty: reduced ? undefined : 'opacity',
+      }}
       role="status"
       aria-live="polite"
       aria-label="Loading"
@@ -102,13 +113,20 @@ export function SitePreloader({ onGone }: SitePreloaderProps = {}): ReactElement
         setPhase('gone');
       }}
     >
-      <div
-        className="site-preloader-orbit h-12 w-12 animate-spin rounded-full border-2 border-violet-500/25 border-t-violet-400/90 motion-reduce:animate-none"
-        style={reduced ? undefined : { animationDuration: '0.85s' }}
-        aria-hidden
-      />
+      <div className="relative flex h-32 w-32 items-center justify-center" aria-hidden>
+        <div className="site-preloader-ambient pointer-events-none absolute inset-[-18%] rounded-full opacity-90" />
+        <div
+          className="pointer-events-none absolute inset-0 rounded-full border border-white/[0.07] motion-reduce:animate-none"
+          style={reduced ? undefined : { animation: 'site-preloader-drift 14s linear infinite' }}
+        />
+        <div
+          className="absolute inset-[10%] rounded-full border border-transparent border-t-violet-400/75 border-r-fuchsia-500/35 motion-reduce:animate-none"
+          style={reduced ? undefined : { animation: 'site-preloader-spin 1.05s linear infinite' }}
+        />
+        <div className="h-2 w-2 rounded-full bg-violet-200/80 shadow-[0_0_24px_rgba(196,181,253,0.55)]" />
+      </div>
       <p
-        className="mt-5 text-center text-xs font-medium uppercase leading-snug tracking-[0.2em] text-zinc-500"
+        className="mt-8 text-center text-[11px] font-medium uppercase leading-snug tracking-[0.28em] text-zinc-500/90"
         aria-hidden
       >
         Nocturnal Labs

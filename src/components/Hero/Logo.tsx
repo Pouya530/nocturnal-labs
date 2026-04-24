@@ -64,12 +64,12 @@ export function Logo(): ReactElement {
   return (
     <div
       className={[
-        'relative isolate mx-auto aspect-square w-[var(--hero-logo-size,200px)] max-w-full shrink-0 [perspective:1200px]',
+        'logo-coin-stage relative mx-auto aspect-square w-[var(--hero-logo-size,200px)] max-w-full min-w-0 shrink-0 overflow-visible [perspective:1200px]',
         elevation ? 'z-30' : 'z-0',
       ].join(' ')}
     >
       <div
-        className="h-full w-full min-h-[100px] cursor-pointer touch-manipulation outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400/60"
+        className="h-full w-full min-h-0 cursor-pointer touch-manipulation overflow-visible outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400/60"
         role="button"
         tabIndex={0}
         aria-label="Nocturnal Labs logo, 3D coin with iridescent edge. Activate to flip the coin toward the top of the screen and back."
@@ -78,11 +78,14 @@ export function Logo(): ReactElement {
       >
         <div
           ref={moveRef}
-          className="h-full w-full [transform-style:preserve-3d]"
+          className="h-full w-full min-h-0 overflow-visible [transform-style:preserve-3d] [-webkit-backface-visibility:visible] [backface-visibility:visible]"
           onAnimationEnd={onAnimationEnd}
         >
-          <div ref={spinRef} className="h-full w-full [transform-style:preserve-3d]">
-            <div className="h-full w-full" aria-hidden>
+          <div
+            ref={spinRef}
+            className="h-full w-full min-h-0 overflow-visible [transform-style:preserve-3d] [-webkit-backface-visibility:visible] [backface-visibility:visible]"
+          >
+            <div className="block h-full w-full min-h-0 overflow-visible leading-none" aria-hidden>
               <LogoCoinCanvas spin={!reducedMotion} />
             </div>
           </div>
