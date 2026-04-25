@@ -157,19 +157,6 @@ export function nlBrandedImageResponse(): ImageResponse {
           </div>
           <div
             style={{
-              marginTop: 14,
-              fontSize: 22,
-              fontWeight: 600,
-              color: '#c4b5fd',
-              letterSpacing: '0.32em',
-              textTransform: 'uppercase',
-              fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-            }}
-          >
-            Digital experiences
-          </div>
-          <div
-            style={{
               marginTop: 22,
               fontSize: 19,
               color: 'rgba(228, 228, 235, 0.78)',

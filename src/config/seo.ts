@@ -6,11 +6,11 @@
 export const SITE_NAME = 'Nocturnal Labs';
 
 /** Target ≤60 characters for Google title display */
-export const SEO_TITLE_DEFAULT = 'Nocturnal Labs | Digital agency & creative experiences';
+export const SEO_TITLE_DEFAULT = 'Nocturnal Labs | AI, R&D & Advanced Technology Innovation';
 
 /** Target ≤160 characters */
 export const SEO_DESCRIPTION =
-  'Full-service digital agency building standout web products and creative technology for leading brands. Portfolio and labs on Nocturnal Cloud.';
+  'Explore Nocturnal Labs, Nocturnal Cloud’s dedicated space for AI research, advanced technology and experimental R&D, showcasing future-focused innovation, immersive digital concepts and high-tech exploration.';
 
 export const SEO_KEYWORDS = [
   'Nocturnal Labs',

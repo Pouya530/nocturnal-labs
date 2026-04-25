@@ -4,6 +4,7 @@ import { dmSans } from '@/lib/fonts';
 
 const PORTFOLIO_HREF = 'https://nocturnal.cloud/projects/';
 const LABS_HREF = 'https://nocturnal.cloud/labs';
+const NOCTURNAL_LABS_HREF = 'https://labs.nocturnal.cloud/';
 
 const iridescentNav =
   'coming-soon-text-iridescent landing-nav-glow text-[12px] font-medium uppercase leading-[1.5] tracking-[0.08em]';
@@ -25,7 +26,15 @@ export function LandingTopNav(): ReactElement {
       ].join(' ')}
       aria-label="Site"
     >
-      <p className={`pointer-events-auto ${iridescentNav}`}>Nocturnal Labs</p>
+      <a
+        className={linkClass}
+        href={NOCTURNAL_LABS_HREF}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Visit Nocturnal Labs website"
+      >
+        Nocturnal Labs
+      </a>
       <nav
         className="pointer-events-auto flex items-baseline gap-6 sm:gap-8"
         aria-label="External links"
