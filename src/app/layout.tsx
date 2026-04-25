@@ -58,7 +58,7 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Nocturnal Labs — digital experiences studio',
+        alt: 'Nocturnal Labs — landing preview with neon corners and coin mark',
         type: 'image/png',
       },
     ],
