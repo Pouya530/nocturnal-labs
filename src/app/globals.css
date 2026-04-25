@@ -39,6 +39,17 @@ body {
   }
 }
 
+/* 3D coin: default cap 440px; desktop (Tailwind lg / 1024px+) +25% → 550px, same vw gutter */
+.hero-logo-size-var {
+  --hero-logo-size: min(440px, calc(100vw - 3rem));
+}
+
+@media (min-width: 1024px) {
+  .hero-logo-size-var {
+    --hero-logo-size: min(550px, calc(100vw - 3rem));
+  }
+}
+
 /* Framing: circular vignette over the fractal — transparent centre (fractal shows through),
    darker toward the rim; do not set background-color or the centre would tint wrong. */
 .site-bg-radial-opacity {
