@@ -29,8 +29,6 @@ export function LandingTopNav(): ReactElement {
       <a
         className={`pointer-events-auto ${linkClass}`}
         href={NOCTURNAL_LABS_HREF}
-        target="_blank"
-        rel="noopener noreferrer"
         aria-label="Visit Nocturnal Labs website"
       >
         Nocturnal Labs
