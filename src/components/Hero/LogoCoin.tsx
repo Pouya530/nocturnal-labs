@@ -16,6 +16,8 @@ const FACE_SRC_BACK = '/brand/nocturnal-labs-logo-alt.png';
  * the edge and the black ring in the bitmap reads as a thinner border.
  */
 const LOGO_TEXTURE_FACE_ZOOM = 1.1;
+/** Positive value moves the face artwork slightly downward within the coin. */
+const LOGO_TEXTURE_FACE_Y_NUDGE = 0.018;
 
 /** Map × color; includes prior boosts, +25% vs last pass. */
 const LOGO_FACE_BRIGHTNESS = 1.3 * 1.25;
@@ -53,7 +55,7 @@ function layoutFaceTexture(tex: THREE.Texture) {
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
   if (z > 1) {
     tex.repeat.set(invZ, invZ);
-    tex.offset.set(0.5 * (1 - invZ), 0.5 * (1 - invZ));
+    tex.offset.set(0.5 * (1 - invZ), 0.5 * (1 - invZ) + LOGO_TEXTURE_FACE_Y_NUDGE);
   } else {
     tex.repeat.set(1, 1);
     tex.offset.set(0, 0);
