@@ -1,13 +1,20 @@
 import { ImageResponse } from 'next/og';
 
+import { getSiteUrl } from '@/lib/site';
+
 const W = 1200;
 const H = 630;
 
+/** Same front face as the 3D coin (`LogoCoin.tsx`) */
+const COIN_FACE_PATH = '/brand/updated-latin-motto.png';
+
 /**
  * 1200×630 share image inspired by the live landing: dark void centre, neon fractal-like
- * colour in the corners, iridescent “coin” mark, and typographic hierarchy (Satori-safe).
+ * colour in the corners, iridescent coin rim with real logo face, and typographic hierarchy.
  */
 export function nlBrandedImageResponse(): ImageResponse {
+  const coinFaceSrc = `${getSiteUrl()}${COIN_FACE_PATH}`;
+
   return new ImageResponse(
     (
       <div
@@ -94,7 +101,7 @@ export function nlBrandedImageResponse(): ImageResponse {
             paddingTop: 8,
           }}
         >
-          {/* Gradient “rim” + inner disc (coin abstraction) */}
+          {/* Gradient rim + real coin face (matches hero LogoCoin front texture) */}
           <div
             style={{
               width: 232,
@@ -111,25 +118,27 @@ export function nlBrandedImageResponse(): ImageResponse {
                 width: 198,
                 height: 198,
                 borderRadius: 9999,
+                overflow: 'hidden',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background:
-                  'radial-gradient(circle at 38% 32%, rgba(58,42,88,0.95) 0%, rgba(12,8,22,0.98) 48%, rgba(5,5,10,1) 100%)',
                 border: '2px solid rgba(196,181,253,0.35)',
+                background: '#0a0814',
               }}
             >
-              <div
+              {/* eslint-disable-next-line @next/next/no-img-element -- OG ImageResponse requires native img for Satori */}
+              <img
+                src={coinFaceSrc}
+                width={198}
+                height={198}
+                alt=""
                 style={{
-                  fontSize: 56,
-                  fontWeight: 800,
-                  color: '#f4f4f5',
-                  letterSpacing: '-0.04em',
-                  fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+                  width: 198,
+                  height: 198,
+                  objectFit: 'cover',
+                  objectPosition: 'center',
                 }}
-              >
-                NL
-              </div>
+              />
             </div>
           </div>
 

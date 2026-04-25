@@ -62,7 +62,7 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: `${SITE_NAME} — preview card with neon corners and coin mark`,
+        alt: `${SITE_NAME} — preview with coin logo, neon corners, and vignette`,
         type: 'image/png',
       },
     ],
