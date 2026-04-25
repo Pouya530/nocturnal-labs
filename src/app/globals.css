@@ -99,27 +99,8 @@ body {
   }
 }
 
-/* Same-direction spin as before: 0 → 1.5turn @ apex → 3turn; linear time = constant flip rate (real toss) */
-@keyframes logo-coin-lift-spin {
-  0% {
-    transform: rotateX(0deg);
-  }
-  50% {
-    transform: rotateX(1.5turn);
-  }
-  100% {
-    transform: rotateX(3turn);
-  }
-}
-
 .logo-coin-lift-animating-move {
   animation: logo-coin-lift-move 1.5s both;
-  will-change: transform;
-  transform-style: preserve-3d;
-}
-
-.logo-coin-lift-animating-spin {
-  animation: logo-coin-lift-spin 1.5s linear both;
   will-change: transform;
   transform-style: preserve-3d;
 }

@@ -13,9 +13,9 @@ const LogoCoinCanvas = dynamic<LogoCoinCanvasProps>(
 );
 
 /**
- * 3D coin mark: same logo texture on both faces, iridescent rim glow, slow spin.
- * Click runs a 3D toss: outer layer animates lift/return; inner uses linear rotateX
- * so the flip does not “hover” in spin at the apex. Full-screen fractal is unchanged.
+ * 3D coin mark: distinct front/back textures, iridescent rim, idle Y spin.
+ * Click runs a toss: CSS parabolic lift on the wrapper; flip rotation runs inside WebGL on X
+ * so both faces are visible (CSS rotateX on the canvas would not reveal the GL back face).
  */
 export function Logo(): ReactElement {
   const reducedMotion = useSyncExternalStore(
@@ -25,28 +25,25 @@ export function Logo(): ReactElement {
   );
 
   const [elevation, setElevation] = useState(false);
+  const [tossToken, setTossToken] = useState(0);
   const cycleLock = useRef(false);
   const moveRef = useRef<HTMLDivElement>(null);
-  const spinRef = useRef<HTMLDivElement>(null);
 
   const playLift = useCallback(() => {
     if (reducedMotion || cycleLock.current) return;
     const move = moveRef.current;
-    const spin = spinRef.current;
-    if (!move || !spin) return;
+    if (!move) return;
     cycleLock.current = true;
     setElevation(true);
+    setTossToken((n) => n + 1);
     move.classList.remove('logo-coin-lift-animating-move');
-    spin.classList.remove('logo-coin-lift-animating-spin');
     void move.offsetWidth;
     move.classList.add('logo-coin-lift-animating-move');
-    spin.classList.add('logo-coin-lift-animating-spin');
   }, [reducedMotion]);
 
   const onAnimationEnd = useCallback((e: AnimationEvent<HTMLDivElement>) => {
     if (e.animationName !== 'logo-coin-lift-move') return;
     e.currentTarget.classList.remove('logo-coin-lift-animating-move');
-    spinRef.current?.classList.remove('logo-coin-lift-animating-spin');
     cycleLock.current = false;
     setElevation(false);
   }, []);
@@ -81,13 +78,8 @@ export function Logo(): ReactElement {
           className="h-full w-full min-h-0 overflow-visible [transform-style:preserve-3d] [-webkit-backface-visibility:visible] [backface-visibility:visible]"
           onAnimationEnd={onAnimationEnd}
         >
-          <div
-            ref={spinRef}
-            className="h-full w-full min-h-0 overflow-visible [transform-style:preserve-3d] [-webkit-backface-visibility:visible] [backface-visibility:visible]"
-          >
-            <div className="block h-full w-full min-h-0 overflow-visible leading-none" aria-hidden>
-              <LogoCoinCanvas spin={!reducedMotion} />
-            </div>
+          <div className="block h-full w-full min-h-0 overflow-visible leading-none" aria-hidden>
+            <LogoCoinCanvas spin={!reducedMotion} tossToken={tossToken} />
           </div>
         </div>
       </div>
