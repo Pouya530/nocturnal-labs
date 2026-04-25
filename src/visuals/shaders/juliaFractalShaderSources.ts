@@ -55,6 +55,7 @@ uniform float uColorIntensity;
 uniform float uSpiralPhase;
 uniform float uViewAngle;
 uniform float uBarrelK;
+uniform float uFractalMode;
 
 // Continuous cosine-based rainbow palette — the core of the Cymatics "psychedelic" look.
 vec3 palette(float t) {
@@ -92,10 +93,10 @@ void main() {
   float sr = sin(uViewAngle);
   vec2 pr = vec2(p.x * cr + p.y * sr, -p.x * sr + p.y * cr);
 
-  // u_center is fixed at (0, 0) in Julia mode (the engine uses a fixed center + fixed zoom).
   vec2 complexCoord = pr;
-  vec2 z = complexCoord;
-  vec2 c = uC;
+  // 0.0 => Julia; 1.0 => Mandelbrot
+  vec2 z = (uFractalMode > 0.5) ? vec2(0.0) : complexCoord;
+  vec2 c = (uFractalMode > 0.5) ? complexCoord : uC;
 
   float n = -1.0;
   // Bounded loop with runtime cutoff (WebGL1 GLSL ES 1.00 requires a constant bound).

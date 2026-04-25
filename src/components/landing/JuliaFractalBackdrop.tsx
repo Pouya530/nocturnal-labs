@@ -90,10 +90,12 @@ function expSmooth(cur: number, target: number, dt: number, tau: number): number
  */
 export type JuliaFractalBackdropProps = {
   introTRef?: MutableRefObject<number>;
+  mode?: 'julia' | 'mandelbrot';
 };
 
 export function JuliaFractalBackdrop({
   introTRef: introTRefProp = INTRO_T_DEFAULT,
+  mode = 'julia',
 }: JuliaFractalBackdropProps): ReactElement {
   const introTRef = introTRefProp;
   const reduced = useSyncExternalStore(motionPrefs.subscribe, () => motionPrefs.reduced, () => false);
@@ -114,6 +116,7 @@ export function JuliaFractalBackdrop({
     uSpiralPhase: WebGLUniformLocation | null;
     uViewAngle: WebGLUniformLocation | null;
     uBarrelK: WebGLUniformLocation | null;
+    uFractalMode: WebGLUniformLocation | null;
     aPos: number;
   } | null>(null);
   const t0Ref = useRef(0);
@@ -166,6 +169,7 @@ export function JuliaFractalBackdrop({
       uSpiralPhase: gl.getUniformLocation(program, 'uSpiralPhase'),
       uViewAngle: gl.getUniformLocation(program, 'uViewAngle'),
       uBarrelK: gl.getUniformLocation(program, 'uBarrelK'),
+      uFractalMode: gl.getUniformLocation(program, 'uFractalMode'),
       aPos,
     };
 
@@ -352,6 +356,7 @@ export function JuliaFractalBackdrop({
       if (L.uSpiralPhase) g.uniform1f(L.uSpiralPhase, spiralAccum);
       if (L.uViewAngle) g.uniform1f(L.uViewAngle, viewAngle);
       if (L.uBarrelK) g.uniform1f(L.uBarrelK, barrelK);
+      if (L.uFractalMode) g.uniform1f(L.uFractalMode, mode === 'mandelbrot' ? 1 : 0);
 
       g.drawArrays(g.TRIANGLES, 0, 3);
       rafRef.current = requestAnimationFrame(draw);
@@ -375,7 +380,7 @@ export function JuliaFractalBackdrop({
       glRef.current = null;
       locRef.current = null;
     };
-  }, [reduced, maxIter, introTRef]);
+  }, [reduced, maxIter, introTRef, mode]);
 
   if (useCss) {
     return (
