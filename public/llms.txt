@@ -1,20 +1,17 @@
 # Nocturnal Labs
 
-> Full-service digital agency crafting standout experiences for leading brands — landing and studio presence.
+> Full-service digital agency crafting standout web and creative-technology experiences for leading brands.
 
 ## About
 
-Nocturnal Labs builds digital products, creative technology, and brand-forward web experiences. This site is the public coming-soon landing; portfolio and labs work live on Nocturnal Cloud.
+Nocturnal Labs ships brand-forward digital products and interactive experiences. This repository powers the public landing; deeper work is linked from the live site navigation.
 
 ## Key pages
 
-- https://nocturnal-labs.vercel.app/ — Homepage (canonical may use your custom domain when configured)
+- Homepage at `/` — hero, 3D mark, and studio messaging.
 
-## Related
+## Related (public)
 
 - Portfolio: https://nocturnal.cloud/projects/
 - Labs: https://nocturnal.cloud/labs/
-
-## Contact
-
-- Web: https://nocturnal.cloud/
+- Nocturnal Cloud: https://nocturnal.cloud/

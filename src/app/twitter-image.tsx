@@ -2,7 +2,7 @@ import { nlBrandedImageResponse } from '@/lib/og-brand-image';
 
 export const runtime = 'edge';
 export const alt =
-  'Nocturnal Labs landing-style preview: neon fractal corners, vignette, and coin mark — digital experiences studio';
+  'Nocturnal Labs — share preview: neon corners, vignette, and coin-style mark (1200×630)';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 

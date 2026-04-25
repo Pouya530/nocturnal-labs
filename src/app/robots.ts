@@ -6,6 +6,15 @@ const disallow = ['/api/', '/_next/', '/private/'];
 
 export default function robots(): MetadataRoute.Robots {
   const base = getSiteUrl();
+  const hostname = (() => {
+    try {
+      const h = new URL(base).hostname;
+      return h && h !== 'localhost' ? h : undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
   return {
     rules: [
       { userAgent: '*', allow: '/', disallow: disallow },
@@ -22,6 +31,6 @@ export default function robots(): MetadataRoute.Robots {
       { userAgent: 'Bytespider', disallow: '/' },
     ],
     sitemap: `${base}/sitemap.xml`,
-    host: base.replace(/^https?:\/\//, ''),
+    ...(hostname ? { host: hostname } : {}),
   };
 }
