@@ -14,11 +14,15 @@ export const SEO_DESCRIPTION =
 
 export const SEO_KEYWORDS = [
   'Nocturnal Labs',
-  'digital agency',
-  'creative technology',
-  'web design',
-  'brand experiences',
-  'product design',
+  'AI',
+  'R&D',
+  'Advanced Technology Innovation',
+  'AI research',
+  'advanced technology',
+  'experimental R&D',
+  'future-focused innovation',
+  'immersive digital concepts',
+  'high-tech exploration',
   'Nocturnal Cloud',
 ] as const;
 

@@ -166,7 +166,7 @@ export function nlBrandedImageResponse(): ImageResponse {
               fontFamily: 'ui-sans-serif, system-ui, sans-serif',
             }}
           >
-            Full-service agency crafting standout digital experiences for leading brands.
+            AI research, advanced technology and experimental R&amp;D from Nocturnal Cloud.
           </div>
         </div>
 
