@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import Script from 'next/script';
 
 import { JsonLd } from '@/components/seo/JsonLd';
 import { dmSans } from '@/lib/fonts';
@@ -90,6 +91,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const GA_MEASUREMENT_ID = 'G-FGQ8C9NF84';
+
 const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -125,6 +128,18 @@ const structuredData = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en-GB" className={dmSans.variable}>
+      <head>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-tag-gtag" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA_MEASUREMENT_ID}');`}
+        </Script>
+      </head>
       <body>
         <JsonLd data={structuredData} />
         {children}
