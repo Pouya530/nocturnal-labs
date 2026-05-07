@@ -49,15 +49,16 @@ export const WORMHOLE4_SENSITIVITY = 0.014;
 
 /**
  * Wormhole lab routes (`/wormhole`…): `LogoCoinCanvas` width/height as % of the logo stage so
- * scroll-driven camera zoom / FOV does not clip the coin at the GL framebuffer edges.
+ * scroll-driven camera zoom / FOV does not clip the coin at the GL framebuffer edges (fast wheel /
+ * locked velocity spikes need generous slack).
  */
-export const WORMHOLE_LAB_COIN_CANVAS_PERCENT = 188;
+export const WORMHOLE_LAB_COIN_CANVAS_PERCENT = 222;
 
 /**
  * `WormholeCoinDepthScale` layout slot vs `--hero-logo-size` — extra margin around the coin before
  * depth `scale()` so zoomed GL paint stays inside the transformed box.
  */
-export const WORMHOLE_COIN_DEPTH_SLOT_MUL = 1.68;
+export const WORMHOLE_COIN_DEPTH_SLOT_MUL = 1.84;
 
 /**
  * `/wormhole4` — Wormhole (3D) debug panel defaults on first paint (restored when leaving the route).
