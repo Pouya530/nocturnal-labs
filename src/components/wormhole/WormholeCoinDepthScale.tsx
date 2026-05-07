@@ -21,7 +21,15 @@ export function WormholeCoinDepthScale({ children }: { children: ReactNode }): R
 
     let raf = 0;
     let last = performance.now();
-    let smooth = 1;
+    const targetScaleFromDepth = () => {
+      const s = tunnelStore.getState();
+      const max = Math.max(1, s.maxDepth);
+      const linearNorm = Math.min(1, Math.max(0, s.depth / max));
+      const eased = Math.sqrt(linearNorm);
+      return 1 - 0.5 * eased;
+    };
+
+    let smooth = targetScaleFromDepth();
 
     const tick = (now: number) => {
       const dt = Math.min((now - last) * 0.001, 0.05);
@@ -33,11 +41,7 @@ export function WormholeCoinDepthScale({ children }: { children: ReactNode }): R
         return;
       }
 
-      const s = tunnelStore.getState();
-      const max = Math.max(1, s.maxDepth);
-      const linearNorm = Math.min(1, Math.max(0, s.depth / max));
-      const eased = Math.sqrt(linearNorm);
-      const target = 1 - 0.5 * eased;
+      const target = targetScaleFromDepth();
       smooth += (target - smooth) * (1 - Math.exp(-24 * dt));
 
       el.style.transform = `scale(${smooth})`;

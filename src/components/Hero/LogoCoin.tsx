@@ -588,6 +588,27 @@ export function LogoCoinCanvas({ spin, tossToken = 0, spinSyncScroll = false }: 
     return webglCoinCanvasDpr(window.devicePixelRatio || 1);
   }, []);
 
+  /** R3F measures the canvas box once at mount; after visibility/layout shifts the framebuffer can stay undersized until a resize — visible as top/bottom clip on the first strong zoom-in. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!coinShown && !reducedMotion) return;
+    const fire = () => window.dispatchEvent(new Event('resize'));
+    const t0 = window.setTimeout(fire, 0);
+    const t1 = window.setTimeout(fire, 150);
+    const t2 = window.setTimeout(fire, 1100);
+    return () => {
+      clearTimeout(t0);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [coinShown, reducedMotion]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const id = window.setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
+    return () => clearTimeout(id);
+  }, [wormholeLabBigCanvas]);
+
   return (
     <div
       className={[
