@@ -7,7 +7,6 @@ import { motionPrefs } from '@/core/motion';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { LocalTunnelChrome } from '@/components/landing/LocalTunnelChrome';
 import { SitePreloader } from '@/components/landing/SitePreloader';
-import { Wormhole4AtmosphereOverlay } from '@/components/wormhole/Wormhole4AtmosphereOverlay';
 import { WormholeCoinSyncedMarqueeFooter } from '@/components/wormhole/WormholeCoinSyncedMarqueeFooter';
 import { WormholeJuliaThreeBackdrop } from '@/components/wormhole/WormholeJuliaThreeBackdrop';
 import {
@@ -212,7 +211,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         journeyCameraFromStart
         helixLabFullscreen
       />
-      <Wormhole4AtmosphereOverlay fullscreenBleed />
       <LocalTunnelChrome
         showWormholeControls
         showModeToggle={false}
