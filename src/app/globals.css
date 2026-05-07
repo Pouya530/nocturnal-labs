@@ -69,14 +69,14 @@ html.scroll-locked[data-scroll-mode='free'] body {
   }
 }
 
-/* 3D coin: base cap 280px (was 300); same vw gutter */
+/* 3D coin sizing: slightly bigger on mobile, slightly smaller on desktop. */
 .hero-logo-size-var {
-  --hero-logo-size: min(280px, calc(100vw - 3rem));
+  --hero-logo-size: min(292px, calc(100vw - 2.75rem));
 }
 
 @media (min-width: 1024px) {
   .hero-logo-size-var {
-    --hero-logo-size: min(280px, calc(100vw - 3rem));
+    --hero-logo-size: min(268px, calc(100vw - 3rem));
   }
 }
 
