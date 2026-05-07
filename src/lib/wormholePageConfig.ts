@@ -28,11 +28,14 @@ export const WORMHOLE6_MOBILE_TUNNEL_START = {
   velocity: 0,
 } as const;
 
-/**
- * Higher than default store friction (0.92) so touch scroll coasts longer — easier to keep moving on
- * phones (`useScrollDepth` uses `Math.pow(friction, dt * 8)`).
- */
-export const WORMHOLE6_MOBILE_FRICTION = 0.965;
+/** `/` intro — scroll-depth sweep amplitude into tube → settle at mouth (desktop). */
+export const WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP = 208;
+
+/** `/` intro — slightly smaller sweep on touch-first (already deeper via {@link WORMHOLE6_MOBILE_TUNNEL_START}). */
+export const WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH = 112;
+
+/** Logo fade follows tunnel sweep when linear intro progress crosses this threshold (0–1). */
+export const WORMHOLE_HOME_INTRO_LOGO_FADE_START = 0.36;
 
 /** `/wormhole4` — `tunnelStore.sensitivity` for wheel → depth (`useScrollDepth`). */
 export const WORMHOLE4_SENSITIVITY = 0.014;

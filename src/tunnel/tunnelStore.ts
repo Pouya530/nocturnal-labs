@@ -62,6 +62,11 @@ export type TunnelState = {
   wormholeDebugRandomCamTilt: boolean;
   /** Tunnel debug — show `BlackHoleOverlay` under the hero coin on wormhole lab routes. */
   wormholeBlackHoleOverlayEnabled: boolean;
+  /**
+   * Production home intro: when non-null, {@link useScrollDepth} applies this depth and zero
+   * velocity each tick instead of integrating scroll (pan/zoom settle before hand-off).
+   */
+  wormholeIntroDepthOverride: number | null;
 };
 
 const initial: TunnelState = {
@@ -101,6 +106,7 @@ const initial: TunnelState = {
   wormholeScrollHelixVelGain: 0,
   wormholeDebugRandomCamTilt: false,
   wormholeBlackHoleOverlayEnabled: false,
+  wormholeIntroDepthOverride: null,
 };
 
 let state: TunnelState = { ...initial };

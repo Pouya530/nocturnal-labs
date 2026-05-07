@@ -21,6 +21,9 @@ import {
   WORMHOLE5_TUNNEL_START,
   WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
+  WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP,
+  WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH,
+  WORMHOLE_HOME_INTRO_LOGO_FADE_START,
 } from '@/lib/wormholePageConfig';
 import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
@@ -32,6 +35,12 @@ const INTRO_MS = 4800;
 
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function homeIntroLogoOpacity(linearIntro01: number): number {
+  const s = WORMHOLE_HOME_INTRO_LOGO_FADE_START;
+  if (linearIntro01 <= s) return 0;
+  return easeInOutCubic((linearIntro01 - s) / (1 - s));
 }
 
 /**
@@ -53,6 +62,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     if (reduced) {
       introTRef.current = 1;
       document.documentElement.style.setProperty('--nl-intro', '1');
+      document.documentElement.style.setProperty('--nl-logo-o', '1');
       try {
         sessionStorage.setItem(SESSION_KEY, '1');
       } catch {
@@ -64,6 +74,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       if (sessionStorage.getItem(SESSION_KEY) === '1') {
         introTRef.current = 1;
         document.documentElement.style.setProperty('--nl-intro', '1');
+        document.documentElement.style.setProperty('--nl-logo-o', '1');
         return;
       }
     } catch {
@@ -71,6 +82,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     }
     introTRef.current = 0;
     document.documentElement.style.setProperty('--nl-intro', '0');
+    document.documentElement.style.setProperty('--nl-logo-o', '0');
   }, [reduced]);
 
   const onPreloaderGone = useCallback(() => {
@@ -82,19 +94,44 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     }
     if (introStarted.current) return;
     introStarted.current = true;
+
+    const touchPrimary = isCoarseOrTouchPrimaryViewport();
+    const depthFinal = touchPrimary
+      ? WORMHOLE6_MOBILE_TUNNEL_START.depth
+      : WORMHOLE5_TUNNEL_START.depth;
+    const delta = touchPrimary
+      ? WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH
+      : WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP;
+    const maxDepth = Math.max(1, tunnelStore.getState().maxDepth);
+    const depthStart = Math.min(depthFinal + delta, maxDepth);
+
     const t0 = performance.now();
     const step = (now: number) => {
       const u = Math.min(1, (now - t0) / INTRO_MS);
       const e = easeInOutCubic(u);
       introTRef.current = e;
+      const sweepDepth = depthStart + (depthFinal - depthStart) * e;
+      const logoO = homeIntroLogoOpacity(u);
+
       if (document.documentElement) {
         document.documentElement.style.setProperty('--nl-intro', String(e));
+        document.documentElement.style.setProperty('--nl-logo-o', String(logoO));
       }
+
+      tunnelStore.setState({ wormholeIntroDepthOverride: sweepDepth });
+
       if (u < 1) {
         rafId.current = requestAnimationFrame(step);
       } else {
         introTRef.current = 1;
         document.documentElement.style.setProperty('--nl-intro', '1');
+        document.documentElement.style.setProperty('--nl-logo-o', '1');
+        tunnelStore.setState({
+          wormholeIntroDepthOverride: null,
+          depth: depthFinal,
+          velocity: 0,
+          scrollInputIdle: 1,
+        });
         try {
           sessionStorage.setItem(SESSION_KEY, '1');
         } catch {
@@ -137,6 +174,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevFogDensity = s.fogDensity;
     const prevSensitivity = s.sensitivity;
     const prevScrollInputIdle = s.scrollInputIdle;
+    const prevIntroDepthOv = s.wormholeIntroDepthOverride;
     const touchPrimary = isCoarseOrTouchPrimaryViewport();
 
     tunnelStore.setState({
@@ -169,6 +207,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         depth: prevDepth,
         velocity: prevVelocity,
         scrollInputIdle: prevScrollInputIdle,
+        wormholeIntroDepthOverride: prevIntroDepthOv,
         wormholeScrollVisualMul: prevScrollVisualMul,
         wormholeScrollHelixVelGain: prevScrollHelixVelGain,
         wormhole3dBackgroundEnabled: prevWormhole3d,
@@ -208,7 +247,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         scrollOptions={{ impulseSign: WORMHOLE_CLASSIC_TUNNEL.scrollImpulseSign }}
       />
       <LandingTopNav />
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 wormhole-home-intro-logo">{children}</div>
       <WormholeCoinSyncedMarqueeFooter />
       <SitePreloader onGone={onPreloaderGone} />
     </div>

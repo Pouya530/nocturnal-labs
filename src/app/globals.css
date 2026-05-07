@@ -97,6 +97,11 @@ html.scroll-locked[data-scroll-mode='free'] body {
   overflow: visible !important;
 }
 
+/* `/` wormhole home — hero opacity during tunnel intro sweep (see Wormhole6ClientShell). */
+.wormhole-home-intro-logo {
+  opacity: var(--nl-logo-o, 1);
+}
+
 /* Cinematic intro: logo recedes with --nl-intro (0→1) — see CinematicClientShell & JuliaFractalBackdrop */
 .cinematic-hero-depth {
   transform: translate3d(0, 0, calc(32px * (1 - var(--nl-intro, 1))))

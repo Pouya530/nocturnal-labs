@@ -244,6 +244,19 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
         return idle;
       };
 
+      const introDepthOv = s.wormholeIntroDepthOverride;
+      if (introDepthOv !== null) {
+        wheelAccumRef.current = 0;
+        keyScrollNudgeRef.current = false;
+        const d = Math.max(0, Math.min(maxDepth, introDepthOv));
+        currentDepthRef.current = d;
+        currentVelocityRef.current = 0;
+        const scrollInputIdle = advanceScrollInputIdle(false);
+        tunnelStore.setState({ depth: d, velocity: 0, scrollInputIdle });
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
       if (s.mode === 'free') {
         const rawFree = wheelAccumRef.current;
         const impulse = rawFree * effSens;
