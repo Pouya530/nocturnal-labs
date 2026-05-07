@@ -62,8 +62,7 @@ function isChromiumDesktopBrowser(ua: string): boolean {
 }
 
 /**
- * Desktop Chrome/Edge trackpad + mouse wheel often feels slower than Safari for the same gesture.
- * Boost wheel impulse here (touch pan is unchanged). Safari / iOS / coarse touch stay at 1.
+ * Desktop Chrome/Edge: extra wheel gain (touch uses {@link scrollSensitivityRouteBoost} in the tick).
  */
 function wheelImpulseBrowserScale(): number {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return 1;
@@ -71,18 +70,37 @@ function wheelImpulseBrowserScale(): number {
   const ua = navigator.userAgent;
   if (isTouchPrimaryOrMobileWebKit(ua)) return 1;
   if (isDesktopWebKitSafari(ua)) return 1;
-  if (isChromiumDesktopBrowser(ua)) return 1.22;
+  if (isChromiumDesktopBrowser(ua)) return 1.3;
   return 1;
 }
 
-/** Slightly higher friction coefficient on Chromium desktop so coast length matches Safari. */
+/** Chrome desktop + touch-primary mobile: stronger response to the same store `sensitivity`. */
+function scrollSensitivityRouteBoost(): number {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return 1;
+  const ua = navigator.userAgent;
+  if (isTouchPrimaryOrMobileWebKit(ua)) return 1.38;
+  if (isChromiumDesktopBrowser(ua)) return 1.38;
+  return 1;
+}
+
+/** Extra finger-pan gain on phones / tablets (same accumulator as wheel in locked mode). */
+function touchPanRouteBoost(): number {
+  if (typeof navigator === 'undefined') return 1;
+  return isTouchPrimaryOrMobileWebKit(navigator.userAgent) ? 1.16 : 1;
+}
+
+/**
+ * Lower numeric friction on Chrome + mobile only (less “sticky” coast vs desktop Safari).
+ * `Math.pow(friction, dt*8)` — smaller coefficient = slightly faster velocity bleed per frame.
+ */
 function scrollFrictionEffective(storeFriction: number): number {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return storeFriction;
   const ua = navigator.userAgent;
-  if (isTouchPrimaryOrMobileWebKit(ua)) return storeFriction;
-  if (isDesktopWebKitSafari(ua)) return storeFriction;
-  if (isChromiumDesktopBrowser(ua)) {
-    return Math.min(0.99, storeFriction + 0.07);
+  if (isDesktopWebKitSafari(ua) && !isTouchPrimaryOrMobileWebKit(ua)) {
+    return storeFriction;
+  }
+  if (isTouchPrimaryOrMobileWebKit(ua) || isChromiumDesktopBrowser(ua)) {
+    return Math.max(0.78, storeFriction - 0.055);
   }
   return storeFriction;
 }
@@ -118,6 +136,8 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
     if (!enabled) return;
 
     const wheelScale = wheelImpulseBrowserScale();
+    const sensRouteBoost = scrollSensitivityRouteBoost();
+    const touchPanBoost = touchPanRouteBoost();
 
     const syncFromStore = () => {
       const s = tunnelStore.getState();
@@ -156,7 +176,8 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
       /** Locked + free: touch pan drives the same accumulator as wheel (mobile has no wheel). */
       e.preventDefault();
       const y = e.touches[0].clientY;
-      wheelAccumRef.current += (lastTouchYRef.current - y) * TOUCH_MULTIPLIER * impulseSign;
+      wheelAccumRef.current +=
+        (lastTouchYRef.current - y) * TOUCH_MULTIPLIER * touchPanBoost * impulseSign;
       lastTouchYRef.current = y;
     };
     window.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -212,6 +233,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
       const maxDepth = Math.max(1, s.maxDepth ?? DEFAULT_MAX_DEPTH);
       const coast = Math.exp(-dt / SCROLL_COAST_TAU_SEC);
       const frictionEff = scrollFrictionEffective(s.friction);
+      const effSens = s.sensitivity * sensRouteBoost;
 
       const advanceScrollInputIdle = (hadInput: boolean) => {
         let idle = scrollInputIdleRef.current;
@@ -224,7 +246,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
 
       if (s.mode === 'free') {
         const rawFree = wheelAccumRef.current;
-        const impulse = rawFree * s.sensitivity;
+        const impulse = rawFree * effSens;
         wheelAccumRef.current = 0;
         const hadInput = Math.abs(rawFree) > 1e-9 || keyScrollNudgeRef.current;
         let v = currentVelocityRef.current + impulse;
@@ -250,7 +272,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
         let impulseMul = LOCKED_IMPULSE_BASE;
         if (chunk >= LOCKED_IMPULSE_VFAST_ABS) impulseMul *= LOCKED_IMPULSE_VFAST_MUL;
         else if (chunk >= LOCKED_IMPULSE_FAST_ABS) impulseMul *= LOCKED_IMPULSE_FAST_MUL;
-        const impulse = rawWheel * s.sensitivity * impulseMul;
+        const impulse = rawWheel * effSens * impulseMul;
         let v = currentVelocityRef.current + impulse;
         v = Math.max(-LOCKED_VEL_MAX, Math.min(LOCKED_VEL_MAX, v));
         let d = currentDepthRef.current + v * dt;
