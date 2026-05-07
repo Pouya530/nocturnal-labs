@@ -21,7 +21,11 @@ import {
   getActiveLandingBackdropMode,
   subscribeActiveLandingBackdropMode,
 } from '@/lib/landingBackdropMode';
-import { isIOSLike, webglPowerPreference, webglWormholeAntialias } from '@/lib/webglMobilePrefs';
+import {
+  webglCoinAntialias,
+  webglCoinCanvasDpr,
+  webglPowerPreference,
+} from '@/lib/webglMobilePrefs';
 import { WORMHOLE_LAB_COIN_CANVAS_PERCENT } from '@/lib/wormholePageConfig';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
@@ -181,6 +185,9 @@ function layoutFaceTexture(tex: THREE.Texture) {
   const invZ = 1 / z;
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 16;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = true;
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
   if (z > 1) {
     tex.repeat.set(invZ, invZ);
@@ -259,6 +266,7 @@ function ScrollVelocityCamera({ enabled }: { enabled: boolean }): null {
 }
 
 function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMeshProps): ReactElement {
+  const { gl } = useThree();
   const rimSideTex = useMemo(() => createCoinRimSideTexture(), []);
   useEffect(() => {
     return () => {
@@ -311,6 +319,9 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
   useLayoutEffect(() => {
     layoutFaceTexture(frontTex);
     layoutFaceTexture(backTex);
+    const cap = Math.min(16, gl.capabilities.getMaxAnisotropy());
+    frontTex.anisotropy = cap;
+    backTex.anisotropy = cap;
     faceMaterialFront.map = frontTex;
     faceMaterialFront.needsUpdate = true;
     faceMaterialBack.map = backTex;
@@ -319,7 +330,7 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
       resetFaceTextureLayout(frontTex);
       resetFaceTextureLayout(backTex);
     };
-  }, [frontTex, backTex, faceMaterialFront, faceMaterialBack]);
+  }, [gl, frontTex, backTex, faceMaterialFront, faceMaterialBack]);
 
   const loadedRef = useRef(false);
   useLayoutEffect(() => {
@@ -572,7 +583,10 @@ export function LogoCoinCanvas({ spin, tossToken = 0, spinSyncScroll = false }: 
   }, [coinShown, reducedMotion]);
 
   const wormholeLabBigCanvas = useWormholeLabOversizedCanvas(spinSyncScroll);
-  const canvasDpr = useMemo((): number | [number, number] => (isIOSLike() ? 1 : [1, 2]), []);
+  const canvasDpr = useMemo((): number | [number, number] => {
+    if (typeof window === 'undefined') return [1, 2];
+    return webglCoinCanvasDpr(window.devicePixelRatio || 1);
+  }, []);
 
   return (
     <div
@@ -599,7 +613,7 @@ export function LogoCoinCanvas({ spin, tossToken = 0, spinSyncScroll = false }: 
         style={{ overflow: 'visible' }}
         dpr={canvasDpr}
         resize={{ scroll: true, debounce: 0, offsetSize: true }}
-        gl={{ alpha: true, antialias: webglWormholeAntialias(), powerPreference: webglPowerPreference() }}
+        gl={{ alpha: true, antialias: webglCoinAntialias(), powerPreference: webglPowerPreference() }}
         onCreated={({ gl }) => {
           gl.setClearColor(0x000000, 0);
           gl.toneMapping = THREE.NoToneMapping;

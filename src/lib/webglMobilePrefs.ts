@@ -35,6 +35,25 @@ export function webglWormholePixelRatio(devicePixelRatio: number): number {
 }
 
 /**
+ * Logo coin R3F canvas only: small framebuffer — multisample AA is cheap and softens silhouette /
+ * rim aliasing on retina (full-screen tunnel still uses {@link webglWormholeAntialias}).
+ */
+export function webglCoinAntialias(): boolean {
+  return true;
+}
+
+/**
+ * iOS was using DPR 1 on the coin to match conservative tunnel tuning; that makes the mark look
+ * pixelated on 2×/3× iPhone. Cap at 2 — sharp enough, lighter than uncapped 3×.
+ */
+export function webglCoinCanvasDpr(devicePixelRatio: number): number | [number, number] {
+  if (isIOSLike()) {
+    return Math.min(2, Math.max(1, devicePixelRatio || 1));
+  }
+  return [1, 2];
+}
+
+/**
  * Tunnel scroll defaults: phones / tablets where finger pan drives depth (not desktop + trackpad).
  * `(hover: none) + touch` covers some browsers that omit `(pointer: coarse)`.
  */
