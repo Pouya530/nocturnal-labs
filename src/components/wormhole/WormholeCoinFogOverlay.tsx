@@ -45,12 +45,13 @@ function bloomLayerGradient(index: number, rgb: [number, number, number]): strin
   const [r, g, b] = rgb;
   const L = LAYER_LAYOUT[index] ?? LAYER_LAYOUT[0]!;
   const stops = [
-    `rgba(${r},${g},${b},0.56) 0%`,
-    `rgba(${r},${g},${b},0.26) 26%`,
-    `rgba(${r},${g},${b},0.085) 52%`,
-    `rgba(${r},${g},${b},0.026) 74%`,
-    `rgba(${r},${g},${b},0.007) 90%`,
-    `rgba(${r},${g},${b},0.002) 97%`,
+    `rgba(${r},${g},${b},0.72) 0%`,
+    `rgba(${r},${g},${b},0.38) 24%`,
+    `rgba(${r},${g},${b},0.14) 48%`,
+    `rgba(${r},${g},${b},0.048) 70%`,
+    `rgba(${r},${g},${b},0.014) 86%`,
+    `rgba(${r},${g},${b},0.004) 95%`,
+    `rgba(${r},${g},${b},0.001) 99%`,
     `transparent 100%`,
   ].join(', ');
   return `radial-gradient(ellipse ${L.ew}% ${L.eh}% at ${L.cx}% ${L.cy}%, ${stops})`;
@@ -63,19 +64,20 @@ function atmosphereGradient(rgb: [number, number, number]): string {
   const ag = Math.round(g * 0.08 + 1 * 0.92);
   const ab = Math.round(b * 0.08 + 15 * 0.92);
   return [
-    'radial-gradient(ellipse 112% 112% at 50% 48%,',
-    `rgba(5,1,15,0) 14%,`,
-    `rgba(${ar},${ag},${ab},0.14) 38%,`,
-    `rgba(5,1,15,0.38) 58%,`,
-    `rgba(5,1,15,0.14) 78%,`,
-    `rgba(5,1,15,0.035) 92%,`,
+    'radial-gradient(ellipse 118% 118% at 50% 48%,',
+    `rgba(5,1,15,0) 12%,`,
+    `rgba(${ar},${ag},${ab},0.2) 36%,`,
+    `rgba(5,1,15,0.46) 56%,`,
+    `rgba(5,1,15,0.18) 76%,`,
+    `rgba(5,1,15,0.048) 90%,`,
+    `rgba(5,1,15,0.01) 97%,`,
     `transparent 100%)`,
   ].join(' ');
 }
 
-/** Long feather mask so the whole fog stack vanishes smoothly — no hard oval rim. */
+/** Softer, longer outer feather — opaque core stays readable; rim lingers near-transparent before clearing. */
 const FOG_OUTER_MASK =
-  'radial-gradient(ellipse 100% 100% at 50% 50%, #000 0%, #000 22%, rgba(0,0,0,0.78) 38%, rgba(0,0,0,0.36) 58%, rgba(0,0,0,0.12) 76%, rgba(0,0,0,0.028) 90%, rgba(0,0,0,0.004) 97%, transparent 100%)';
+  'radial-gradient(ellipse 100% 100% at 50% 50%, #000 0%, #000 14%, rgba(0,0,0,0.88) 30%, rgba(0,0,0,0.62) 46%, rgba(0,0,0,0.32) 64%, rgba(0,0,0,0.12) 80%, rgba(0,0,0,0.035) 91%, rgba(0,0,0,0.008) 97%, rgba(0,0,0,0.002) 99.2%, transparent 100%)';
 
 const LAYER_WEIGHTS = [1, 0.92, 0.88, 0.72, 0.65] as const;
 
@@ -120,8 +122,8 @@ export function WormholeCoinFogOverlay(): ReactElement {
       const strength = clamp(s.bloomStrength, 0, 2.5);
       const radius = clamp(s.bloomRadius, 0, 1.5);
 
-      const gain = (0.26 + strength * 0.44) * reduced;
-      const blurPx = 6 + radius * 28;
+      const gain = (0.32 + strength * 0.5) * reduced;
+      const blurPx = 6 + radius * 30;
 
       root.style.setProperty('--bf-blur', `${blurPx}px`);
 
@@ -133,8 +135,8 @@ export function WormholeCoinFogOverlay(): ReactElement {
 
       const atmo = atmoRef.current;
       if (atmo) {
-        const atmoOp = (0.18 + strength * 0.15) * reduced * 0.85;
-        atmo.style.opacity = String(clamp(atmoOp, 0, 0.72));
+        const atmoOp = (0.22 + strength * 0.18) * reduced * 0.88;
+        atmo.style.opacity = String(clamp(atmoOp, 0, 0.8));
       }
 
       if (motionPrefs.reduced) {
@@ -182,7 +184,7 @@ export function WormholeCoinFogOverlay(): ReactElement {
     <div
       ref={rootRef}
       aria-hidden
-      className="pointer-events-none absolute inset-[-78%] z-[8] overflow-visible rounded-[50%] opacity-0 [mask-image:var(--bf-outer-mask)] [-webkit-mask-image:var(--bf-outer-mask)] [mask-repeat:no-repeat] [-webkit-mask-repeat:no-repeat] [mask-size:100%_100%] [-webkit-mask-size:100%_100%]"
+      className="pointer-events-none absolute inset-[-88%] z-[8] overflow-visible rounded-[50%] opacity-0 [mask-image:var(--bf-outer-mask)] [-webkit-mask-image:var(--bf-outer-mask)] [mask-repeat:no-repeat] [-webkit-mask-repeat:no-repeat] [mask-size:100%_100%] [-webkit-mask-size:100%_100%]"
       style={
         {
           visibility: 'hidden',
