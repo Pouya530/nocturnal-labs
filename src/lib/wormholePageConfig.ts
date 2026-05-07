@@ -92,7 +92,7 @@ export const WORMHOLE5_DEBUG_START = {
  * ribbons keep the same UnrealBloom “flare” as wormhole2.
  */
 export const WORMHOLE2_HELIX_LAB_POSTFX = {
-  bloomStrength: 0.65,
+  bloomStrength: 0.5,
   bloomRadius: 1.5,
   bloomThreshold: 0.18,
   fogDensity: 0.018,
