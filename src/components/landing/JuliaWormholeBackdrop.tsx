@@ -188,8 +188,8 @@ export function JuliaWormholeBackdrop({
     const useThroatCamera = throat || !!throatCameraJourney;
     const flareFinalThird = !helixLab && !throat;
     const useRingGrowthInversion = ringGrowthInversion && !throat;
-    /** Full `/wormhole5` stack: lab helices + inverted rings + intro mouth overlay. */
-    const wormhole5HelixLab = helixLab && introRingsOverlay && ringGrowthInversion;
+    /** Softer helix ribbons / halo matching wormhole5 aesthetic — used with mouth overlay or fullscreen prod lab (`helixLabFullscreen`). */
+    const wormhole5HelixLab = helixLab && ringGrowthInversion && (introRingsOverlay || helixLabFullscreen);
 
     /** `/wormhole3` scroll arc: distant mouth → full-screen tube → emerge on far side. */
     /** Longer intro leg + stronger pull-back / wide FOV at j≈0 — small centered mouth (wormhole3 ref). */
@@ -494,7 +494,8 @@ export function JuliaWormholeBackdrop({
       const mesh = new THREE.Mesh(tube, mat);
       mesh.userData.basePhase = phaseOffset;
       /** Intro mouth rings use `renderOrder` 40 + no depth test; draw lab helices after so ribbons stay visible (`/wormhole5`). */
-      if (helixLab && introRingsOverlay) mesh.renderOrder = 50;
+      /** Intro mouth rings draw above helices when stacked; fullscreen prod lab lifts helices over inversion rings without overlay. */
+      if (helixLab && (introRingsOverlay || helixLabFullscreen)) mesh.renderOrder = 50;
       helices.push(mesh);
       scene.add(mesh);
     }
@@ -879,7 +880,7 @@ export function JuliaWormholeBackdrop({
         let fd = s.fogDensity;
         if (useThroatCamera) {
           let introFog = introB;
-          if (helixLab && introRingsOverlay && throatCameraJourney) {
+          if (helixLab && throatCameraJourney && (introRingsOverlay || journeyCameraFromStart)) {
             introFog *= 0.42;
           }
           fd *= 1 - introFog * 0.42;

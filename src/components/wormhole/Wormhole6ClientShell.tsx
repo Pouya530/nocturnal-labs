@@ -29,8 +29,7 @@ import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
-/** Same session key as {@link CinematicClientShell}: skip logo intro after first visit in-tab. */
-const SESSION_KEY = 'nl-portal-played';
+/** Portal sweep + logo fade duration (runs every full page load — no session skip). */
 const INTRO_MS = 4800;
 
 function easeInOutCubic(t: number): number {
@@ -63,22 +62,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       introTRef.current = 1;
       document.documentElement.style.setProperty('--nl-intro', '1');
       document.documentElement.style.setProperty('--nl-logo-o', '1');
-      try {
-        sessionStorage.setItem(SESSION_KEY, '1');
-      } catch {
-        /* private mode or quota */
-      }
       return;
-    }
-    try {
-      if (sessionStorage.getItem(SESSION_KEY) === '1') {
-        introTRef.current = 1;
-        document.documentElement.style.setProperty('--nl-intro', '1');
-        document.documentElement.style.setProperty('--nl-logo-o', '1');
-        return;
-      }
-    } catch {
-      /* */
     }
     introTRef.current = 0;
     document.documentElement.style.setProperty('--nl-intro', '0');
@@ -87,11 +71,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
 
   const onPreloaderGone = useCallback(() => {
     if (reduced) return;
-    try {
-      if (sessionStorage.getItem(SESSION_KEY) === '1') return;
-    } catch {
-      /* */
-    }
     if (introStarted.current) return;
     introStarted.current = true;
 
@@ -132,11 +111,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
           velocity: 0,
           scrollInputIdle: 1,
         });
-        try {
-          sessionStorage.setItem(SESSION_KEY, '1');
-        } catch {
-          /* */
-        }
       }
     };
     rafId.current = requestAnimationFrame(step);
@@ -235,7 +209,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         helixLab
         ringGrowthInversion
         throatCameraJourney
-        introRingsOverlay
         journeyCameraFromStart
         helixLabFullscreen
       />
