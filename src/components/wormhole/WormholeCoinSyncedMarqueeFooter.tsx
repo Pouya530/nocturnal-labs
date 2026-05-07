@@ -93,20 +93,20 @@ export function WormholeCoinSyncedMarqueeFooter(): ReactElement {
           className="coming-soon-marquee-track coming-soon-marquee-track--wormhole-velocity flex w-max items-center will-change-transform"
         >
           <span
-            className="coming-soon-text-iridescent inline-block shrink-0 whitespace-nowrap text-[12px] uppercase leading-[1.5] tracking-[0.08em]"
+            className="coming-soon-text-iridescent inline-block shrink-0 whitespace-nowrap text-[12px] uppercase leading-[1.5] tracking-[0.28em]"
             aria-hidden
           >
             {segment.repeat(4)}
           </span>
           <span
-            className="coming-soon-text-iridescent inline-block shrink-0 whitespace-nowrap text-[12px] uppercase leading-[1.5] tracking-[0.08em]"
+            className="coming-soon-text-iridescent inline-block shrink-0 whitespace-nowrap text-[12px] uppercase leading-[1.5] tracking-[0.28em]"
             aria-hidden
           >
             {segment.repeat(4)}
           </span>
         </div>
       </div>
-      <p className="coming-soon-text-iridescent coming-soon-marquee-static mx-auto max-w-5xl px-4 py-0.5 text-center text-balance text-[12px] uppercase leading-snug tracking-[0.08em]">
+      <p className="coming-soon-text-iridescent coming-soon-marquee-static mx-auto max-w-5xl px-4 py-0.5 text-center text-balance text-[12px] uppercase leading-snug tracking-[0.28em]">
         {announcement}
       </p>
     </div>

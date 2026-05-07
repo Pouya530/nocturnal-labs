@@ -8,7 +8,7 @@ const LABS_HREF = 'https://nocturnal.cloud/labs';
 const NOCTURNAL_LABS_HREF = 'https://labs.nocturnal.cloud/';
 
 const iridescentNav =
-  'coming-soon-text-iridescent landing-nav-glow landing-nav-text-stroke text-[12px] font-medium uppercase leading-[1.5] tracking-[0.08em]';
+  'coming-soon-text-iridescent landing-nav-glow landing-nav-text-stroke text-[12px] font-medium uppercase leading-[1.5] tracking-[0.28em]';
 
 const linkClass = `${iridescentNav} transition-opacity hover:opacity-90 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-400/70`;
 
