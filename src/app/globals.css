@@ -25,6 +25,34 @@ body {
   overflow-y: auto;
 }
 
+/* Localhost tunnel: wheel drives fractal depth — lock native page scroll while tunnel is active */
+html.scroll-locked,
+html.scroll-locked body {
+  overflow: hidden;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+/*
+ * Free fly: `overflow: hidden` clips the hero coin when ScrollVelocityCamera zooms / WormholeCoinDepthScale
+ * scales. Use axis-specific overflow + a wide horizontal clip margin so paint can extend past the viewport.
+ */
+html.scroll-locked[data-scroll-mode='free'],
+html.scroll-locked[data-scroll-mode='free'] body {
+  overflow-x: clip;
+  overflow-y: hidden;
+  height: 100%;
+  min-height: 100%;
+  overscroll-behavior: none;
+}
+
+@supports (overflow-clip-margin: 1px) {
+  html.scroll-locked[data-scroll-mode='free'],
+  html.scroll-locked[data-scroll-mode='free'] body {
+    overflow-clip-margin: 0 min(32vw, 520px) 0 min(32vw, 520px);
+  }
+}
+
 @supports (overflow: clip) {
   html,
   body {
@@ -39,29 +67,15 @@ body {
   }
 }
 
-/* 3D coin: default cap 440px; desktop (Tailwind lg / 1024px+) +25% → 550px, same vw gutter */
+/* 3D coin: base cap 280px (was 300); same vw gutter */
 .hero-logo-size-var {
-  --hero-logo-size: min(440px, calc(100vw - 3rem));
+  --hero-logo-size: min(280px, calc(100vw - 3rem));
 }
 
 @media (min-width: 1024px) {
   .hero-logo-size-var {
-    --hero-logo-size: min(550px, calc(100vw - 3rem));
+    --hero-logo-size: min(280px, calc(100vw - 3rem));
   }
-}
-
-/* Framing: circular vignette over the fractal — transparent centre (fractal shows through),
-   darker toward the rim; do not set background-color or the centre would tint wrong. */
-.site-bg-radial-opacity {
-  background-image: radial-gradient(
-    circle at 50% 44%,
-    transparent 0%,
-    transparent 22%,
-    rgba(0, 0, 0, 0.2) 42%,
-    rgba(0, 0, 0, 0.48) 62%,
-    rgba(0, 0, 0, 0.76) 82%,
-    rgba(2, 2, 4, 0.96) 100%
-  );
 }
 
 /* R3F wraps the GL canvas; inline baseline + wrong box can crop WebGL on Safari. */
@@ -70,6 +84,15 @@ body {
   width: 100% !important;
   height: 100% !important;
   vertical-align: top;
+}
+
+/* R3F defaults `overflow: hidden` on the canvas host — clips zoomed coin; override + inner wrapper. */
+.logo-coin-canvas-root {
+  overflow: visible !important;
+}
+
+.logo-coin-canvas-root > div {
+  overflow: visible !important;
 }
 
 /* Cinematic intro: logo recedes with --nl-intro (0→1) — see CinematicClientShell & JuliaFractalBackdrop */
@@ -123,6 +146,11 @@ body {
   will-change: transform;
 }
 
+/* `/wormhole6` — JS-driven translateX from tunnel velocity (see WormholeCoinSyncedMarqueeFooter). */
+.coming-soon-marquee-track.coming-soon-marquee-track--wormhole-velocity {
+  animation: none;
+}
+
 @keyframes coming-soon-marquee {
   from {
     transform: translate3d(0, 0, 0);
@@ -132,15 +160,13 @@ body {
   }
 }
 
-/* Top nav: soft glow so iridescent type reads a little more “lit” on dark fractal */
-.landing-nav-glow {
-  filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.4)) drop-shadow(0 0 22px rgba(236, 72, 153, 0.22));
-}
-
 /* Iridescent text: full-spectrum gradient, shifted for motion */
 .coming-soon-text-iridescent {
   /* Subvertical padding so gradient clip matches glyph bounds in WebKit */
   padding: 0.1em 0 0.15em;
+  /* Legibility on busy Julia / tunnel backdrops (background-clip text → use filter drop-shadow) */
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.92)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.62))
+    drop-shadow(0 4px 14px rgba(0, 0, 0, 0.38));
   background-image: linear-gradient(
     95deg,
     #ff0080 0%,
@@ -161,6 +187,19 @@ body {
   color: transparent;
   -webkit-text-fill-color: transparent;
   animation: coming-soon-iridescent 14s ease-in-out infinite;
+}
+
+/* Top nav “Nocturnal Labs” + links: same depth as footer + soft violet/pink glow */
+.coming-soon-text-iridescent.landing-nav-glow {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.92)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.62))
+    drop-shadow(0 4px 14px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))
+    drop-shadow(0 0 22px rgba(236, 72, 153, 0.22));
+}
+
+/* Top nav text stroke (brand + right links) for crisp edge separation on bright fractal frames. */
+.landing-nav-text-stroke {
+  -webkit-text-stroke: 0.1px rgba(255, 255, 255, 0.9);
+  paint-order: stroke fill;
 }
 
 @keyframes coming-soon-iridescent {
@@ -201,6 +240,119 @@ body {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Black hole overlay — sits behind the coin, in front of the fractal.
+ * Layer order (z-index inside the hero stack):
+ *   fractal backdrop  z-0
+ *   black hole        z-5   ← this
+ *   CSS halo          z-8   (existing .hero-logo-iridescent-soft)
+ *   coin canvas       z-10
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes black-hole-breathe {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.88;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.04);
+    opacity: 0.97;
+  }
+}
+
+.black-hole-overlay {
+  z-index: 5;
+  width: calc(var(--hero-logo-size, 200px) * 3.4);
+  height: calc(var(--hero-logo-size, 200px) * 3.4);
+  border-radius: 50%;
+  /* Top: solid core + faint tinted ring; bottom: wide feathered rim glow (shows through transparent edge). */
+  background:
+    radial-gradient(
+      circle at center,
+      #000 0%,
+      #000 19%,
+      rgba(15, 5, 30, 0.42) 26%,
+      rgba(142, 59, 255, 0.14) 40%,
+      rgba(59, 123, 255, 0.085) 54%,
+      rgba(255, 77, 168, 0.045) 68%,
+      rgba(77, 255, 176, 0.028) 80%,
+      rgba(142, 59, 255, 0.018) 90%,
+      rgba(0, 0, 0, 0) 100%
+    ),
+    radial-gradient(
+      circle at center,
+      transparent 38%,
+      rgba(142, 59, 255, 0.11) 62%,
+      rgba(59, 123, 255, 0.07) 76%,
+      rgba(255, 77, 168, 0.038) 86%,
+      rgba(77, 255, 176, 0.022) 93%,
+      transparent 100%
+    );
+  background-blend-mode: screen, screen;
+  filter: blur(3px);
+  mix-blend-mode: screen;
+  box-shadow:
+    0 0 42px 16px rgba(167, 139, 250, 0.06),
+    0 0 78px 36px rgba(56, 189, 248, 0.04),
+    0 0 110px 52px rgba(244, 114, 182, 0.025);
+  animation: black-hole-breathe 6.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .black-hole-overlay {
+    animation: none;
+    transform: translate(-50%, -50%) scale(1.02);
+    opacity: 0.9;
+  }
+}
+
+/* Soft iridescent halo behind coin, above black hole — 4.2s cycle (≠ 6.5s black hole). */
+@keyframes hero-logo-halo-breathe {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.04);
+    opacity: 0.92;
+  }
+}
+
+.hero-logo-iridescent-soft.hero-logo-iridescent-soft--coin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 8;
+  width: calc(var(--hero-logo-size, 200px) * 3.65);
+  height: calc(var(--hero-logo-size, 200px) * 3.65);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 48%,
+    transparent 18%,
+    rgba(167, 139, 250, 0.12) 38%,
+    rgba(56, 189, 248, 0.075) 54%,
+    rgba(244, 114, 182, 0.055) 70%,
+    rgba(77, 255, 176, 0.035) 82%,
+    transparent 96%
+  );
+  filter: blur(24px);
+  mix-blend-mode: screen;
+  animation: hero-logo-halo-breathe 4.2s ease-in-out infinite;
+  animation-delay: 0.4s;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-logo-iridescent-soft.hero-logo-iridescent-soft--coin {
+    animation: none;
+    transform: translate(-50%, -50%) scale(1.02);
+    opacity: 0.8;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .coming-soon-marquee-track {
     animation: none;
@@ -214,8 +366,9 @@ body {
     display: block;
   }
 
-  .landing-nav-glow {
-    filter: none;
+  .coming-soon-text-iridescent.landing-nav-glow {
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.92)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.62))
+      drop-shadow(0 4px 14px rgba(0, 0, 0, 0.38));
   }
 
   .coming-soon-text-iridescent {

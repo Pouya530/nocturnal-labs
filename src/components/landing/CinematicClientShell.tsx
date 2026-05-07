@@ -1,12 +1,24 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { JuliaFractalBackdrop } from '@/components/landing/JuliaFractalBackdrop';
+import { JuliaTunnelFractalBackdrop } from '@/components/landing/JuliaTunnelFractalBackdrop';
+import { JuliaVortext2FractalBackdrop } from '@/components/landing/JuliaVortext2FractalBackdrop';
+import { JuliaVortext3FractalBackdrop } from '@/components/landing/JuliaVortext3FractalBackdrop';
+import { JuliaVortexFractalBackdrop } from '@/components/landing/JuliaVortexFractalBackdrop';
+import { LocalTunnelChrome } from '@/components/landing/LocalTunnelChrome';
 import { ComingSoonBanner } from '@/components/landing/ComingSoonBanner';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { SitePreloader } from '@/components/landing/SitePreloader';
+import { isLocalhostHostname } from '@/lib/isLocalhost';
+import type { LandingBackdropMode } from '@/lib/landingBackdropMode';
+import {
+  setActiveLandingBackdropMode,
+  persistLandingBackdropMode,
+  readStoredLandingBackdropMode,
+} from '@/lib/landingBackdropMode';
 import { motionPrefs } from '@/core/motion';
 
 /** If set, the portal intro is skipped for the rest of the browser tab session. */
@@ -19,9 +31,35 @@ function easeInOutCubic(t: number): number {
 
 export function CinematicClientShell({ children }: { children: ReactNode }) {
   const reduced = useSyncExternalStore(motionPrefs.subscribe, () => motionPrefs.reduced, () => false);
+  const [isLocalhost, setIsLocalhost] = useState(false);
+  const [backdropMode, setBackdropMode] = useState<LandingBackdropMode>('tunnel');
   const introTRef = useRef(0);
   const rafId = useRef(0);
   const introStarted = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const local = isLocalhostHostname(window.location.hostname);
+    setIsLocalhost(local);
+    if (local) {
+      const stored = readStoredLandingBackdropMode();
+      if (stored) setBackdropMode(stored);
+    }
+  }, []);
+
+  const onBackdropModeChange = useCallback((mode: LandingBackdropMode) => {
+    setBackdropMode(mode);
+    persistLandingBackdropMode(mode);
+    setActiveLandingBackdropMode(mode);
+  }, []);
+
+  useEffect(() => {
+    if (!isLocalhost) {
+      setActiveLandingBackdropMode('original');
+      return;
+    }
+    setActiveLandingBackdropMode(backdropMode);
+  }, [isLocalhost, backdropMode]);
 
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return;
@@ -88,12 +126,39 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative min-h-[100dvh] w-full">
-      <JuliaFractalBackdrop introTRef={introTRef} />
-      <div
-        className="site-bg-radial-opacity pointer-events-none fixed inset-0 z-[1] min-h-[100dvh] min-h-[100lvh] h-full w-full"
-        aria-hidden
+      {!isLocalhost ? (
+        <JuliaFractalBackdrop introTRef={introTRef} />
+      ) : backdropMode === 'tunnel' ? (
+        <JuliaTunnelFractalBackdrop introTRef={introTRef} />
+      ) : backdropMode === 'vortex' ? (
+        <JuliaVortexFractalBackdrop introTRef={introTRef} />
+      ) : backdropMode === 'vortext2' ? (
+        <JuliaVortext2FractalBackdrop introTRef={introTRef} />
+      ) : backdropMode === 'vortext3' ? (
+        <JuliaVortext3FractalBackdrop introTRef={introTRef} />
+      ) : backdropMode === 'vortextunnel' ? (
+        <JuliaVortexFractalBackdrop introTRef={introTRef} tunnelTravel />
+      ) : (
+        <JuliaFractalBackdrop introTRef={introTRef} />
+      )}
+      {process.env.NODE_ENV === 'development' ? (
+        <div
+          className="pointer-events-none fixed inset-0 z-[1] h-[100dvh] w-screen"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 45%, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.22) 38%, rgba(0,0,0,0.06) 58%, transparent 74%)',
+          }}
+          aria-hidden
+        />
+      ) : null}
+      {isLocalhost && (backdropMode === 'tunnel' || backdropMode === 'vortextunnel') ? (
+        <LocalTunnelChrome />
+      ) : null}
+      <LandingTopNav
+        backdropToggle={
+          isLocalhost ? { mode: backdropMode, onChange: onBackdropModeChange } : undefined
+        }
       />
-      <LandingTopNav />
       <div className="relative z-10">{children}</div>
       <ComingSoonBanner />
       <SitePreloader onGone={onPreloaderGone} />

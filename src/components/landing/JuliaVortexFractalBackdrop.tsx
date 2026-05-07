@@ -5,10 +5,13 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 
 import { Capability, initCapability } from '@/core/capability';
 import { motionPrefs } from '@/core/motion';
-import { juliaFractalFrag, juliaFractalVertCover } from '@/visuals/shaders/juliaFractalShaderSources';
+import { tunnelStore } from '@/tunnel/tunnelStore';
+import { juliaFractalVertCover } from '@/visuals/shaders/juliaFractalShaderSources';
+import { juliaVortexFrag } from '@/visuals/shaders/juliaVortexFrag';
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * Cymatics Portal Julia — idle (non-audio) animation ported from `_engine_iife.js`.
+ * Cymatics Portal Julia + **vortex warp** (see `julia_vortex_plan.md`) — idle drivers
+ * match `JuliaFractalBackdrop`; fragment adds radius-locked twist before iteration.
  *
  * The original engine drives `c`, palette, and spiral phase from live audio analysis
  * (`fractalSmAudioLvl`, `Bf.bass`, transients, RMS, flux, …). On the landing there's no
@@ -36,6 +39,20 @@ function smoothstep3(t: number): number {
 
 /** Max radius `(jcr, jci)` is allowed to drift from base (engine's `fractalJuliaDiscEffSm`). */
 const J_DISC_RADIUS = 0.172;
+const MAX_TUNNEL_DEPTH = 256;
+const ZOOM_RATE_BASE = 0.25;
+
+/** Matches tunnel wheel feel (`useScrollDepth`): long coast + per-frame friction damping. */
+const SCROLL_ZOOM_COAST_TAU_SEC = 72;
+const ZOOM_SCROLL_VEL_MAX = 22;
+
+function normalizeScrollZoomWheel(e: WheelEvent): number {
+  if (e.ctrlKey) return 0;
+  let pY = e.deltaY;
+  if (e.deltaMode === 1) pY *= 40;
+  else if (e.deltaMode === 2) pY *= 800;
+  return Math.max(-100, Math.min(100, pY));
+}
 
 function compileShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader | null {
   const s = gl.createShader(type);
@@ -43,7 +60,7 @@ function compileShader(gl: WebGLRenderingContext, type: number, source: string):
   gl.shaderSource(s, source);
   gl.compileShader(s);
   if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-    console.error('[JuliaFractal] shader compile', gl.getShaderInfoLog(s));
+    console.error('[JuliaVortex] shader compile', gl.getShaderInfoLog(s));
     gl.deleteShader(s);
     return null;
   }
@@ -66,7 +83,7 @@ function createProgram(
   gl.deleteShader(vs);
   gl.deleteShader(fs);
   if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
-    console.error('[JuliaFractal] program link', gl.getProgramInfoLog(p));
+    console.error('[JuliaVortex] program link', gl.getProgramInfoLog(p));
     return null;
   }
   return p;
@@ -82,23 +99,67 @@ function expSmooth(cur: number, target: number, dt: number, tau: number): number
   return cur + (target - cur) * a;
 }
 
+function scrollDriveNorm(depth: number, mode: 'locked' | 'free'): number {
+  if (mode === 'locked') return Math.min(1, Math.max(0, depth / MAX_TUNNEL_DEPTH));
+  return (Math.atan(depth / 42) / (Math.PI * 0.5) + 1) * 0.5;
+}
+
 /**
  * Full-viewport Julia — **raw WebGL1** (no R3F/Three) so the canvas always gets real pixel dimensions
  * in Next + fixed layout. Shader + animation ported from the Cymatics Portal engine.
  *
  * `introTRef` 0 = portal intro start, 1 = settled; if omitted, defaults to 1 (no effect).
  */
-export type JuliaFractalBackdropProps = {
+export type JuliaVortexFractalBackdropProps = {
   introTRef?: MutableRefObject<number>;
   mode?: 'julia' | 'mandelbrot';
+  /** When true, wheel scroll controls in/out zoom for this mode. */
+  scrollZoom?: boolean;
+  /** When true, apply tunnel-style travel from wheel depth/velocity (localhost experimental). */
+  tunnelTravel?: boolean;
+  /** Global animation rate for this backdrop (1 = normal). */
+  speedMultiplier?: number;
+  /** Inner-core vortex animation time scale (outer ring remains unchanged in shader). */
+  innerTimeScale?: number;
+  /** Added to `uZoom` after intro / scroll (negative = zoom out / wider FOV). */
+  baseZoomOffset?: number;
+  /**
+   * When set with `scrollZoom`, wheel uses tunnel-style inertia (`impulse = accum * sensitivity`,
+   * velocity integrates zoom offset, then coast + friction decay). Omit for legacy direct wheel mapping.
+   */
+  scrollZoomSensitivity?: number;
+  /** Per-frame damping factor when `scrollZoomSensitivity` is set (lower = snappier stop). Default 0.92. */
+  scrollZoomFriction?: number;
+  /** 0–1: broader vortex arms / merged swirl (`juliaVortexFrag` `uVortexWide`). */
+  vortexWide?: number;
+  /** 0–1: merged spiral bands / tunnel ribs (`uVortexTunnel`); pairs with scroll-driven `uSpiralPhase`. */
+  vortexTunnel?: number;
+  /** WebGL alpha + luminance-based fragment alpha — stack over a dark page or 3D layer. */
+  transparentCanvas?: boolean;
 };
 
-export function JuliaFractalBackdrop({
+export function JuliaVortexFractalBackdrop({
   introTRef: introTRefProp = INTRO_T_DEFAULT,
   mode = 'julia',
-}: JuliaFractalBackdropProps): ReactElement {
+  scrollZoom = false,
+  tunnelTravel = false,
+  speedMultiplier = 1,
+  innerTimeScale = 1,
+  baseZoomOffset = 0,
+  scrollZoomSensitivity,
+  scrollZoomFriction = 0.92,
+  vortexWide: vortexWideProp = 0,
+  vortexTunnel: vortexTunnelProp = 0,
+  transparentCanvas = false,
+}: JuliaVortexFractalBackdropProps): ReactElement {
   const introTRef = introTRefProp;
   const reduced = useSyncExternalStore(motionPrefs.subscribe, () => motionPrefs.reduced, () => false);
+  const vortexWideRef = useRef(0);
+  vortexWideRef.current = Math.min(1, Math.max(0, vortexWideProp));
+  const vortexTunnelRef = useRef(0);
+  vortexTunnelRef.current = Math.min(1, Math.max(0, vortexTunnelProp));
+  const transparentCanvasRef = useRef(false);
+  transparentCanvasRef.current = transparentCanvas;
   const [tier, setTier] = useState(2);
   const [useCss, setUseCss] = useState(false);
 
@@ -117,12 +178,21 @@ export function JuliaFractalBackdrop({
     uViewAngle: WebGLUniformLocation | null;
     uBarrelK: WebGLUniformLocation | null;
     uFractalMode: WebGLUniformLocation | null;
+    uVortexAmp: WebGLUniformLocation | null;
+    uVortexTime: WebGLUniformLocation | null;
+    uVortexInnerTimeScale: WebGLUniformLocation | null;
+    uVortexWide: WebGLUniformLocation | null;
+    uVortexTunnel: WebGLUniformLocation | null;
+    uTransparentTunnel: WebGLUniformLocation | null;
     aPos: number;
   } | null>(null);
   const t0Ref = useRef(0);
   const tPrevRef = useRef(0);
   const dprRef = useRef(1);
   const bufRef = useRef<WebGLBuffer | null>(null);
+  const zoomOffsetRef = useRef(0);
+  const zoomWheelAccumRef = useRef(0);
+  const zoomVelRef = useRef(0);
 
   // Iteration ceiling — lighter on low-tier GPUs. Stays well within the shader's 256 bound.
   const maxIter = tier >= 3 ? 240 : tier >= 2 ? 200 : 150;
@@ -134,23 +204,54 @@ export function JuliaFractalBackdrop({
     });
   }, []);
 
+  useEffect(() => {
+    if (!scrollZoom) {
+      zoomOffsetRef.current = 0;
+      zoomWheelAccumRef.current = 0;
+      zoomVelRef.current = 0;
+      return;
+    }
+    const minOff = -0.35 + Math.min(0, baseZoomOffset);
+    const onWheel = (e: WheelEvent) => {
+      const target = e.target as Element | null;
+      if (target?.closest('[data-no-wheel]')) return;
+      e.preventDefault();
+      if (scrollZoomSensitivity != null) {
+        zoomWheelAccumRef.current += normalizeScrollZoomWheel(e);
+        return;
+      }
+      zoomOffsetRef.current = Math.max(minOff, Math.min(1.8, zoomOffsetRef.current - e.deltaY * 0.0007));
+    };
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      window.removeEventListener('wheel', onWheel);
+      zoomWheelAccumRef.current = 0;
+      zoomVelRef.current = 0;
+    };
+  }, [scrollZoom, baseZoomOffset, scrollZoomSensitivity]);
+
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     dprRef.current = Math.min(2, Math.max(1, typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1));
 
-    const attr: WebGLContextAttributes = { alpha: false, antialias: true, powerPreference: 'high-performance' };
+    const attr: WebGLContextAttributes = {
+      alpha: transparentCanvas,
+      premultipliedAlpha: false,
+      antialias: true,
+      powerPreference: 'high-performance',
+    };
     const gl =
       (canvas.getContext('webgl', attr) as WebGLRenderingContext | null) ??
       (canvas.getContext('experimental-webgl' as 'webgl', attr) as WebGLRenderingContext | null);
     if (!gl) {
-      console.warn('[JuliaFractal] no WebGL1 context; showing CSS fallback');
+      console.warn('[JuliaVortex] no WebGL1 context; showing CSS fallback');
       setUseCss(true);
       return;
     }
 
-    const program = createProgram(gl, juliaFractalVertCover, juliaFractalFrag);
+    const program = createProgram(gl, juliaFractalVertCover, juliaVortexFrag);
     if (!program) {
       setUseCss(true);
       return;
@@ -170,6 +271,12 @@ export function JuliaFractalBackdrop({
       uViewAngle: gl.getUniformLocation(program, 'uViewAngle'),
       uBarrelK: gl.getUniformLocation(program, 'uBarrelK'),
       uFractalMode: gl.getUniformLocation(program, 'uFractalMode'),
+      uVortexAmp: gl.getUniformLocation(program, 'uVortexAmp'),
+      uVortexTime: gl.getUniformLocation(program, 'uVortexTime'),
+      uVortexInnerTimeScale: gl.getUniformLocation(program, 'uVortexInnerTimeScale'),
+      uVortexWide: gl.getUniformLocation(program, 'uVortexWide'),
+      uVortexTunnel: gl.getUniformLocation(program, 'uVortexTunnel'),
+      uTransparentTunnel: gl.getUniformLocation(program, 'uTransparentTunnel'),
       aPos,
     };
 
@@ -211,15 +318,28 @@ export function JuliaFractalBackdrop({
       const L = locRef.current;
       if (!g || !p || !L) return;
 
-      const tSec = (now - t0Ref.current) * 0.001;
+      const tSec = (now - t0Ref.current) * 0.001 * speedMultiplier;
       const animTSec = tSec;
       const dtRaw = animTSec - tPrevRef.current;
       // Clamp dt so tab-switches don't produce a huge step that destabilises the exp-smoothers.
       const dt = Math.min(0.05, Math.max(1 / 240, dtRaw));
       tPrevRef.current = animTSec;
 
+      if (reduced && scrollZoom && scrollZoomSensitivity != null) {
+        zoomWheelAccumRef.current = 0;
+        zoomVelRef.current = 0;
+      }
+
       g.viewport(0, 0, canvas.width, canvas.height);
-      g.clearColor(0, 0, 0, 1);
+      const transparent = transparentCanvasRef.current;
+      if (transparent) {
+        g.enable(g.BLEND);
+        g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA);
+        g.clearColor(0, 0, 0, 0);
+      } else {
+        g.disable(g.BLEND);
+        g.clearColor(0, 0, 0, 1);
+      }
       g.clear(g.COLOR_BUFFER_BIT);
       g.useProgram(p);
       g.bindBuffer(g.ARRAY_BUFFER, bufRef.current);
@@ -349,6 +469,44 @@ export function JuliaFractalBackdrop({
         barrelK = 0.1 * (1.0 - easeT);
       }
 
+      if (!reduced && scrollZoom && scrollZoomSensitivity != null) {
+        const minZ = -0.35 + Math.min(0, baseZoomOffset);
+        const coast = Math.exp(-dt / SCROLL_ZOOM_COAST_TAU_SEC);
+        const fr = scrollZoomFriction;
+        let impulse = zoomWheelAccumRef.current * scrollZoomSensitivity;
+        zoomWheelAccumRef.current = 0;
+        let v = zoomVelRef.current + impulse;
+        v = Math.max(-ZOOM_SCROLL_VEL_MAX, Math.min(ZOOM_SCROLL_VEL_MAX, v));
+        let z = zoomOffsetRef.current + v * dt;
+        z = Math.max(minZ, Math.min(1.8, z));
+        if (z <= minZ && v < 0) v = 0;
+        if (z >= 1.8 && v > 0) v = 0;
+        v *= coast * Math.pow(fr, dt * 8);
+        zoomOffsetRef.current = z;
+        zoomVelRef.current = v;
+      }
+
+      if (!reduced && scrollZoom) {
+        effectiveZoom += zoomOffsetRef.current;
+      }
+      if (!reduced && tunnelTravel && introT >= 0.999) {
+        const store = tunnelStore.getState();
+        const dn = scrollDriveNorm(store.depth, store.mode);
+        const v = store.velocity;
+        const zGain = Math.max(0, store.zoomRate) / ZOOM_RATE_BASE;
+        const tun = vortexTunnelRef.current;
+        const spBoost = 1.0 + 0.5 * tun;
+        effectiveZoom += dn * 0.38 * zGain;
+        barrelK += dn * 0.022 * zGain;
+        spiralPhaseOut +=
+          (store.depth * 0.11 + v * 0.045 + dn * 2.45 * zGain) * spBoost + store.spiralPhase;
+        viewAngle += store.depth * 0.0036 + v * 0.0012 + dn * 0.048 * zGain;
+      }
+
+      if (!reduced) {
+        effectiveZoom += baseZoomOffset;
+      }
+
       if (L.uResolution) g.uniform2f(L.uResolution, canvas.width, canvas.height);
       if (L.uC) g.uniform2f(L.uC, smJcr, smJci);
       if (L.uZoom) g.uniform1f(L.uZoom, effectiveZoom);
@@ -359,6 +517,16 @@ export function JuliaFractalBackdrop({
       if (L.uViewAngle) g.uniform1f(L.uViewAngle, viewAngle);
       if (L.uBarrelK) g.uniform1f(L.uBarrelK, barrelK);
       if (L.uFractalMode) g.uniform1f(L.uFractalMode, mode === 'mandelbrot' ? 1 : 0);
+      const wide = vortexWideRef.current;
+      const ampBoost = 1.0 + 0.28 * wide;
+      const safeVortexAmp = Math.min(3.0, Math.max(0.0, reduced ? 0.75 : 2.05 * ampBoost));
+      if (L.uVortexAmp) g.uniform1f(L.uVortexAmp, safeVortexAmp);
+      if (L.uVortexTime) g.uniform1f(L.uVortexTime, tSec);
+      if (L.uVortexInnerTimeScale) g.uniform1f(L.uVortexInnerTimeScale, innerTimeScale);
+      if (L.uVortexWide) g.uniform1f(L.uVortexWide, wide);
+      if (L.uVortexTunnel) g.uniform1f(L.uVortexTunnel, vortexTunnelRef.current);
+      if (L.uTransparentTunnel)
+        g.uniform1f(L.uTransparentTunnel, transparentCanvasRef.current ? 1.0 : 0.0);
 
       g.drawArrays(g.TRIANGLES, 0, 3);
       rafRef.current = requestAnimationFrame(draw);
@@ -382,7 +550,22 @@ export function JuliaFractalBackdrop({
       glRef.current = null;
       locRef.current = null;
     };
-  }, [reduced, maxIter, introTRef, mode]);
+  }, [
+    reduced,
+    maxIter,
+    introTRef,
+    mode,
+    scrollZoom,
+    tunnelTravel,
+    speedMultiplier,
+    innerTimeScale,
+    baseZoomOffset,
+    scrollZoomSensitivity,
+    scrollZoomFriction,
+    transparentCanvas,
+    vortexTunnelProp,
+    vortexWideProp,
+  ]);
 
   if (useCss) {
     return (
@@ -404,7 +587,12 @@ export function JuliaFractalBackdrop({
     <canvas
       ref={canvasRef}
       className="pointer-events-none fixed inset-0 z-0 block h-[100dvh] w-full"
-      style={{ width: '100%', height: '100%', minHeight: '100dvh' }}
+      style={{
+        width: '100%',
+        height: '100%',
+        minHeight: '100dvh',
+        background: transparentCanvas ? 'transparent' : undefined,
+      }}
       aria-hidden
     />
   );
