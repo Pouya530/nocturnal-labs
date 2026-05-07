@@ -14,7 +14,7 @@ import {
   webglWormholeAntialias,
   webglWormholePixelRatio,
 } from '@/lib/webglMobilePrefs';
-import { WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL } from '@/lib/wormholePageConfig';
+import { WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL, WORMHOLE_HOME_HELIX_RING_STACK_FILL_BOOST } from '@/lib/wormholePageConfig';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 import { wormholeJuliaFragment, wormholeJuliaVertex } from '@/visuals/shaders/juliaWormholeShaderSources';
 
@@ -402,12 +402,18 @@ export function JuliaWormholeBackdrop({
       }
     }
 
+    const homeHelixViewportMul = helixLabFullscreen
+      ? WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL *
+        (useRingGrowthInversion ? WORMHOLE_HOME_HELIX_RING_STACK_FILL_BOOST : 1)
+      : null;
+
     if (introRingsOverlay) {
       const introCount = 30;
       const introSpacing = initial.ringSpacing * 0.92;
-      const introOuter = helixLabFullscreen
-        ? initial.ringRadius * hx.radialScale * WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL
-        : initial.ringRadius;
+      const introOuter =
+        homeHelixViewportMul != null
+          ? initial.ringRadius * hx.radialScale * homeHelixViewportMul
+          : initial.ringRadius;
       const introInner = helixLabFullscreen ? introOuter * 0.81 : initial.ringRadius * 0.81;
       const introGeo = new THREE.RingGeometry(introInner, introOuter, 80, 1);
       for (let i = 0; i < introCount; i++) {
@@ -439,7 +445,7 @@ export function JuliaWormholeBackdrop({
     const r0 = hx.tubeRadius;
     const R0 = (2 * r0) / Math.sqrt(3);
     const bundleOuter = R0 + r0;
-    const helixWallInsetMul = helixLabFullscreen ? WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL : 0.88;
+    const helixWallInsetMul = homeHelixViewportMul ?? 0.88;
     const targetWall = initial.ringRadius * hx.radialScale * helixWallInsetMul;
     const bundleScale = helixLab ? targetWall / bundleOuter : 1;
     const helixTubeR = helixLab ? r0 * bundleScale : hx.tubeRadius;
@@ -512,7 +518,7 @@ export function JuliaWormholeBackdrop({
     const pPos = new Float32Array(initial.particleCount * 3);
     const pCol = new Float32Array(initial.particleCount * 3);
     const pPh = new Float32Array(initial.particleCount);
-    const particleSpreadMul = helixLabFullscreen ? WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL : 1;
+    const particleSpreadMul = homeHelixViewportMul ?? 1;
     for (let i = 0; i < initial.particleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
       const r = Math.sqrt(Math.random()) * initial.ringRadius * 0.95 * particleSpreadMul;

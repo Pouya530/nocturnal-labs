@@ -51,10 +51,17 @@ export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE = 0.74;
 
 /**
  * `/` lab helices when `helixLabFullscreen`: bundle radius vs nominal tunnel wall (`ringRadius ×
- * radialScale`). Prod home uses journey-from-start (wide FOV + dolly back at the mouth), so this
- * needs to sit clearly above 1 to read edge-to-edge (wormhole5 lab stays ~0.88 inset).
+ * radialScale`). Prod home pairs this with {@link WORMHOLE_HOME_HELIX_RING_STACK_FILL_BOOST} because
+ * inversion rings sit around the mouth (unlike ribbon-only `/wormhole2`) while the throat journey
+ * camera runs wider than wormhole2’s fixed FOV.
  */
-export const WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL = 1.48;
+export const WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL = 2.06;
+
+/**
+ * Extra radius multiplier when home stacks `ringGrowthInversion` rings around the helix bundle
+ * (`helixLabFullscreen`). Keeps ribbons visually as dominant as `/wormhole2` without changing rings.
+ */
+export const WORMHOLE_HOME_HELIX_RING_STACK_FILL_BOOST = 1.34;
 
 /** `/wormhole4` — `tunnelStore.sensitivity` for wheel → depth (`useScrollDepth`). */
 export const WORMHOLE4_SENSITIVITY = 0.014;
