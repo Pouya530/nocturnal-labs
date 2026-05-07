@@ -98,11 +98,12 @@ export const WORMHOLE4_DEBUG_START = {
 
 /**
  * `/wormhole5` — same 3D debug tuning as wormhole4, but **helix ribbons on** (lab helices +
- * wormhole4 rings + journey camera stacked).
+ * wormhole4 rings + journey camera stacked). Coin bloom fog on by default (matches prod `/`).
  */
 export const WORMHOLE5_DEBUG_START = {
   ...WORMHOLE4_DEBUG_START,
   wormholeHelices3dEnabled: true,
+  wormholeCoinFogEnabled: true,
 } as const;
 
 /**

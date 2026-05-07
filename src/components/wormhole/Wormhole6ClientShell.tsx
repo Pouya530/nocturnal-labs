@@ -94,7 +94,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       ...WORMHOLE5_DEBUG_START,
       wormholeHelices3dEnabled: true,
       ...WORMHOLE2_HELIX_LAB_POSTFX,
-      wormholeCoinFogEnabled: true,
       mode: 'locked',
     });
 
