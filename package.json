@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:clean": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){if(e&&e.code!=='ENOENT')throw e;}\"",
-    "dev:fresh": "node -e \"try{require('fs').rmSync('.next',{recursive:true,force:true})}catch(e){if(e&&e.code!=='ENOENT')throw e;}\" && next dev",
+    "dev": "NEXT_DIST_DEV=1 next dev",
+    "dev:clean": "node -e \"const fs=require('fs');for(const d of ['.next','.next-dev']){try{fs.rmSync(d,{recursive:true,force:true});}catch(e){if(e&&e.code!=='ENOENT')throw e;}}\"",
+    "dev:fresh": "npm run dev:clean && NEXT_DIST_DEV=1 next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
