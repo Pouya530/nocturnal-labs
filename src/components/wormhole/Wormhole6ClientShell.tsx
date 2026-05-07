@@ -1,10 +1,12 @@
 'use client';
 
 import type { ReactNode, ReactElement } from 'react';
-import { useEffect, useLayoutEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 
+import { motionPrefs } from '@/core/motion';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { LocalTunnelChrome } from '@/components/landing/LocalTunnelChrome';
+import { SitePreloader } from '@/components/landing/SitePreloader';
 import { Wormhole4AtmosphereOverlay } from '@/components/wormhole/Wormhole4AtmosphereOverlay';
 import { WormholeCoinSyncedMarqueeFooter } from '@/components/wormhole/WormholeCoinSyncedMarqueeFooter';
 import { WormholeJuliaThreeBackdrop } from '@/components/wormhole/WormholeJuliaThreeBackdrop';
@@ -25,14 +27,92 @@ import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
+/** Same session key as {@link CinematicClientShell}: skip logo intro after first visit in-tab. */
+const SESSION_KEY = 'nl-portal-played';
+const INTRO_MS = 4800;
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 /**
  * Production home shell: same Three.js stack + tunnel tuning as `/wormhole5`; no mode HUD or debug
  * panel; velocity-synced footer marquee. Also used when importing {@link Wormhole6Route} on `/`.
  */
 export function Wormhole6ClientShell({ children }: { children: ReactNode }): ReactElement {
-  useLayoutEffect(() => {
-    document.documentElement.style.setProperty('--nl-intro', '1');
+  const reduced = useSyncExternalStore(
+    motionPrefs.subscribe,
+    () => motionPrefs.reduced,
+    () => false,
+  );
+  const introTRef = useRef(0);
+  const rafId = useRef(0);
+  const introStarted = useRef(false);
 
+  useLayoutEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (reduced) {
+      introTRef.current = 1;
+      document.documentElement.style.setProperty('--nl-intro', '1');
+      try {
+        sessionStorage.setItem(SESSION_KEY, '1');
+      } catch {
+        /* private mode or quota */
+      }
+      return;
+    }
+    try {
+      if (sessionStorage.getItem(SESSION_KEY) === '1') {
+        introTRef.current = 1;
+        document.documentElement.style.setProperty('--nl-intro', '1');
+        return;
+      }
+    } catch {
+      /* */
+    }
+    introTRef.current = 0;
+    document.documentElement.style.setProperty('--nl-intro', '0');
+  }, [reduced]);
+
+  const onPreloaderGone = useCallback(() => {
+    if (reduced) return;
+    try {
+      if (sessionStorage.getItem(SESSION_KEY) === '1') return;
+    } catch {
+      /* */
+    }
+    if (introStarted.current) return;
+    introStarted.current = true;
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const u = Math.min(1, (now - t0) / INTRO_MS);
+      const e = easeInOutCubic(u);
+      introTRef.current = e;
+      if (document.documentElement) {
+        document.documentElement.style.setProperty('--nl-intro', String(e));
+      }
+      if (u < 1) {
+        rafId.current = requestAnimationFrame(step);
+      } else {
+        introTRef.current = 1;
+        document.documentElement.style.setProperty('--nl-intro', '1');
+        try {
+          sessionStorage.setItem(SESSION_KEY, '1');
+        } catch {
+          /* */
+        }
+      }
+    };
+    rafId.current = requestAnimationFrame(step);
+  }, [reduced]);
+
+  useEffect(() => {
+    return () => {
+      cancelAnimationFrame(rafId.current);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
     const previousMode = getActiveLandingBackdropMode();
     setActiveLandingBackdropMode('original');
 
@@ -132,6 +212,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       <LandingTopNav />
       <div className="relative z-10">{children}</div>
       <WormholeCoinSyncedMarqueeFooter />
+      <SitePreloader onGone={onPreloaderGone} />
     </div>
   );
 }

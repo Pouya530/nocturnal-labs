@@ -10,7 +10,6 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 
 import { motionPrefs } from '@/core/motion';
 import {
-  isIOSLike,
   webglPowerPreference,
   webglWormholeAntialias,
   webglWormholePixelRatio,
@@ -215,7 +214,6 @@ export function JuliaWormholeBackdrop({
       flareFinalThird,
     );
 
-    const iosLike = isIOSLike();
     const wormholeDpr = webglWormholePixelRatio(window.devicePixelRatio || 1);
 
     const renderer = new THREE.WebGLRenderer({
@@ -519,26 +517,18 @@ export function JuliaWormholeBackdrop({
     );
     scene.add(particles);
 
-    /**
-     * iOS WebGL often fails or shows black with `EffectComposer` + half-float bloom passes.
-     * Direct `renderer.render` keeps the tunnel visible; bloom is desktop/WebGL2-safe path only.
-     */
-    let composer: EffectComposer | null = null;
-    let bloomPass: UnrealBloomPass | null = null;
-    if (!iosLike) {
-      composer = new EffectComposer(renderer);
-      composer.setPixelRatio(wormholeDpr);
-      composer.setSize(window.innerWidth, window.innerHeight);
-      composer.addPass(new RenderPass(scene, camera));
-      bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(window.innerWidth, window.innerHeight),
-        initial.bloomStrength,
-        initial.bloomRadius,
-        initial.bloomThreshold,
-      );
-      composer.addPass(bloomPass);
-      composer.addPass(new OutputPass());
-    }
+    const composer = new EffectComposer(renderer);
+    composer.setPixelRatio(wormholeDpr);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      initial.bloomStrength,
+      initial.bloomRadius,
+      initial.bloomThreshold,
+    );
+    composer.addPass(bloomPass);
+    composer.addPass(new OutputPass());
 
     let resizePending = false;
     const onResize = () => {
@@ -550,14 +540,14 @@ export function JuliaWormholeBackdrop({
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         renderer.setSize(w, h, false);
-        composer?.setSize(w, h);
+        composer.setSize(w, h);
         resizePending = false;
       });
     };
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
     const visualViewport = typeof window !== 'undefined' ? window.visualViewport : null;
-    if (iosLike && visualViewport) {
+    if (visualViewport) {
       visualViewport.addEventListener('resize', onResize);
     }
 
@@ -852,11 +842,9 @@ export function JuliaWormholeBackdrop({
         sm.opacity = 0.7 * (1 - introB * 0.28 + exitB * 0.22);
       }
 
-      if (bloomPass) {
-        bloomPass.strength = s.bloomStrength * (useThroatCamera ? 1 + exitB * 0.14 : 1);
-        bloomPass.radius = s.bloomRadius;
-        bloomPass.threshold = s.bloomThreshold;
-      }
+      bloomPass.strength = s.bloomStrength * (useThroatCamera ? 1 + exitB * 0.14 : 1);
+      bloomPass.radius = s.bloomRadius;
+      bloomPass.threshold = s.bloomThreshold;
 
       if (scene.fog instanceof THREE.FogExp2) {
         let fd = s.fogDensity;
@@ -947,11 +935,7 @@ export function JuliaWormholeBackdrop({
         camera.lookAt(lookXr, lookYr, -10);
       }
 
-      if (composer) {
-        composer.render(dt);
-      } else {
-        renderer.render(scene, camera);
-      }
+      composer.render(dt);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -965,12 +949,12 @@ export function JuliaWormholeBackdrop({
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
-      if (iosLike && visualViewport) {
+      if (visualViewport) {
         visualViewport.removeEventListener('resize', onResize);
       }
       if (useThroatCamera) window.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('visibilitychange', onVis);
-      composer?.dispose();
+      composer.dispose();
       if (sharedRingGeo) {
         sharedRingGeo.dispose();
         for (const r of rings) {
