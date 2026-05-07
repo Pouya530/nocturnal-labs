@@ -1,12 +1,10 @@
 'use client';
 
 import type { ReactNode, ReactElement } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 
-import { motionPrefs } from '@/core/motion';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { LocalTunnelChrome } from '@/components/landing/LocalTunnelChrome';
-import { SitePreloader } from '@/components/landing/SitePreloader';
 import { WormholeCoinSyncedMarqueeFooter } from '@/components/wormhole/WormholeCoinSyncedMarqueeFooter';
 import { WormholeJuliaThreeBackdrop } from '@/components/wormhole/WormholeJuliaThreeBackdrop';
 import {
@@ -20,105 +18,21 @@ import {
   WORMHOLE5_TUNNEL_START,
   WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
-  WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP,
-  WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH,
-  WORMHOLE_HOME_INTRO_LOGO_FADE_START,
 } from '@/lib/wormholePageConfig';
 import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
-
-/** Portal sweep + logo fade duration (runs every full page load — no session skip). */
-const INTRO_MS = 4800;
-
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-function homeIntroLogoOpacity(linearIntro01: number): number {
-  const s = WORMHOLE_HOME_INTRO_LOGO_FADE_START;
-  if (linearIntro01 <= s) return 0;
-  return easeInOutCubic((linearIntro01 - s) / (1 - s));
-}
 
 /**
  * Production home shell: same Three.js stack + tunnel tuning as `/wormhole5`; no mode HUD or debug
  * panel; velocity-synced footer marquee. Also used when importing {@link Wormhole6Route} on `/`.
  */
 export function Wormhole6ClientShell({ children }: { children: ReactNode }): ReactElement {
-  const reduced = useSyncExternalStore(
-    motionPrefs.subscribe,
-    () => motionPrefs.reduced,
-    () => false,
-  );
-  const introTRef = useRef(0);
-  const rafId = useRef(0);
-  const introStarted = useRef(false);
-
+  /** No site preloader / tunnel sweep: hero + tunnel start fully visible immediately. */
   useLayoutEffect(() => {
     if (typeof document === 'undefined') return;
-    if (reduced) {
-      introTRef.current = 1;
-      document.documentElement.style.setProperty('--nl-intro', '1');
-      document.documentElement.style.setProperty('--nl-logo-o', '1');
-      return;
-    }
-    introTRef.current = 0;
-    document.documentElement.style.setProperty('--nl-intro', '0');
-    document.documentElement.style.setProperty('--nl-logo-o', '0');
-  }, [reduced]);
-
-  const onPreloaderGone = useCallback(() => {
-    if (reduced) return;
-    if (introStarted.current) return;
-    introStarted.current = true;
-
-    const touchPrimary = isCoarseOrTouchPrimaryViewport();
-    const depthFinal = touchPrimary
-      ? WORMHOLE6_MOBILE_TUNNEL_START.depth
-      : WORMHOLE5_TUNNEL_START.depth;
-    const delta = touchPrimary
-      ? WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH
-      : WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP;
-    const maxDepth = Math.max(1, tunnelStore.getState().maxDepth);
-    const depthStart = Math.min(depthFinal + delta, maxDepth);
-
-    const t0 = performance.now();
-    const step = (now: number) => {
-      const u = Math.min(1, (now - t0) / INTRO_MS);
-      const e = easeInOutCubic(u);
-      introTRef.current = e;
-      const sweepDepth = depthStart + (depthFinal - depthStart) * e;
-      const logoO = homeIntroLogoOpacity(u);
-
-      if (document.documentElement) {
-        document.documentElement.style.setProperty('--nl-intro', String(e));
-        document.documentElement.style.setProperty('--nl-logo-o', String(logoO));
-      }
-
-      tunnelStore.setState({ wormholeIntroDepthOverride: sweepDepth });
-
-      if (u < 1) {
-        rafId.current = requestAnimationFrame(step);
-      } else {
-        introTRef.current = 1;
-        document.documentElement.style.setProperty('--nl-intro', '1');
-        document.documentElement.style.setProperty('--nl-logo-o', '1');
-        tunnelStore.setState({
-          wormholeIntroDepthOverride: null,
-          depth: depthFinal,
-          velocity: 0,
-          scrollInputIdle: 1,
-        });
-      }
-    };
-    rafId.current = requestAnimationFrame(step);
-  }, [reduced]);
-
-  useEffect(() => {
-    return () => {
-      cancelAnimationFrame(rafId.current);
-    };
+    document.documentElement.style.setProperty('--nl-intro', '1');
+    document.documentElement.style.setProperty('--nl-logo-o', '1');
   }, []);
 
   useLayoutEffect(() => {
@@ -156,6 +70,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       wormholeIdleForward: 0,
       ringCount: WORMHOLE_CLASSIC_TUNNEL.ringCount,
       ringSpacing: WORMHOLE_CLASSIC_TUNNEL.ringSpacing,
+      wormholeIntroDepthOverride: null,
       depth: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.depth : WORMHOLE5_TUNNEL_START.depth,
       velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
       scrollInputIdle: 1,
@@ -221,7 +136,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       <LandingTopNav />
       <div className="relative z-10 wormhole-home-intro-logo">{children}</div>
       <WormholeCoinSyncedMarqueeFooter />
-      <SitePreloader onGone={onPreloaderGone} />
     </div>
   );
 }
