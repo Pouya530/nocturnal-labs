@@ -9,6 +9,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 import { motionPrefs } from '@/core/motion';
+import { webglPowerPreference } from '@/lib/webglMobilePrefs';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 import { wormholeJuliaFragment, wormholeJuliaVertex } from '@/visuals/shaders/juliaWormholeShaderSources';
 
@@ -211,7 +212,7 @@ export function JuliaWormholeBackdrop({
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      powerPreference: 'high-performance',
+      powerPreference: webglPowerPreference(),
       alpha: false,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));

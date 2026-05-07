@@ -1,17 +1,13 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import type { ReactElement } from 'react';
 import { useSyncExternalStore } from 'react';
 
-import type { WormholeTunnelMode } from '@/components/landing/JuliaWormholeBackdrop';
+import {
+  JuliaWormholeBackdrop,
+  type WormholeTunnelMode,
+} from '@/components/landing/JuliaWormholeBackdrop';
 import { tunnelStore } from '@/tunnel/tunnelStore';
-
-const JuliaWormholeBackdrop = dynamic(
-  () =>
-    import('@/components/landing/JuliaWormholeBackdrop').then((mod) => mod.JuliaWormholeBackdrop),
-  { ssr: false, loading: () => null },
-);
 
 export type { WormholeTunnelMode };
 

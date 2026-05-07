@@ -21,6 +21,7 @@ import {
   getActiveLandingBackdropMode,
   subscribeActiveLandingBackdropMode,
 } from '@/lib/landingBackdropMode';
+import { webglPowerPreference } from '@/lib/webglMobilePrefs';
 import { WORMHOLE_LAB_COIN_CANVAS_PERCENT } from '@/lib/wormholePageConfig';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
@@ -569,7 +570,7 @@ export function LogoCoinCanvas({ spin, tossToken = 0, spinSyncScroll = false }: 
         className="logo-coin-canvas-root block h-full w-full min-h-0 touch-none overflow-visible leading-none"
         style={{ overflow: 'visible' }}
         resize={{ scroll: true, debounce: 0, offsetSize: true }}
-        gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
+        gl={{ alpha: true, antialias: true, powerPreference: webglPowerPreference() }}
         onCreated={({ gl }) => {
           gl.setClearColor(0x000000, 0);
           gl.toneMapping = THREE.NoToneMapping;

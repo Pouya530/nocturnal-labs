@@ -31,6 +31,8 @@ html.scroll-locked body {
   overflow: hidden;
   height: 100%;
   overscroll-behavior: none;
+  /* Let scripted touchmove (tunnel depth) run; avoids iOS treating vertical drag as chained scroll. */
+  touch-action: none;
 }
 
 /*

@@ -106,7 +106,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
       lastTouchYRef.current = e.touches[0].clientY;
     };
     const onTouchMove = (e: TouchEvent) => {
-      if (tunnelStore.getState().mode !== 'free') return;
+      /** Locked + free: touch pan drives the same accumulator as wheel (mobile has no wheel). */
       e.preventDefault();
       const y = e.touches[0].clientY;
       wheelAccumRef.current += (lastTouchYRef.current - y) * TOUCH_MULTIPLIER * impulseSign;
