@@ -9,7 +9,12 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 import { motionPrefs } from '@/core/motion';
-import { webglPowerPreference } from '@/lib/webglMobilePrefs';
+import {
+  isIOSLike,
+  webglPowerPreference,
+  webglWormholeAntialias,
+  webglWormholePixelRatio,
+} from '@/lib/webglMobilePrefs';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 import { wormholeJuliaFragment, wormholeJuliaVertex } from '@/visuals/shaders/juliaWormholeShaderSources';
 
@@ -210,12 +215,16 @@ export function JuliaWormholeBackdrop({
       flareFinalThird,
     );
 
+    const iosLike = isIOSLike();
+    const wormholeDpr = webglWormholePixelRatio(window.devicePixelRatio || 1);
+
     const renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: webglWormholeAntialias(),
       powerPreference: webglPowerPreference(),
       alpha: false,
+      stencil: false,
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(wormholeDpr);
     renderer.setSize(window.innerWidth, window.innerHeight, false);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
@@ -510,18 +519,26 @@ export function JuliaWormholeBackdrop({
     );
     scene.add(particles);
 
-    const composer = new EffectComposer(renderer);
-    composer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    composer.setSize(window.innerWidth, window.innerHeight);
-    composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      initial.bloomStrength,
-      initial.bloomRadius,
-      initial.bloomThreshold,
-    );
-    composer.addPass(bloom);
-    composer.addPass(new OutputPass());
+    /**
+     * iOS WebGL often fails or shows black with `EffectComposer` + half-float bloom passes.
+     * Direct `renderer.render` keeps the tunnel visible; bloom is desktop/WebGL2-safe path only.
+     */
+    let composer: EffectComposer | null = null;
+    let bloomPass: UnrealBloomPass | null = null;
+    if (!iosLike) {
+      composer = new EffectComposer(renderer);
+      composer.setPixelRatio(wormholeDpr);
+      composer.setSize(window.innerWidth, window.innerHeight);
+      composer.addPass(new RenderPass(scene, camera));
+      bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        initial.bloomStrength,
+        initial.bloomRadius,
+        initial.bloomThreshold,
+      );
+      composer.addPass(bloomPass);
+      composer.addPass(new OutputPass());
+    }
 
     let resizePending = false;
     const onResize = () => {
@@ -533,12 +550,16 @@ export function JuliaWormholeBackdrop({
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         renderer.setSize(w, h, false);
-        composer.setSize(w, h);
+        composer?.setSize(w, h);
         resizePending = false;
       });
     };
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
+    const visualViewport = typeof window !== 'undefined' ? window.visualViewport : null;
+    if (iosLike && visualViewport) {
+      visualViewport.addEventListener('resize', onResize);
+    }
 
     /** `/wormhole3` — mouse aim + scroll velocity ride on the camera (throat only). */
     const ptr = { x: 0, y: 0, sx: 0, sy: 0 };
@@ -831,9 +852,11 @@ export function JuliaWormholeBackdrop({
         sm.opacity = 0.7 * (1 - introB * 0.28 + exitB * 0.22);
       }
 
-      bloom.strength = s.bloomStrength * (useThroatCamera ? 1 + exitB * 0.14 : 1);
-      bloom.radius = s.bloomRadius;
-      bloom.threshold = s.bloomThreshold;
+      if (bloomPass) {
+        bloomPass.strength = s.bloomStrength * (useThroatCamera ? 1 + exitB * 0.14 : 1);
+        bloomPass.radius = s.bloomRadius;
+        bloomPass.threshold = s.bloomThreshold;
+      }
 
       if (scene.fog instanceof THREE.FogExp2) {
         let fd = s.fogDensity;
@@ -924,7 +947,11 @@ export function JuliaWormholeBackdrop({
         camera.lookAt(lookXr, lookYr, -10);
       }
 
-      composer.render(dt);
+      if (composer) {
+        composer.render(dt);
+      } else {
+        renderer.render(scene, camera);
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -938,9 +965,12 @@ export function JuliaWormholeBackdrop({
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
+      if (iosLike && visualViewport) {
+        visualViewport.removeEventListener('resize', onResize);
+      }
       if (useThroatCamera) window.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('visibilitychange', onVis);
-      composer.dispose();
+      composer?.dispose();
       if (sharedRingGeo) {
         sharedRingGeo.dispose();
         for (const r of rings) {

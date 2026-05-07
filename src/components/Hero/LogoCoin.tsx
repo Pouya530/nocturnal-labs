@@ -21,7 +21,7 @@ import {
   getActiveLandingBackdropMode,
   subscribeActiveLandingBackdropMode,
 } from '@/lib/landingBackdropMode';
-import { webglPowerPreference } from '@/lib/webglMobilePrefs';
+import { isIOSLike, webglPowerPreference, webglWormholeAntialias } from '@/lib/webglMobilePrefs';
 import { WORMHOLE_LAB_COIN_CANVAS_PERCENT } from '@/lib/wormholePageConfig';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
@@ -545,6 +545,7 @@ export function LogoCoinCanvas({ spin, tossToken = 0, spinSyncScroll = false }: 
   }, [coinShown, reducedMotion]);
 
   const wormholeLabBigCanvas = useWormholeLabOversizedCanvas(spinSyncScroll);
+  const canvasDpr = useMemo((): number | [number, number] => (isIOSLike() ? 1 : [1, 2]), []);
 
   return (
     <div
@@ -569,8 +570,9 @@ export function LogoCoinCanvas({ spin, tossToken = 0, spinSyncScroll = false }: 
       <Canvas
         className="logo-coin-canvas-root block h-full w-full min-h-0 touch-none overflow-visible leading-none"
         style={{ overflow: 'visible' }}
+        dpr={canvasDpr}
         resize={{ scroll: true, debounce: 0, offsetSize: true }}
-        gl={{ alpha: true, antialias: true, powerPreference: webglPowerPreference() }}
+        gl={{ alpha: true, antialias: webglWormholeAntialias(), powerPreference: webglPowerPreference() }}
         onCreated={({ gl }) => {
           gl.setClearColor(0x000000, 0);
           gl.toneMapping = THREE.NoToneMapping;

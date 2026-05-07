@@ -17,8 +17,11 @@ import {
   WORMHOLE4_SENSITIVITY,
   WORMHOLE5_DEBUG_START,
   WORMHOLE5_TUNNEL_START,
+  WORMHOLE6_MOBILE_FRICTION,
+  WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
 } from '@/lib/wormholePageConfig';
+import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
@@ -55,6 +58,8 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevFogDensity = s.fogDensity;
     const prevSensitivity = s.sensitivity;
     const prevScrollInputIdle = s.scrollInputIdle;
+    const prevFriction = s.friction;
+    const touchPrimary = isCoarseOrTouchPrimaryViewport();
 
     tunnelStore.setState({
       sensitivity: WORMHOLE4_SENSITIVITY,
@@ -62,8 +67,9 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       wormholeIdleForward: 0,
       ringCount: WORMHOLE_CLASSIC_TUNNEL.ringCount,
       ringSpacing: WORMHOLE_CLASSIC_TUNNEL.ringSpacing,
-      depth: WORMHOLE5_TUNNEL_START.depth,
-      velocity: WORMHOLE5_TUNNEL_START.velocity,
+      depth: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.depth : WORMHOLE5_TUNNEL_START.depth,
+      velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
+      friction: touchPrimary ? WORMHOLE6_MOBILE_FRICTION : s.friction,
       scrollInputIdle: 1,
       wormholeScrollVisualMul: -1,
       wormholeScrollHelixVelGain: -0.42,
@@ -99,6 +105,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         bloomThreshold: prevBloomThreshold,
         fogDensity: prevFogDensity,
         sensitivity: prevSensitivity,
+        friction: prevFriction,
       });
     };
   }, []);

@@ -22,6 +22,18 @@ export const WORMHOLE5_TUNNEL_START = {
   velocity: 0,
 } as const;
 
+/** Production `/` — touch-primary: start further into the tube; vel 0. */
+export const WORMHOLE6_MOBILE_TUNNEL_START = {
+  depth: 122.76,
+  velocity: 0,
+} as const;
+
+/**
+ * Higher than default store friction (0.92) so touch scroll coasts longer — easier to keep moving on
+ * phones (`useScrollDepth` uses `Math.pow(friction, dt * 8)`).
+ */
+export const WORMHOLE6_MOBILE_FRICTION = 0.965;
+
 /** `/wormhole4` — `tunnelStore.sensitivity` for wheel → depth (`useScrollDepth`). */
 export const WORMHOLE4_SENSITIVITY = 0.014;
 
