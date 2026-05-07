@@ -1,26 +1,51 @@
+# Dependencies & build output
 node_modules
 .next
 out
 *.log
+
+# Environment & secrets (never commit real credentials)
 .env
 .env.*
 !.env.example
-.DS_Store
-.vercel
+.envrc
+.local.env
 
-# Do not publish internal docs or notes
-*.md
-
-# Sensitive / credentials (never commit)
+# Sensitive / crypto material
 *.pem
 *.p12
 *.key
+*.crt
+*.cer
+*.pfx
+*.keystore
 id_rsa
 id_rsa.pub
 *.secret
 secrets/
 
-# Common local document formats (keep out of public repo)
+# Cloud / CI secrets often dropped locally
+*credentials*.json
+*-credentials.json
+*-service-account*.json
+.vercel
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+
+# Archives & dumps (avoid accidental uploads like Archive.zip)
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+
+# Markdown: ignore stray/internal docs; allow root README for GitHub if you add one later
+*.md
+!README.md
+
+# Other documents you typically do not want in the repo
 *.pdf
 *.doc
 *.docx
