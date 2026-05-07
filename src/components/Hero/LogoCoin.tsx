@@ -517,9 +517,36 @@ export type LogoCoinCanvasProps = {
   spinSyncScroll?: boolean;
 };
 
+/** Matches `globals.css` lg breakpoint; oversized GL canvas only on this+ for `/` (see hook below). */
+const WORMHOLE_LAB_DESKTOP_MIN_WIDTH_MQ = '(min-width: 1024px)';
+
+function subscribeDesktopLgMq(cb: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const mq = window.matchMedia(WORMHOLE_LAB_DESKTOP_MIN_WIDTH_MQ);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+}
+
+function snapshotDesktopLgMq(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia(WORMHOLE_LAB_DESKTOP_MIN_WIDTH_MQ).matches;
+}
+
+/**
+ * Wormhole scroll zoom needs a larger R3F canvas than the hero box so the coin does not clip.
+ * Lab routes (`/wormhole…`) always use it; production home (`/`) used to match when the URL was
+ * `/wormhole6` — restore that **desktop lg+** only so mobile layout stays unchanged.
+ */
 function useWormholeLabOversizedCanvas(spinSyncScroll: boolean): boolean {
   const pathname = usePathname();
-  return Boolean(spinSyncScroll && pathname?.startsWith('/wormhole'));
+  const desktopLg = useSyncExternalStore(
+    subscribeDesktopLgMq,
+    snapshotDesktopLgMq,
+    () => false,
+  );
+  if (!spinSyncScroll) return false;
+  if (pathname?.startsWith('/wormhole')) return true;
+  return pathname === '/' && desktopLg;
 }
 
 /**
