@@ -102,6 +102,17 @@ html.scroll-locked[data-scroll-mode='free'] body {
   opacity: var(--nl-logo-o, 1);
 }
 
+/* `/` only — slightly smaller opening coin than shared `.hero-logo-size-var` lab defaults. */
+.wormhole-home-intro-logo .hero-logo-size-var {
+  --hero-logo-size: min(264px, calc(100vw - 2.75rem));
+}
+
+@media (min-width: 1024px) {
+  .wormhole-home-intro-logo .hero-logo-size-var {
+    --hero-logo-size: min(242px, calc(100vw - 3rem));
+  }
+}
+
 /* Cinematic intro: logo recedes with --nl-intro (0→1) — see CinematicClientShell & JuliaFractalBackdrop */
 .cinematic-hero-depth {
   transform: translate3d(0, 0, calc(32px * (1 - var(--nl-intro, 1))))
