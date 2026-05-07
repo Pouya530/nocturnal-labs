@@ -90,8 +90,8 @@ function touchPanRouteBoost(): number {
 }
 
 /**
- * Lower numeric friction on Chrome + mobile only (less “sticky” coast vs desktop Safari).
- * `Math.pow(friction, dt*8)` — smaller coefficient = slightly faster velocity bleed per frame.
+ * Chrome + mobile: **less** scroll drag — higher `friction` coeff (closer to 1) so
+ * `Math.pow(friction, dt*8)` bleeds velocity slightly slower than desktop Safari’s raw store value.
  */
 function scrollFrictionEffective(storeFriction: number): number {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return storeFriction;
@@ -100,7 +100,7 @@ function scrollFrictionEffective(storeFriction: number): number {
     return storeFriction;
   }
   if (isTouchPrimaryOrMobileWebKit(ua) || isChromiumDesktopBrowser(ua)) {
-    return Math.max(0.78, storeFriction - 0.055);
+    return Math.min(0.99, storeFriction + 0.06);
   }
   return storeFriction;
 }
