@@ -29,6 +29,11 @@ export type WormholeJuliaThreeBackdropProps = {
   journeyCameraFromStart?: boolean;
   /** `/wormhole6` — fullscreen helix bundle scale ({@link WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL}). */
   helixLabFullscreen?: boolean;
+  /**
+   * Production home only: helix ribbons match `/wormhole2` grading + spiraling feel without touching
+   * rings or tunnel depth (`JuliaWormholeBackdrop` applies helix-only shading + synthetic twist).
+   */
+  helixWormhole2RibbonStyle?: boolean;
 };
 
 /**
@@ -43,6 +48,7 @@ export function WormholeJuliaThreeBackdrop({
   introRingsOverlay = false,
   journeyCameraFromStart = false,
   helixLabFullscreen = false,
+  helixWormhole2RibbonStyle = false,
 }: WormholeJuliaThreeBackdropProps): ReactElement | null {
   const enabled = useSyncExternalStore(
     tunnelStore.subscribe,
@@ -62,6 +68,7 @@ export function WormholeJuliaThreeBackdrop({
         introRingsOverlay={introRingsOverlay}
         journeyCameraFromStart={journeyCameraFromStart}
         helixLabFullscreen={helixLabFullscreen}
+        helixWormhole2RibbonStyle={helixWormhole2RibbonStyle}
       />
     </div>
   );

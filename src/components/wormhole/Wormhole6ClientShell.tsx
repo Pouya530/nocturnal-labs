@@ -210,6 +210,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         throatCameraJourney
         journeyCameraFromStart
         helixLabFullscreen
+        helixWormhole2RibbonStyle={true}
       />
       <LocalTunnelChrome
         showWormholeControls

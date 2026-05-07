@@ -159,6 +159,11 @@ export type JuliaWormholeBackdropProps = {
    * ({@link WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL}); default lab uses ~0.88 inset.
    */
   helixLabFullscreen?: boolean;
+  /**
+   * `/` production — render lab helices like `/wormhole2` (rim feather, intensity, spiral emphasis)
+   * while keeping Julia inversion rings + journey camera unchanged.
+   */
+  helixWormhole2RibbonStyle?: boolean;
 };
 
 /**
@@ -173,6 +178,7 @@ export function JuliaWormholeBackdrop({
   introRingsOverlay = false,
   journeyCameraFromStart = false,
   helixLabFullscreen = false,
+  helixWormhole2RibbonStyle = false,
 }: JuliaWormholeBackdropProps): ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -190,6 +196,8 @@ export function JuliaWormholeBackdrop({
     const useRingGrowthInversion = ringGrowthInversion && !throat;
     /** Softer helix ribbons / halo matching wormhole5 aesthetic — used with mouth overlay or fullscreen prod lab (`helixLabFullscreen`). */
     const wormhole5HelixLab = helixLab && ringGrowthInversion && (introRingsOverlay || helixLabFullscreen);
+    /** Helix tubes only: downgrade to `/wormhole2` ribbon look while rings stay on wormhole5/inversion stack. */
+    const helixRibbonGradeWormhole5 = wormhole5HelixLab && !helixWormhole2RibbonStyle;
 
     /** `/wormhole3` scroll arc: distant mouth → full-screen tube → emerge on far side. */
     /** Longer intro leg + stronger pull-back / wide FOV at j≈0 — small centered mouth (wormhole3 ref). */
@@ -446,10 +454,10 @@ export function JuliaWormholeBackdrop({
       );
     };
 
-    const helixRimFeather = wormhole5HelixLab ? HELIX_WORMHOLE5_RIM_FEATHER : RING_RIM_FEATHER_GLOW;
-    const helixMatIntensity = wormhole5HelixLab ? 1.26 : 1.05;
-    const helixZoomNudge = wormhole5HelixLab ? 0.06 : 0;
-    const helixEdgeHaloMul = wormhole5HelixLab ? HELIX_WORMHOLE5_EDGE_HALO_MUL : 1;
+    const helixRimFeather = helixRibbonGradeWormhole5 ? HELIX_WORMHOLE5_RIM_FEATHER : RING_RIM_FEATHER_GLOW;
+    const helixMatIntensity = helixRibbonGradeWormhole5 ? 1.26 : 1.05;
+    const helixZoomNudge = helixRibbonGradeWormhole5 ? 0.06 : 0;
+    const helixEdgeHaloMul = helixRibbonGradeWormhole5 ? HELIX_WORMHOLE5_EDGE_HALO_MUL : 1;
 
     for (let h = 0; h < helixStrands; h++) {
       const phaseOffset = (h / helixStrands) * Math.PI * 2;
@@ -594,6 +602,8 @@ export function JuliaWormholeBackdrop({
     let smoothedBank = 0;
     /** `/wormhole4` — `wormholeScrollHelixVelGain` couples helix twist to scroll velocity. */
     let helixVelStrafe = 0;
+    /** Prod home (`helixWormhole2RibbonStyle`): extra twist like `/wormhole2` idle drift without touching tunnel depth (rings stay unchanged). */
+    let helixWormhole2SynthTwist = 0;
     /** Tunnel debug: random tilt targets + smoothed euler offsets (rad). */
     let randCamPulse = 0;
     let randCamLastDepth = 0;
@@ -644,6 +654,10 @@ export function JuliaWormholeBackdrop({
         velRideSm += (rideTarget - velRideSm) * (1 - Math.exp(-dt * 6.8));
       } else {
         velRideSm += -velRideSm * (1 - Math.exp(-dt * 4));
+      }
+
+      if (helixWormhole2RibbonStyle && helixLab) {
+        helixWormhole2SynthTwist += dt * 0.48;
       }
 
       const wrapUpper = 5;
@@ -810,12 +824,12 @@ export function JuliaWormholeBackdrop({
        * `/wormhole2` keeps ~0.55 idle forward → |v| feeds velFlare. Wormhole5 often starts at v=0;
        * when helix + inversion stack, nudge base so idle brightness matches lab without faking velocity.
        */
-      const helixBase = wormhole5HelixLab
+      const helixBase = helixRibbonGradeWormhole5
         ? 0.9
         : helixLab && useRingGrowthInversion
           ? 0.765
           : 0.72;
-      const helixOpacityBoost = wormhole5HelixLab ? 1.12 : 1;
+      const helixOpacityBoost = helixRibbonGradeWormhole5 ? 1.12 : 1;
 
       if (helixShow) {
         for (let hi = 0; hi < helixMats.length; hi++) {
@@ -838,8 +852,13 @@ export function JuliaWormholeBackdrop({
       for (const h of helices) {
         h.visible = helixShow;
         if (!helixShow) continue;
+        const helixSpinT = helixWormhole2RibbonStyle ? 0.255 : 0.18;
         h.rotation.z =
-          time * 0.18 + (h.userData.basePhase as number) * 0.3 + s.depth * 0.04 + helixVelStrafe;
+          time * helixSpinT +
+          (h.userData.basePhase as number) * 0.3 +
+          s.depth * 0.04 +
+          helixVelStrafe +
+          (helixWormhole2RibbonStyle ? helixWormhole2SynthTwist : 0);
         if (!helixLab) {
           const hm = h.material as THREE.MeshBasicMaterial;
           const flare = Math.min(Math.abs(s.velocity) * 0.08, 0.35);
@@ -1017,6 +1036,7 @@ export function JuliaWormholeBackdrop({
     introRingsOverlay,
     journeyCameraFromStart,
     helixLabFullscreen,
+    helixWormhole2RibbonStyle,
   ]);
 
   return (
