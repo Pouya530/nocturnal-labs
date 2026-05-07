@@ -14,13 +14,13 @@ function clamp(n: number, min: number, max: number): number {
  * Same accent hues as `JuliaWormholeBackdrop` PALETTE — reads as bloom-coloured haze
  * (additive passes), not a dark vignette.
  */
-/** Long outer feather (multi-stop) so halos dissolve into the scene — no hard disc edge. */
+/** Long outer feather — dense stops near 100% so the rim eases to fully transparent (no ring). */
 const BLOOM_FOG_LAYERS: readonly string[] = [
-  'radial-gradient(ellipse 58% 62% at 44% 45%, rgba(255, 77, 168, 0.62) 0%, rgba(255, 77, 168, 0.28) 38%, rgba(255, 77, 168, 0.08) 72%, rgba(255, 77, 168, 0.02) 90%, transparent 100%)',
-  'radial-gradient(ellipse 52% 56% at 58% 52%, rgba(142, 59, 255, 0.55) 0%, rgba(142, 59, 255, 0.24) 36%, rgba(142, 59, 255, 0.07) 70%, rgba(142, 59, 255, 0.02) 88%, transparent 100%)',
-  'radial-gradient(ellipse 54% 58% at 48% 58%, rgba(59, 123, 255, 0.5) 0%, rgba(59, 123, 255, 0.22) 37%, rgba(59, 123, 255, 0.06) 71%, rgba(59, 123, 255, 0.02) 89%, transparent 100%)',
-  'radial-gradient(ellipse 46% 50% at 38% 56%, rgba(77, 255, 176, 0.38) 0%, rgba(77, 255, 176, 0.16) 35%, rgba(77, 255, 176, 0.05) 69%, rgba(77, 255, 176, 0.015) 87%, transparent 100%)',
-  'radial-gradient(ellipse 42% 48% at 62% 42%, rgba(245, 255, 97, 0.32) 0%, rgba(245, 255, 97, 0.14) 34%, rgba(245, 255, 97, 0.045) 68%, rgba(245, 255, 97, 0.012) 86%, transparent 100%)',
+  'radial-gradient(ellipse 58% 62% at 44% 45%, rgba(255, 77, 168, 0.62) 0%, rgba(255, 77, 168, 0.28) 38%, rgba(255, 77, 168, 0.09) 66%, rgba(255, 77, 168, 0.035) 80%, rgba(255, 77, 168, 0.012) 90%, rgba(255, 77, 168, 0.004) 96%, transparent 100%)',
+  'radial-gradient(ellipse 52% 56% at 58% 52%, rgba(142, 59, 255, 0.55) 0%, rgba(142, 59, 255, 0.24) 36%, rgba(142, 59, 255, 0.075) 64%, rgba(142, 59, 255, 0.03) 79%, rgba(142, 59, 255, 0.01) 89%, rgba(142, 59, 255, 0.003) 95.5%, transparent 100%)',
+  'radial-gradient(ellipse 54% 58% at 48% 58%, rgba(59, 123, 255, 0.5) 0%, rgba(59, 123, 255, 0.22) 37%, rgba(59, 123, 255, 0.065) 65%, rgba(59, 123, 255, 0.025) 80%, rgba(59, 123, 255, 0.008) 90%, rgba(59, 123, 255, 0.0025) 96%, transparent 100%)',
+  'radial-gradient(ellipse 46% 50% at 38% 56%, rgba(77, 255, 176, 0.38) 0%, rgba(77, 255, 176, 0.16) 35%, rgba(77, 255, 176, 0.055) 63%, rgba(77, 255, 176, 0.02) 78%, rgba(77, 255, 176, 0.007) 88%, rgba(77, 255, 176, 0.002) 95%, transparent 100%)',
+  'radial-gradient(ellipse 42% 48% at 62% 42%, rgba(245, 255, 97, 0.32) 0%, rgba(245, 255, 97, 0.14) 34%, rgba(245, 255, 97, 0.048) 62%, rgba(245, 255, 97, 0.018) 77%, rgba(245, 255, 97, 0.006) 87%, rgba(245, 255, 97, 0.002) 94%, transparent 100%)',
 ];
 
 /**
@@ -28,11 +28,11 @@ const BLOOM_FOG_LAYERS: readonly string[] = [
  * Matches scene fog tint `0x05010f`.
  */
 const ATMOSPHERE_GRADIENT =
-  'radial-gradient(ellipse 92% 94% at 50% 50%, rgba(5, 1, 15, 0) 22%, rgba(5, 1, 15, 0.22) 52%, rgba(5, 1, 15, 0.4) 72%, rgba(5, 1, 15, 0.12) 88%, rgba(5, 1, 15, 0) 100%)';
+  'radial-gradient(ellipse 92% 94% at 50% 50%, rgba(5, 1, 15, 0) 22%, rgba(5, 1, 15, 0.22) 52%, rgba(5, 1, 15, 0.4) 70%, rgba(5, 1, 15, 0.14) 82%, rgba(5, 1, 15, 0.045) 91%, rgba(5, 1, 15, 0.012) 96%, rgba(5, 1, 15, 0) 100%)';
 
-/** Unified alpha disc: center opaque → outer fully soft (pairs with widened `inset`). */
+/** Unified alpha disc — long rim ramp so mask + feather reach fully transparent (pairs with widened inset). */
 const FOG_OUTER_MASK =
-  'radial-gradient(ellipse 100% 100% at 50% 50%, #000 0%, #000 40%, rgba(0,0,0,0.62) 66%, rgba(0,0,0,0.22) 84%, rgba(0,0,0,0.06) 94%, transparent 100%)';
+  'radial-gradient(ellipse 100% 100% at 50% 50%, #000 0%, #000 38%, rgba(0,0,0,0.58) 62%, rgba(0,0,0,0.28) 76%, rgba(0,0,0,0.12) 87%, rgba(0,0,0,0.04) 93%, rgba(0,0,0,0.012) 97%, rgba(0,0,0,0.003) 99%, transparent 100%)';
 
 const LAYER_WEIGHTS = [1, 0.92, 0.88, 0.72, 0.65] as const;
 
@@ -93,7 +93,7 @@ export function WormholeCoinFogOverlay(): ReactElement {
     <div
       ref={rootRef}
       aria-hidden
-      className="pointer-events-none absolute inset-[-52%] z-[8] overflow-visible rounded-[50%] opacity-0 [mask-image:var(--bf-outer-mask)] [-webkit-mask-image:var(--bf-outer-mask)] [mask-repeat:no-repeat] [-webkit-mask-repeat:no-repeat] [mask-size:100%_100%] [-webkit-mask-size:100%_100%]"
+      className="pointer-events-none absolute inset-[-84%] z-[8] overflow-visible rounded-[50%] opacity-0 [mask-image:var(--bf-outer-mask)] [-webkit-mask-image:var(--bf-outer-mask)] [mask-repeat:no-repeat] [-webkit-mask-repeat:no-repeat] [mask-size:100%_100%] [-webkit-mask-size:100%_100%]"
       style={
         {
           visibility: 'hidden',
