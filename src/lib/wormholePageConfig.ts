@@ -38,6 +38,15 @@ export const WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH = 112;
 export const WORMHOLE_HOME_INTRO_LOGO_FADE_START = 0.36;
 
 /**
+ * `/` after the loading veil is dismissed: duration for subtle throat-style zoom-out (FOV + camera dolly
+ * ease from tight → wormhole3 mouth framing). Not the legacy scroll-depth sweep.
+ */
+export const WORMHOLE_HOME_MICRO_INTRO_MS = 760;
+
+/** Same timeline (0–1): hero coin stays hidden until this linear progress, then eases in. */
+export const WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY = 0.14;
+
+/**
  * `/` lab helices when `helixLabFullscreen`: bundle radius vs nominal tunnel wall (`ringRadius ×
  * radialScale`). Prod home uses journey-from-start (wide FOV + dolly back at the mouth), so this
  * needs to sit clearly above 1 to read edge-to-edge (wormhole5 lab stays ~0.88 inset).

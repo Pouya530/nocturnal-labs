@@ -67,6 +67,11 @@ export type TunnelState = {
    * velocity each tick instead of integrating scroll (pan/zoom settle before hand-off).
    */
   wormholeIntroDepthOverride: number | null;
+  /**
+   * `/` micro-intro only (`journeyCameraFromStart`): scales throat journey FOV + camera pullback toward
+   * the wormhole3 mouth look (`1` = full framing). Animated `0 → 1` after the loading veil dismisses.
+   */
+  wormholeHomeIntroCam01: number;
 };
 
 const initial: TunnelState = {
@@ -107,6 +112,7 @@ const initial: TunnelState = {
   wormholeDebugRandomCamTilt: false,
   wormholeBlackHoleOverlayEnabled: false,
   wormholeIntroDepthOverride: null,
+  wormholeHomeIntroCam01: 1,
 };
 
 let state: TunnelState = { ...initial };

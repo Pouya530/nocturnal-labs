@@ -1,10 +1,12 @@
 'use client';
 
 import type { ReactNode, ReactElement } from 'react';
-import { useEffect, useLayoutEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
+import { motionPrefs } from '@/core/motion';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { LocalTunnelChrome } from '@/components/landing/LocalTunnelChrome';
+import { SitePreloader } from '@/components/landing/SitePreloader';
 import { WormholeCoinSyncedMarqueeFooter } from '@/components/wormhole/WormholeCoinSyncedMarqueeFooter';
 import { WormholeJuliaThreeBackdrop } from '@/components/wormhole/WormholeJuliaThreeBackdrop';
 import {
@@ -18,24 +20,33 @@ import {
   WORMHOLE5_TUNNEL_START,
   WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
+  WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY,
+  WORMHOLE_HOME_MICRO_INTRO_MS,
 } from '@/lib/wormholePageConfig';
 import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
+
+function easeOutCubic(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return 1 - Math.pow(1 - x, 3);
+}
 
 /**
  * Production home shell: same Three.js stack + tunnel tuning as `/wormhole5`; no mode HUD or debug
  * panel; velocity-synced footer marquee. Also used when importing {@link Wormhole6Route} on `/`.
  */
 export function Wormhole6ClientShell({ children }: { children: ReactNode }): ReactElement {
-  /** No site preloader / tunnel sweep: hero + tunnel start fully visible immediately. */
-  useLayoutEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.documentElement.style.setProperty('--nl-intro', '1');
-    document.documentElement.style.setProperty('--nl-logo-o', '1');
-  }, []);
+  const introRaf = useRef(0);
+  const introStarted = useRef(false);
 
   useLayoutEffect(() => {
+    const reducedNow = motionPrefs.reduced;
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--nl-intro', '1');
+      document.documentElement.style.setProperty('--nl-logo-o', reducedNow ? '1' : '0');
+    }
+
     const previousMode = getActiveLandingBackdropMode();
     setActiveLandingBackdropMode('original');
 
@@ -62,6 +73,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevSensitivity = s.sensitivity;
     const prevScrollInputIdle = s.scrollInputIdle;
     const prevIntroDepthOv = s.wormholeIntroDepthOverride;
+    const prevHomeIntroCam = s.wormholeHomeIntroCam01;
     const touchPrimary = isCoarseOrTouchPrimaryViewport();
 
     tunnelStore.setState({
@@ -71,6 +83,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       ringCount: WORMHOLE_CLASSIC_TUNNEL.ringCount,
       ringSpacing: WORMHOLE_CLASSIC_TUNNEL.ringSpacing,
       wormholeIntroDepthOverride: null,
+      wormholeHomeIntroCam01: reducedNow ? 1 : 0,
       depth: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.depth : WORMHOLE5_TUNNEL_START.depth,
       velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
       scrollInputIdle: 1,
@@ -85,6 +98,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     queueMicrotask(() => tunnelStore.setState({ mode: 'locked' }));
 
     return () => {
+      cancelAnimationFrame(introRaf.current);
       setActiveLandingBackdropMode(previousMode);
       tunnelStore.setState({
         maxDepth: prevMaxDepth,
@@ -96,6 +110,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         velocity: prevVelocity,
         scrollInputIdle: prevScrollInputIdle,
         wormholeIntroDepthOverride: prevIntroDepthOv,
+        wormholeHomeIntroCam01: prevHomeIntroCam,
         wormholeScrollVisualMul: prevScrollVisualMul,
         wormholeScrollHelixVelGain: prevScrollHelixVelGain,
         wormhole3dBackgroundEnabled: prevWormhole3d,
@@ -117,6 +132,51 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     tunnelStore.setState({ mode: 'locked' });
   }, []);
 
+  const onPreloaderGone = useCallback(() => {
+    const reducedNow = motionPrefs.reduced;
+    if (reducedNow) {
+      tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--nl-logo-o', '1');
+      }
+      return;
+    }
+    if (introStarted.current) return;
+    introStarted.current = true;
+
+    const t0 = performance.now();
+    const duration = WORMHOLE_HOME_MICRO_INTRO_MS;
+    const logoDelay = WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY;
+
+    const step = (now: number) => {
+      const linear = Math.min(1, (now - t0) / duration);
+      const camEase = easeOutCubic(linear);
+      tunnelStore.setState({ wormholeHomeIntroCam01: camEase });
+
+      let logoO = 0;
+      if (linear > logoDelay) {
+        logoO = easeOutCubic((linear - logoDelay) / Math.max(1e-6, 1 - logoDelay));
+      }
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--nl-logo-o', String(logoO));
+      }
+
+      if (linear < 1) {
+        introRaf.current = requestAnimationFrame(step);
+      } else {
+        tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
+        if (typeof document !== 'undefined') {
+          document.documentElement.style.setProperty('--nl-logo-o', '1');
+        }
+      }
+    };
+    introRaf.current = requestAnimationFrame(step);
+  }, []);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(introRaf.current);
+  }, []);
+
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#030208]">
       <WormholeJuliaThreeBackdrop
@@ -136,6 +196,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       <LandingTopNav />
       <div className="relative z-10 wormhole-home-intro-logo">{children}</div>
       <WormholeCoinSyncedMarqueeFooter />
+      <SitePreloader onGone={onPreloaderGone} />
     </div>
   );
 }

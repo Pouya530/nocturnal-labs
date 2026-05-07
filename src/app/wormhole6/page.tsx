@@ -1,7 +1,8 @@
 import dynamic from 'next/dynamic';
 
 /**
- * Mirrors `/`: fullscreen helix wormhole + `fullscreenBleed` atmosphere (no site preloader sweep).
+ * Mirrors `/`: fullscreen helix wormhole + site preloader, subtle throat-style zoom-out + coin fade,
+ * and `fullscreenBleed` atmosphere.
  * Canonical URL remains `/` (see `layout.tsx`); keeps bookmarks sharing `/wormhole6`.
  */
 const TunnelMirrorExperience = dynamic(

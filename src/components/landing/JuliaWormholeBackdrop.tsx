@@ -634,10 +634,15 @@ export function JuliaWormholeBackdrop({
         : helixLab && introRingsOverlay && throatCameraJourney
           ? THREE.MathUtils.smoothstep(0, 0.012, journey01)
           : 1;
+      const homeIntroCamMul = journeyCameraFromStart
+        ? THREE.MathUtils.clamp(s.wormholeHomeIntroCam01 ?? 1, 0, 1)
+        : 1;
       const journeyFovAdd =
-        (useThroatCamera ? throatJourneyFovAdd(journey01) : 0) * journeyCamEasing;
+        (useThroatCamera ? throatJourneyFovAdd(journey01) : 0) * journeyCamEasing * homeIntroCamMul;
       const journeyCamZAdd =
-        (useThroatCamera ? throatJourneyCamZ(journey01) : 0) * journeyCamEasing;
+        (useThroatCamera ? throatJourneyCamZ(journey01) : 0) *
+        journeyCamEasing *
+        homeIntroCamMul;
 
       if (useThroatCamera) {
         if (!journeyCameraFromStart || pointerFine) {
