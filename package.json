@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NEXT_DIST_DEV=1 next dev",
+    "dev": "node scripts/next-dev.mjs",
     "dev:clean": "node -e \"const fs=require('fs');for(const d of ['.next','.next-dev']){try{fs.rmSync(d,{recursive:true,force:true});}catch(e){if(e&&e.code!=='ENOENT')throw e;}}\"",
-    "dev:fresh": "npm run dev:clean && NEXT_DIST_DEV=1 next dev",
+    "dev:fresh": "npm run dev:clean && node scripts/next-dev.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
