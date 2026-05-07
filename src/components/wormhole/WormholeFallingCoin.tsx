@@ -11,6 +11,9 @@ type WormholeFallingCoinProps = {
   children: ReactNode;
 };
 
+/** First-order lag toward fall on / off — lower = slower crossfade from spin to drift (and back). */
+const FALL_BLEND_EASE_PER_SEC = 10;
+
 /**
  * “Falling through the tube” CSS motion after scroll has fully settled — **locked and free fly**.
  * Gates: user has scrolled once, input idle, and velocity near the steady baseline (0 in free fly,
@@ -57,7 +60,7 @@ export function WormholeFallingCoin({ children }: WormholeFallingCoinProps): Rea
       const targetFallBlend = canSettle && heldSettledMs >= 220 ? 1 : 0;
 
       const smooth = fallBlendSmoothedRef.current;
-      const easeK = 1 - Math.exp(-14 * dt);
+      const easeK = 1 - Math.exp(-FALL_BLEND_EASE_PER_SEC * dt);
       fallBlendSmoothedRef.current = smooth + (targetFallBlend - smooth) * easeK;
       const w = fallBlendSmoothedRef.current;
 
