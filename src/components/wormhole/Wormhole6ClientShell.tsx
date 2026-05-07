@@ -198,6 +198,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         throatCameraJourney
         introRingsOverlay
         journeyCameraFromStart
+        helixLabFullscreen
       />
       <Wormhole4AtmosphereOverlay />
       <LocalTunnelChrome

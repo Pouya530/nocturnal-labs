@@ -27,6 +27,8 @@ export type WormholeJuliaThreeBackdropProps = {
   introRingsOverlay?: boolean;
   /** `/wormhole6` — journey camera + desktop mouse aim from first frame (see `JuliaWormholeBackdrop`). */
   journeyCameraFromStart?: boolean;
+  /** `/wormhole6` — lab helices scaled to fill viewport width (see `JuliaWormholeBackdrop`). */
+  helixLabFullscreen?: boolean;
 };
 
 /**
@@ -40,6 +42,7 @@ export function WormholeJuliaThreeBackdrop({
   throatCameraJourney = false,
   introRingsOverlay = false,
   journeyCameraFromStart = false,
+  helixLabFullscreen = false,
 }: WormholeJuliaThreeBackdropProps): ReactElement | null {
   const enabled = useSyncExternalStore(
     tunnelStore.subscribe,
@@ -58,6 +61,7 @@ export function WormholeJuliaThreeBackdrop({
         throatCameraJourney={throatCameraJourney}
         introRingsOverlay={introRingsOverlay}
         journeyCameraFromStart={journeyCameraFromStart}
+        helixLabFullscreen={helixLabFullscreen}
       />
     </div>
   );

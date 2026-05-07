@@ -153,6 +153,11 @@ export type JuliaWormholeBackdropProps = {
    * ramps easing from depth 0 so the mouth matches `/wormhole2` framing first.
    */
   journeyCameraFromStart?: boolean;
+  /**
+   * `/wormhole6` — scale lab helix bundle to the tunnel wall (no inset); default lab uses ~0.88 so
+   * ribbons sit inside the frame.
+   */
+  helixLabFullscreen?: boolean;
 };
 
 /**
@@ -166,6 +171,7 @@ export function JuliaWormholeBackdrop({
   throatCameraJourney = false,
   introRingsOverlay = false,
   journeyCameraFromStart = false,
+  helixLabFullscreen = false,
 }: JuliaWormholeBackdropProps): ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -420,7 +426,8 @@ export function JuliaWormholeBackdrop({
     const r0 = hx.tubeRadius;
     const R0 = (2 * r0) / Math.sqrt(3);
     const bundleOuter = R0 + r0;
-    const targetWall = initial.ringRadius * hx.radialScale * 0.88;
+    const helixWallInsetMul = helixLabFullscreen ? 1 : 0.88;
+    const targetWall = initial.ringRadius * hx.radialScale * helixWallInsetMul;
     const bundleScale = helixLab ? targetWall / bundleOuter : 1;
     const helixTubeR = helixLab ? r0 * bundleScale : hx.tubeRadius;
     const helixPathR = (t01: number) => {
@@ -1002,6 +1009,7 @@ export function JuliaWormholeBackdrop({
     throatCameraJourney,
     introRingsOverlay,
     journeyCameraFromStart,
+    helixLabFullscreen,
   ]);
 
   return (
