@@ -39,10 +39,10 @@ export const WORMHOLE_HOME_INTRO_LOGO_FADE_START = 0.36;
 
 /**
  * `/` lab helices when `helixLabFullscreen`: bundle radius vs nominal tunnel wall (`ringRadius ×
- * radialScale`). Slightly above 1 fills viewport corners / ultrawide under perspective + wide FOV
- * without the old 0.88 inset gap.
+ * radialScale`). Above 1 fills viewport corners / ultrawide under perspective + journey FOV; tune
+ * here only (wormhole5 lab stays ~0.88 inset).
  */
-export const WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL = 1.056;
+export const WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL = 1.1;
 
 /** `/wormhole4` — `tunnelStore.sensitivity` for wheel → depth (`useScrollDepth`). */
 export const WORMHOLE4_SENSITIVITY = 0.014;
