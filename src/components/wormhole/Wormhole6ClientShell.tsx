@@ -239,7 +239,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         journeyCameraFromStart
         helixLabFullscreen
       />
-      <Wormhole4AtmosphereOverlay />
+      <Wormhole4AtmosphereOverlay fullscreenBleed />
       <LocalTunnelChrome
         showWormholeControls
         showModeToggle={false}

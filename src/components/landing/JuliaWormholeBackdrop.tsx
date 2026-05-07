@@ -397,7 +397,11 @@ export function JuliaWormholeBackdrop({
     if (introRingsOverlay) {
       const introCount = 30;
       const introSpacing = initial.ringSpacing * 0.92;
-      const introGeo = new THREE.RingGeometry(initial.ringRadius * 0.81, initial.ringRadius, 80, 1);
+      const introOuter = helixLabFullscreen
+        ? initial.ringRadius * hx.radialScale * WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL
+        : initial.ringRadius;
+      const introInner = helixLabFullscreen ? introOuter * 0.81 : initial.ringRadius * 0.81;
+      const introGeo = new THREE.RingGeometry(introInner, introOuter, 80, 1);
       for (let i = 0; i < introCount; i++) {
         const mat = makeMat(
           1_000 + i,
@@ -499,9 +503,10 @@ export function JuliaWormholeBackdrop({
     const pPos = new Float32Array(initial.particleCount * 3);
     const pCol = new Float32Array(initial.particleCount * 3);
     const pPh = new Float32Array(initial.particleCount);
+    const particleSpreadMul = helixLabFullscreen ? WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL : 1;
     for (let i = 0; i < initial.particleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
-      const r = Math.sqrt(Math.random()) * initial.ringRadius * 0.95;
+      const r = Math.sqrt(Math.random()) * initial.ringRadius * 0.95 * particleSpreadMul;
       const z = -Math.random() * TUNNEL_LENGTH;
       pPos[i * 3] = Math.cos(theta) * r;
       pPos[i * 3 + 1] = Math.sin(theta) * r;

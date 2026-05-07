@@ -42,7 +42,7 @@ export const WORMHOLE_HOME_INTRO_LOGO_FADE_START = 0.36;
  * radialScale`). Above 1 fills viewport corners / ultrawide under perspective + journey FOV; tune
  * here only (wormhole5 lab stays ~0.88 inset).
  */
-export const WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL = 1.1;
+export const WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL = 1.22;
 
 /** `/wormhole4` — `tunnelStore.sensitivity` for wheel → depth (`useScrollDepth`). */
 export const WORMHOLE4_SENSITIVITY = 0.014;
