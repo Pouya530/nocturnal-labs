@@ -27,7 +27,7 @@ export type WormholeJuliaThreeBackdropProps = {
   introRingsOverlay?: boolean;
   /** `/wormhole6` — journey camera + desktop mouse aim from first frame (see `JuliaWormholeBackdrop`). */
   journeyCameraFromStart?: boolean;
-  /** `/wormhole6` — lab helices scaled to fill viewport width (see `JuliaWormholeBackdrop`). */
+  /** `/wormhole6` — fullscreen helix bundle scale ({@link WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL}). */
   helixLabFullscreen?: boolean;
 };
 

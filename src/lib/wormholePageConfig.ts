@@ -37,6 +37,13 @@ export const WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH = 112;
 /** Logo fade follows tunnel sweep when linear intro progress crosses this threshold (0–1). */
 export const WORMHOLE_HOME_INTRO_LOGO_FADE_START = 0.36;
 
+/**
+ * `/` lab helices when `helixLabFullscreen`: bundle radius vs nominal tunnel wall (`ringRadius ×
+ * radialScale`). Slightly above 1 fills viewport corners / ultrawide under perspective + wide FOV
+ * without the old 0.88 inset gap.
+ */
+export const WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL = 1.056;
+
 /** `/wormhole4` — `tunnelStore.sensitivity` for wheel → depth (`useScrollDepth`). */
 export const WORMHOLE4_SENSITIVITY = 0.014;
 

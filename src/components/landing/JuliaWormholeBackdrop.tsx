@@ -14,6 +14,7 @@ import {
   webglWormholeAntialias,
   webglWormholePixelRatio,
 } from '@/lib/webglMobilePrefs';
+import { WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL } from '@/lib/wormholePageConfig';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 import { wormholeJuliaFragment, wormholeJuliaVertex } from '@/visuals/shaders/juliaWormholeShaderSources';
 
@@ -154,8 +155,8 @@ export type JuliaWormholeBackdropProps = {
    */
   journeyCameraFromStart?: boolean;
   /**
-   * `/wormhole6` — scale lab helix bundle to the tunnel wall (no inset); default lab uses ~0.88 so
-   * ribbons sit inside the frame.
+   * `/wormhole6` — scale lab helix bundle past nominal tunnel wall for corner fill under camera FOV
+   * ({@link WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL}); default lab uses ~0.88 inset.
    */
   helixLabFullscreen?: boolean;
 };
@@ -426,7 +427,7 @@ export function JuliaWormholeBackdrop({
     const r0 = hx.tubeRadius;
     const R0 = (2 * r0) / Math.sqrt(3);
     const bundleOuter = R0 + r0;
-    const helixWallInsetMul = helixLabFullscreen ? 1 : 0.88;
+    const helixWallInsetMul = helixLabFullscreen ? WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL : 0.88;
     const targetWall = initial.ringRadius * hx.radialScale * helixWallInsetMul;
     const bundleScale = helixLab ? targetWall / bundleOuter : 1;
     const helixTubeR = helixLab ? r0 * bundleScale : hx.tubeRadius;
