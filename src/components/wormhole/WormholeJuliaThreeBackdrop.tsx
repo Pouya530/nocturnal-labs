@@ -25,6 +25,8 @@ export type WormholeJuliaThreeBackdropProps = {
   throatCameraJourney?: boolean;
   /** `/wormhole5` — front-loaded ring stack overlayed above helices, fades with depth. */
   introRingsOverlay?: boolean;
+  /** `/wormhole6` — journey camera + desktop mouse aim from first frame (see `JuliaWormholeBackdrop`). */
+  journeyCameraFromStart?: boolean;
 };
 
 /**
@@ -37,6 +39,7 @@ export function WormholeJuliaThreeBackdrop({
   ringGrowthInversion = false,
   throatCameraJourney = false,
   introRingsOverlay = false,
+  journeyCameraFromStart = false,
 }: WormholeJuliaThreeBackdropProps): ReactElement | null {
   const enabled = useSyncExternalStore(
     tunnelStore.subscribe,
@@ -54,6 +57,7 @@ export function WormholeJuliaThreeBackdrop({
         ringGrowthInversion={ringGrowthInversion}
         throatCameraJourney={throatCameraJourney}
         introRingsOverlay={introRingsOverlay}
+        journeyCameraFromStart={journeyCameraFromStart}
       />
     </div>
   );

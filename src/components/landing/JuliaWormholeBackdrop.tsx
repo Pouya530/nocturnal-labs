@@ -147,6 +147,12 @@ export type JuliaWormholeBackdropProps = {
    * Rings are rendered over helices, then fade out as scroll depth advances through the intro.
    */
   introRingsOverlay?: boolean;
+  /**
+   * `/wormhole6` (prod home) — use full journey camera strength from the first frame (wide FOV /
+   * dolly at the mouth, mouse aim), like `/wormhole3` throat mode. Without this, helix+intro+journey
+   * ramps easing from depth 0 so the mouth matches `/wormhole2` framing first.
+   */
+  journeyCameraFromStart?: boolean;
 };
 
 /**
@@ -159,6 +165,7 @@ export function JuliaWormholeBackdrop({
   ringGrowthInversion = false,
   throatCameraJourney = false,
   introRingsOverlay = false,
+  journeyCameraFromStart = false,
 }: JuliaWormholeBackdropProps): ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -560,7 +567,12 @@ export function JuliaWormholeBackdrop({
       ptr.x = (e.clientX / w) * 2 - 1;
       ptr.y = -((e.clientY / h) * 2 - 1);
     };
-    if (useThroatCamera) {
+    const pointerFine =
+      typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
+    /** Wormhole6: mouse aim only on fine pointers (desktop); Wormhole3 path unchanged. */
+    const attachMouseAim =
+      useThroatCamera && (!journeyCameraFromStart || pointerFine);
+    if (attachMouseAim) {
       window.addEventListener('mousemove', onMouseMove, { passive: true });
     }
 
@@ -591,9 +603,11 @@ export function JuliaWormholeBackdrop({
        * `/wormhole5` (helix lab + intro rings + journey): at the mouth, use the same framing as
        * `/wormhole2` (camera at z≈0, base FOV). Journey pull-back / wide FOV eases in after a
        * short depth so ribbons stay full-screen at the start.
+       * `/wormhole6` sets `journeyCameraFromStart` to match `/wormhole3` throat from frame 0.
        */
-      const journeyCamEasing =
-        helixLab && introRingsOverlay && throatCameraJourney
+      const journeyCamEasing = journeyCameraFromStart
+        ? 1
+        : helixLab && introRingsOverlay && throatCameraJourney
           ? THREE.MathUtils.smoothstep(0, 0.012, journey01)
           : 1;
       const journeyFovAdd =
@@ -602,9 +616,11 @@ export function JuliaWormholeBackdrop({
         (useThroatCamera ? throatJourneyCamZ(journey01) : 0) * journeyCamEasing;
 
       if (useThroatCamera) {
-        const ptrEase = 1 - Math.exp(-dt * 8.5);
-        ptr.sx += (ptr.x - ptr.sx) * ptrEase;
-        ptr.sy += (ptr.y - ptr.sy) * ptrEase;
+        if (!journeyCameraFromStart || pointerFine) {
+          const ptrEase = 1 - Math.exp(-dt * 8.5);
+          ptr.sx += (ptr.x - ptr.sx) * ptrEase;
+          ptr.sy += (ptr.y - ptr.sy) * ptrEase;
+        }
         const introRideRamp = THREE.MathUtils.smoothstep(0, THROAT_INTRO_FRAC * 0.55, journey01);
         const rideTarget = THREE.MathUtils.clamp(
           -s.velocity * 0.46 * introRideRamp,
@@ -866,29 +882,24 @@ export function JuliaWormholeBackdrop({
         // 1. Velocity-driven FOV breathing — speed lines / hyperspace lens stretch.
         //    Faster scroll = wider FOV (warps periphery inward).
         const baseFov = 72 + journeyFovAdd;
-        const targetFov = baseFov + Math.min(Math.abs(s.velocity) * 1.2, 14);
+        const targetFov = baseFov + Math.min(Math.abs(s.velocity) * 0.65, 8);
         camera.fov += (targetFov - camera.fov) * (1 - Math.exp(-dt * 6));
         camera.updateProjectionMatrix();
 
         // 2. Forward dolly with elastic recoil — camera lurches forward on velocity
         //    bursts then springs back to z=0. Reads as "weight" inside the tube.
-        const dollyTarget = -Math.min(Math.abs(s.velocity) * 0.3, 1.8);
+        const dollyTarget = -Math.min(Math.abs(s.velocity) * 0.16, 1);
         const scrollRideZ = useThroatCamera ? velRideSm * journeyCamEasing : 0;
         const targetZ = dollyTarget + journeyCamZAdd + scrollRideZ;
         camera.position.z += (targetZ - camera.position.z) * (1 - Math.exp(-dt * 4));
 
-        // 3. High-frequency wobble — sub-pixel camera shake proportional to velocity.
-        //    Sells "engine vibration" / "passing through turbulence". Use Math.sin
-        //    with two incommensurate frequencies so it never feels rhythmic.
-        const shakeAmt = Math.min(Math.abs(s.velocity) * 0.015, 0.08);
-        camera.position.x =
-          Math.sin(time * 11.3) * shakeAmt + Math.sin(time * 7.7) * shakeAmt * 0.6;
-        camera.position.y =
-          Math.cos(time * 9.1) * shakeAmt + Math.sin(time * 5.3) * shakeAmt * 0.6;
+        // 3. High-frequency wobble — off (was velocity × sin; felt too busy while scrolling).
+        camera.position.x = 0;
+        camera.position.y = 0;
 
         // 4. Slight roll banking — when scrolling hard, the camera banks like a plane.
         //    Direction matches velocity sign so reverse scroll banks the other way.
-        const bankTarget = -Math.sign(s.velocity) * Math.min(Math.abs(s.velocity) * 0.012, 0.08);
+        const bankTarget = -Math.sign(s.velocity) * Math.min(Math.abs(s.velocity) * 0.005, 0.032);
         smoothedBank += (bankTarget - smoothedBank) * (1 - Math.exp(-dt * 3));
 
         // Re-aim camera down the tube (shake displaced position, but lookAt restores aim).
@@ -952,7 +963,7 @@ export function JuliaWormholeBackdrop({
       if (visualViewport) {
         visualViewport.removeEventListener('resize', onResize);
       }
-      if (useThroatCamera) window.removeEventListener('mousemove', onMouseMove);
+      if (attachMouseAim) window.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('visibilitychange', onVis);
       composer.dispose();
       if (sharedRingGeo) {
@@ -984,7 +995,14 @@ export function JuliaWormholeBackdrop({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [helixLab, tunnelMode, ringGrowthInversion, throatCameraJourney, introRingsOverlay]);
+  }, [
+    helixLab,
+    tunnelMode,
+    ringGrowthInversion,
+    throatCameraJourney,
+    introRingsOverlay,
+    journeyCameraFromStart,
+  ]);
 
   return (
     <div

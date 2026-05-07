@@ -19,7 +19,6 @@ import {
   WORMHOLE4_SENSITIVITY,
   WORMHOLE5_DEBUG_START,
   WORMHOLE5_TUNNEL_START,
-  WORMHOLE6_MOBILE_FRICTION,
   WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
 } from '@/lib/wormholePageConfig';
@@ -138,7 +137,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevFogDensity = s.fogDensity;
     const prevSensitivity = s.sensitivity;
     const prevScrollInputIdle = s.scrollInputIdle;
-    const prevFriction = s.friction;
     const touchPrimary = isCoarseOrTouchPrimaryViewport();
 
     tunnelStore.setState({
@@ -149,7 +147,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       ringSpacing: WORMHOLE_CLASSIC_TUNNEL.ringSpacing,
       depth: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.depth : WORMHOLE5_TUNNEL_START.depth,
       velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
-      friction: touchPrimary ? WORMHOLE6_MOBILE_FRICTION : s.friction,
       scrollInputIdle: 1,
       wormholeScrollVisualMul: -1,
       wormholeScrollHelixVelGain: -0.42,
@@ -185,7 +182,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         bloomThreshold: prevBloomThreshold,
         fogDensity: prevFogDensity,
         sensitivity: prevSensitivity,
-        friction: prevFriction,
       });
     };
   }, []);
@@ -201,6 +197,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         ringGrowthInversion
         throatCameraJourney
         introRingsOverlay
+        journeyCameraFromStart
       />
       <Wormhole4AtmosphereOverlay />
       <LocalTunnelChrome
