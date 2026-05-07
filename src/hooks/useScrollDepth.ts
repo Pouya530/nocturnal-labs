@@ -42,6 +42,51 @@ function normalizeWheel(e: WheelEvent): number {
   return Math.max(-100, Math.min(100, pY));
 }
 
+function isTouchPrimaryOrMobileWebKit(ua: string): boolean {
+  if (/iP(hone|ad|od)/i.test(ua)) return true;
+  if (/CriOS|FxiOS|EdgiOS/.test(ua)) return true;
+  if (typeof window === 'undefined') return false;
+  if (/Android/i.test(ua) && window.matchMedia?.('(pointer: coarse)')?.matches) return true;
+  if (window.matchMedia?.('(pointer: coarse)')?.matches && (navigator.maxTouchPoints ?? 0) > 0) {
+    return true;
+  }
+  return false;
+}
+
+function isDesktopWebKitSafari(ua: string): boolean {
+  return /Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Chromium\//.test(ua);
+}
+
+function isChromiumDesktopBrowser(ua: string): boolean {
+  return /Chrome\//.test(ua) || /Chromium\//.test(ua) || /Edg\//.test(ua);
+}
+
+/**
+ * Desktop Chrome/Edge trackpad + mouse wheel often feels slower than Safari for the same gesture.
+ * Boost wheel impulse here (touch pan is unchanged). Safari / iOS / coarse touch stay at 1.
+ */
+function wheelImpulseBrowserScale(): number {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return 1;
+
+  const ua = navigator.userAgent;
+  if (isTouchPrimaryOrMobileWebKit(ua)) return 1;
+  if (isDesktopWebKitSafari(ua)) return 1;
+  if (isChromiumDesktopBrowser(ua)) return 1.22;
+  return 1;
+}
+
+/** Slightly higher friction coefficient on Chromium desktop so coast length matches Safari. */
+function scrollFrictionEffective(storeFriction: number): number {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return storeFriction;
+  const ua = navigator.userAgent;
+  if (isTouchPrimaryOrMobileWebKit(ua)) return storeFriction;
+  if (isDesktopWebKitSafari(ua)) return storeFriction;
+  if (isChromiumDesktopBrowser(ua)) {
+    return Math.min(0.99, storeFriction + 0.07);
+  }
+  return storeFriction;
+}
+
 export type ScrollDepthOptions = {
   /**
    * Multiply wheel / touch / key impulses before integrating (`+1` default).
@@ -72,6 +117,8 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
   useEffect(() => {
     if (!enabled) return;
 
+    const wheelScale = wheelImpulseBrowserScale();
+
     const syncFromStore = () => {
       const s = tunnelStore.getState();
       currentDepthRef.current = s.depth;
@@ -98,7 +145,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
       const target = e.target as Element | null;
       if (target?.closest('[data-no-wheel]')) return;
       e.preventDefault();
-      wheelAccumRef.current += normalizeWheel(e) * impulseSign;
+      wheelAccumRef.current += normalizeWheel(e) * impulseSign * wheelScale;
     };
     window.addEventListener('wheel', onWheel, { passive: false });
 
@@ -164,6 +211,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
       const s = tunnelStore.getState();
       const maxDepth = Math.max(1, s.maxDepth ?? DEFAULT_MAX_DEPTH);
       const coast = Math.exp(-dt / SCROLL_COAST_TAU_SEC);
+      const frictionEff = scrollFrictionEffective(s.friction);
 
       const advanceScrollInputIdle = (hadInput: boolean) => {
         let idle = scrollInputIdleRef.current;
@@ -185,7 +233,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
         d = Math.max(0, Math.min(maxDepth, d));
         if (d <= 0 && v < 0) v = 0;
         if (d >= maxDepth && v > 0) v = 0;
-        v *= coast * Math.pow(s.friction, dt * 8);
+        v *= coast * Math.pow(frictionEff, dt * 8);
         if (!hadInput) {
           v *= Math.exp(-dt * VEL_SETTLE_PER_SEC);
         }
@@ -209,7 +257,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
         d = Math.max(0, Math.min(maxDepth, d));
         if (d <= 0 && v < 0) v = 0;
         if (d >= maxDepth && v > 0) v = 0;
-        v *= coast * Math.pow(s.friction, dt * 8);
+        v *= coast * Math.pow(frictionEff, dt * 8);
         if (!hadInput) {
           v *= Math.exp(-dt * VEL_SETTLE_PER_SEC);
         }
