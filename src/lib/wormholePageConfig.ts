@@ -46,6 +46,9 @@ export const WORMHOLE_HOME_MICRO_INTRO_MS = 760;
 /** Same timeline (0–1): hero coin stays hidden until this linear progress, then eases in. */
 export const WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY = 0.14;
 
+/** Opening hero scale multiplier (`scale(...)`) before the micro-intro grows it to 1. */
+export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE = 0.74;
+
 /**
  * `/` lab helices when `helixLabFullscreen`: bundle radius vs nominal tunnel wall (`ringRadius ×
  * radialScale`). Prod home uses journey-from-start (wide FOV + dolly back at the mouth), so this

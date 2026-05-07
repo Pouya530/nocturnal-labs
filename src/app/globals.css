@@ -97,9 +97,11 @@ html.scroll-locked[data-scroll-mode='free'] body {
   overflow: visible !important;
 }
 
-/* `/` wormhole home — hero opacity during tunnel intro sweep (see Wormhole6ClientShell). */
+/* `/` wormhole home — hero opacity + scale micro-intro (see Wormhole6ClientShell). */
 .wormhole-home-intro-logo {
   opacity: var(--nl-logo-o, 1);
+  transform: scale(var(--nl-logo-grow, 1));
+  transform-origin: center center;
 }
 
 /* `/` only — slightly smaller opening coin than shared `.hero-logo-size-var` lab defaults. */
