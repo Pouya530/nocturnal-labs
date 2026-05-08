@@ -26,6 +26,8 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 
 /** Lab helices on narrow viewports: multiply {@link UnrealBloomPass} strength by this (25% softer bloom). */
 const HELIX_MOBILE_BLOOM_MUL = 0.75;
+/** Narrow viewports: bump bloom strength after helix tuning (+10%). */
+const MOBILE_BLOOM_STRENGTH_MUL = 1.1;
 
 /**
  * Cumulative distance along -Z for each ring index.
@@ -560,10 +562,12 @@ export function JuliaWormholeBackdrop({
     composer.setPixelRatio(wormholeDpr);
     composer.setSize(window.innerWidth, window.innerHeight);
     composer.addPass(new RenderPass(scene, camera));
-    const helixMobileBloomMul0 = helixLab && wormholeNarrowViewport() ? HELIX_MOBILE_BLOOM_MUL : 1;
+    const narrow0 = wormholeNarrowViewport();
+    const helixMobileBloomMul0 = helixLab && narrow0 ? HELIX_MOBILE_BLOOM_MUL : 1;
+    const mobileBloomStrengthMul0 = narrow0 ? MOBILE_BLOOM_STRENGTH_MUL : 1;
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      initial.bloomStrength * helixMobileBloomMul0,
+      initial.bloomStrength * helixMobileBloomMul0 * mobileBloomStrengthMul0,
       initial.bloomRadius,
       initial.bloomThreshold,
     );
@@ -907,10 +911,13 @@ export function JuliaWormholeBackdrop({
         sm.opacity = 0.7 * (1 - introB * 0.28 + exitB * 0.22);
       }
 
-      const helixMobileBloomMul = helixLab && wormholeNarrowViewport() ? HELIX_MOBILE_BLOOM_MUL : 1;
+      const narrow = wormholeNarrowViewport();
+      const helixMobileBloomMul = helixLab && narrow ? HELIX_MOBILE_BLOOM_MUL : 1;
+      const mobileBloomStrengthMul = narrow ? MOBILE_BLOOM_STRENGTH_MUL : 1;
       bloomPass.strength =
         s.bloomStrength *
         helixMobileBloomMul *
+        mobileBloomStrengthMul *
         (useThroatCamera ? 1 + exitB * 0.14 : 1);
       bloomPass.radius = s.bloomRadius;
       bloomPass.threshold = s.bloomThreshold;
