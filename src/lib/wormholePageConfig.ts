@@ -81,7 +81,7 @@ export const WORMHOLE_COIN_DEPTH_SLOT_MUL = 1.84;
 
 /**
  * `/wormhole4` — Wormhole (3D) debug panel defaults on first paint (restored when leaving the route).
- * Matches lab snapshot: 3D on, helices off, bloom 0.35 / radius 1.5 / threshold 0.18, fog 0.018.
+ * Matches lab snapshot: 3D on, helices off, bloom 0.35 / radius 1.5 / threshold 0.02, fog 0.018.
  */
 export const WORMHOLE4_DEBUG_START = {
   wormhole3dBackgroundEnabled: true,
@@ -91,7 +91,7 @@ export const WORMHOLE4_DEBUG_START = {
   wormholeBlackHoleOverlayEnabled: false,
   bloomStrength: 0.35,
   bloomRadius: 1.5,
-  bloomThreshold: 0.18,
+  bloomThreshold: 0.02,
   fogDensity: 0.018,
 } as const;
 
@@ -112,7 +112,7 @@ export const WORMHOLE5_DEBUG_START = {
 export const WORMHOLE2_HELIX_LAB_POSTFX = {
   bloomStrength: 0.5,
   bloomRadius: 1.5,
-  bloomThreshold: 0.18,
+  bloomThreshold: 0.02,
   fogDensity: 0.018,
 } as const;
 

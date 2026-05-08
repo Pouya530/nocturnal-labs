@@ -105,7 +105,7 @@ const initial: TunnelState = {
   fogDensity: 0.018,
   bloomStrength: 0.65,
   bloomRadius: 1.5,
-  bloomThreshold: 0.18,
+  bloomThreshold: 0.02,
   wormholeCoinVisible: true,
   wormhole3dBackgroundEnabled: true,
   wormholeHelices3dEnabled: true,
