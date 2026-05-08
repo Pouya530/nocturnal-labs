@@ -44,8 +44,6 @@ export type TunnelState = {
   bloomThreshold: number;
   /** `/wormhole` UI — debug panel can hide the hero coin for backdrop preview. */
   wormholeCoinVisible: boolean;
-  /** `/wormhole` — coin fog overlay (tunnel debug panel). */
-  wormholeCoinFogEnabled: boolean;
   /** `JuliaWormholeBackdrop` (Three.js tube) — debug / `/wormhole2` can turn off to show 2D vortex only. */
   wormhole3dBackgroundEnabled: boolean;
   /** `JuliaWormholeBackdrop` — tube helices (classic ribbons + wormhole2 lab strands). */
@@ -104,7 +102,6 @@ const initial: TunnelState = {
   bloomRadius: 1.5,
   bloomThreshold: 0.18,
   wormholeCoinVisible: true,
-  wormholeCoinFogEnabled: false,
   wormhole3dBackgroundEnabled: true,
   wormholeHelices3dEnabled: true,
   wormholeScrollVisualMul: 1,

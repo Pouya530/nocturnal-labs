@@ -372,15 +372,6 @@ export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPa
             />
             <span>Black hole under coin (radial overlay)</span>
           </label>
-          <label className="mb-1 flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={s.wormholeCoinFogEnabled}
-              onChange={(e) => tunnelStore.setState({ wormholeCoinFogEnabled: e.target.checked })}
-              className="rounded border-zinc-600"
-            />
-            <span>Coin fog overlay</span>
-          </label>
         </>
       ) : null}
       <p className="mt-2 text-zinc-400">

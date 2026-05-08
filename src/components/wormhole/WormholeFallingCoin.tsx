@@ -3,7 +3,6 @@
 import type { ReactNode, ReactElement } from 'react';
 import { useEffect, useRef } from 'react';
 
-import { WormholeCoinFogOverlay } from '@/components/wormhole/WormholeCoinFogOverlay';
 import { motionPrefs } from '@/core/motion';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
@@ -100,7 +99,6 @@ export function WormholeFallingCoin({ children }: WormholeFallingCoinProps): Rea
       className="relative origin-center [transform-style:preserve-3d] will-change-transform [-webkit-backface-visibility:visible] [backface-visibility:visible]"
     >
       {children}
-      <WormholeCoinFogOverlay />
     </div>
   );
 }
