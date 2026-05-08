@@ -238,22 +238,6 @@ export function JuliaWormholeBackdrop({
 
     const wormholeDpr = webglWormholePixelRatio(window.devicePixelRatio || 1);
 
-    /** Matches Tailwind `md` (768px): mobile keeps WebGL + bloom inside the visible layer (no `100vw` bleed). */
-    const backdropMobileMq = window.matchMedia('(max-width: 767px)');
-    const readBackdropDimensions = (): { w: number; h: number } => {
-      if (backdropMobileMq.matches) {
-        const cw = container.clientWidth;
-        const ch = container.clientHeight;
-        if (cw >= 2 && ch >= 2) return { w: Math.round(cw), h: Math.round(ch) };
-      }
-      return {
-        w: Math.max(1, window.innerWidth),
-        h: Math.max(1, window.innerHeight),
-      };
-    };
-
-    const initialDims = readBackdropDimensions();
-
     const renderer = new THREE.WebGLRenderer({
       antialias: webglWormholeAntialias(),
       powerPreference: webglPowerPreference(),
@@ -261,7 +245,7 @@ export function JuliaWormholeBackdrop({
       stencil: false,
     });
     renderer.setPixelRatio(wormholeDpr);
-    renderer.setSize(initialDims.w, initialDims.h, false);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -278,12 +262,7 @@ export function JuliaWormholeBackdrop({
     const cameraFar = useRingGrowthInversion
       ? Math.max(500, TUNNEL_LENGTH + 200)
       : Math.max(600, TUNNEL_LENGTH + 420);
-    const camera = new THREE.PerspectiveCamera(
-      72,
-      initialDims.w / initialDims.h,
-      0.05,
-      cameraFar,
-    );
+    const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.05, cameraFar);
     camera.position.set(0, 0, 0);
 
     /** Wormhole4/5 Julia rings — rim alpha feather + glow (`uRingCylEdgeSoft` in fragment shader). */
@@ -575,10 +554,10 @@ export function JuliaWormholeBackdrop({
 
     const composer = new EffectComposer(renderer);
     composer.setPixelRatio(wormholeDpr);
-    composer.setSize(initialDims.w, initialDims.h);
+    composer.setSize(window.innerWidth, window.innerHeight);
     composer.addPass(new RenderPass(scene, camera));
     const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(initialDims.w, initialDims.h),
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
       initial.bloomStrength,
       initial.bloomRadius,
       initial.bloomThreshold,
@@ -586,24 +565,17 @@ export function JuliaWormholeBackdrop({
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
 
-    let rw = initialDims.w;
-    let rh = initialDims.h;
-    const applyBackdropResize = () => {
-      const { w, h } = readBackdropDimensions();
-      rw = w;
-      rh = h;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h, false);
-      composer.setSize(w, h);
-    };
-
     let resizePending = false;
     const onResize = () => {
       if (resizePending) return;
       resizePending = true;
       requestAnimationFrame(() => {
-        applyBackdropResize();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h, false);
+        composer.setSize(w, h);
         resizePending = false;
       });
     };
@@ -613,16 +585,13 @@ export function JuliaWormholeBackdrop({
     if (visualViewport) {
       visualViewport.addEventListener('resize', onResize);
     }
-    backdropMobileMq.addEventListener('change', onResize);
-    const backdropResizeObserver = new ResizeObserver(onResize);
-    backdropResizeObserver.observe(container);
 
     /** `/wormhole3` — mouse aim + scroll velocity ride on the camera (throat only). */
     const ptr = { x: 0, y: 0, sx: 0, sy: 0 };
     let velRideSm = 0;
     const onMouseMove = (e: MouseEvent) => {
-      const w = Math.max(1, rw);
-      const h = Math.max(1, rh);
+      const w = Math.max(1, window.innerWidth);
+      const h = Math.max(1, window.innerHeight);
       ptr.x = (e.clientX / w) * 2 - 1;
       ptr.y = -((e.clientY / h) * 2 - 1);
     };
@@ -1038,8 +1007,6 @@ export function JuliaWormholeBackdrop({
       if (visualViewport) {
         visualViewport.removeEventListener('resize', onResize);
       }
-      backdropMobileMq.removeEventListener('change', onResize);
-      backdropResizeObserver.disconnect();
       if (attachMouseAim) window.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('visibilitychange', onVis);
       composer.dispose();
@@ -1086,7 +1053,7 @@ export function JuliaWormholeBackdrop({
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none fixed inset-0 z-0 h-[100dvh] w-full max-md:overflow-hidden max-md:overscroll-none"
+      className="pointer-events-none fixed inset-0 z-0 h-[100dvh] w-screen"
       aria-hidden
     />
   );

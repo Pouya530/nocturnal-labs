@@ -59,7 +59,7 @@ export function WormholeJuliaThreeBackdrop({
   if (!enabled) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[1] h-[100dvh] w-full max-md:overflow-hidden max-md:overscroll-none">
+    <div className="pointer-events-none fixed inset-0 z-[1] h-[100dvh] w-screen">
       <JuliaWormholeBackdrop
         helixLab={helixLab}
         tunnelMode={tunnelMode}

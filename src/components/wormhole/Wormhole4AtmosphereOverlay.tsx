@@ -36,7 +36,7 @@ export function Wormhole4AtmosphereOverlay({
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-[2] h-[100dvh] w-full overflow-hidden max-md:overscroll-none"
+      className="pointer-events-none fixed inset-0 z-[2] h-[100dvh] w-screen overflow-hidden"
     >
       {/* Vertical: transparent mid-band; gentle falloff toward top and bottom only */}
       <div className="absolute inset-0" style={{ background: verticalGradient }} />
