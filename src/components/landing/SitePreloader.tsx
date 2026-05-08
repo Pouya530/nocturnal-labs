@@ -6,23 +6,23 @@ import type { ReactElement } from 'react';
 import { dmSans } from '@/lib/fonts';
 import { motionPrefs } from '@/core/motion';
 
-/** Minimum time the mark stays visible so it never flashes away in one frame. */
-const MIN_MS = 720;
-/** Overlay fade to transparent after load + minimum elapsed. */
-const FADE_MS = 1400;
+/** Minimum time before exit can start (0 = dismiss as soon as `window` load fires). */
+const MIN_MS = 0;
+/** Overlay fade duration once dismissal begins. */
+const FADE_MS = 900;
 
 const FADE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
 type Phase = 'visible' | 'hiding' | 'gone';
 
 export type SitePreloaderProps = {
-  /** Fires once when the overlay is fully removed (phase `gone`); for chaining e.g. portal intro. */
+  /** Fires once when dismissal begins (fade starts); chained intros run in parallel with the veil. */
   onGone?: () => void;
 };
 
 /**
- * Full-viewport preloader: waits for window load, enforces a short minimum, then
- * eases the black veil away. Respects reduced motion (instant hide).
+ * Full-viewport preloader: waits for window load, then eases the black veil away.
+ * Respects reduced motion (instant hide).
  */
 export function SitePreloader({ onGone }: SitePreloaderProps = {}): ReactElement | null {
   const reduced = useSyncExternalStore(motionPrefs.subscribe, () => motionPrefs.reduced, () => false);
@@ -44,7 +44,11 @@ export function SitePreloader({ onGone }: SitePreloaderProps = {}): ReactElement
 
     const tryExit = () => {
       if (!loadDone.current || !minDone.current) return;
+      if (canFinish.current) return;
       canFinish.current = true;
+      progressRef.current = 100;
+      setProgress(100);
+      setPhase('hiding');
     };
 
     const onLoad = () => {
@@ -68,9 +72,6 @@ export function SitePreloader({ onGone }: SitePreloaderProps = {}): ReactElement
       const next = Math.min(cap, current + step);
       progressRef.current = next;
       setProgress(next);
-      if (canFinish.current && next >= 100) {
-        setPhase('hiding');
-      }
     }, 36);
 
     return () => {
@@ -82,7 +83,8 @@ export function SitePreloader({ onGone }: SitePreloaderProps = {}): ReactElement
 
   const onGoneRef = useRef(onGone);
   onGoneRef.current = onGone;
-  const goneNotified = useRef(false);
+  /** Notify consumers once dismiss begins (`hiding`) or immediately when reduced motion skips the fade. */
+  const dismissNotified = useRef(false);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -97,10 +99,12 @@ export function SitePreloader({ onGone }: SitePreloaderProps = {}): ReactElement
   }, [phase]);
 
   useEffect(() => {
-    if (phase !== 'gone' || goneNotified.current) return;
-    goneNotified.current = true;
+    if (dismissNotified.current) return;
+    const notify = phase === 'hiding' || (reduced && phase === 'gone');
+    if (!notify) return;
+    dismissNotified.current = true;
     onGoneRef.current?.();
-  }, [phase]);
+  }, [phase, reduced]);
 
   if (phase === 'gone') return null;
 
