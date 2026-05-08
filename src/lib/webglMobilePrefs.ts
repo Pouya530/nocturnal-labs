@@ -65,3 +65,9 @@ export function isCoarseOrTouchPrimaryViewport(): boolean {
   }
   return false;
 }
+
+/** Tailwind `max-md` — wormhole post tweaks (e.g. helix bloom) on phones / small tablets. */
+export function wormholeNarrowViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 767px)').matches;
+}
