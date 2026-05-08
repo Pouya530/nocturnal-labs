@@ -34,6 +34,20 @@ const LOCKED_IMPULSE_FAST_MUL = 1.42;
 const LOCKED_IMPULSE_VFAST_ABS = 72;
 const LOCKED_IMPULSE_VFAST_MUL = 1.88;
 
+/** Same units as `wheelAccumRef` after route {@link ScrollDepthOptions.impulseSign}. */
+let queuedCoinScrollBoost = 0;
+
+/** Queue impulse consumed on the next `useScrollDepth` animation tick (locked/free wormhole). */
+export function queueWormholeCoinScrollBoost(rawWheelEquivalent: number): void {
+  queuedCoinScrollBoost += rawWheelEquivalent;
+}
+
+function consumeQueuedCoinScrollBoost(): number {
+  const v = queuedCoinScrollBoost;
+  queuedCoinScrollBoost = 0;
+  return v;
+}
+
 function normalizeWheel(e: WheelEvent): number {
   if (e.ctrlKey) return 0;
   let pY = e.deltaY;
@@ -228,6 +242,9 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
       const raw = (t - lastTRef.current) / 1000;
       const dt = Math.min(Math.max(raw, 1 / 240), 0.05);
       lastTRef.current = t;
+
+      const coinBoost = consumeQueuedCoinScrollBoost();
+      if (coinBoost !== 0) wheelAccumRef.current += coinBoost;
 
       const s = tunnelStore.getState();
       const maxDepth = Math.max(1, s.maxDepth ?? DEFAULT_MAX_DEPTH);

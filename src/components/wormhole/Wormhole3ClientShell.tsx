@@ -34,6 +34,7 @@ export function Wormhole3ClientShell({ children }: { children: ReactNode }): Rea
     const prevRingSpacing = s.ringSpacing;
     const prevScrollMode: ScrollMode = s.mode;
     const prevCoinVisible = s.wormholeCoinVisible;
+    const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
 
     tunnelStore.setState({
       maxDepth: WORMHOLE3_TUNNEL.maxDepth,
@@ -53,6 +54,7 @@ export function Wormhole3ClientShell({ children }: { children: ReactNode }): Rea
         ringSpacing: prevRingSpacing,
         mode: prevScrollMode,
         wormholeCoinVisible: prevCoinVisible,
+        wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
       });
     };
   }, []);

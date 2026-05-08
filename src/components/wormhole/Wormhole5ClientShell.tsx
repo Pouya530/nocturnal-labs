@@ -46,6 +46,7 @@ export function Wormhole5ClientShell({ children }: { children: ReactNode }): Rea
     const prevHelices3d = s.wormholeHelices3dEnabled;
     const prevRandomCamTilt = s.wormholeDebugRandomCamTilt;
     const prevCoinVisible = s.wormholeCoinVisible;
+    const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
     const prevBlackHoleOverlay = s.wormholeBlackHoleOverlayEnabled;
     const prevBloomStrength = s.bloomStrength;
     const prevBloomRadius = s.bloomRadius;
@@ -94,6 +95,7 @@ export function Wormhole5ClientShell({ children }: { children: ReactNode }): Rea
         wormholeHelices3dEnabled: prevHelices3d,
         wormholeDebugRandomCamTilt: prevRandomCamTilt,
         wormholeCoinVisible: prevCoinVisible,
+        wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
         wormholeBlackHoleOverlayEnabled: prevBlackHoleOverlay,
         bloomStrength: prevBloomStrength,
         bloomRadius: prevBloomRadius,

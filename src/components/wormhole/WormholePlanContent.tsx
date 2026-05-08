@@ -27,7 +27,14 @@ function useWormholeBlackHoleOverlayEnabled(): boolean {
 }
 
 /** `/wormhole` — centered coin; wormhole + nav come from the shell. */
-export function WormholePlanContent(): ReactElement {
+export type WormholePlanContentProps = {
+  /** Passed through to `Logo` for localhost coin tap → tunnel impulse ({@link queueWormholeCoinScrollBoost}). */
+  scrollImpulseSign?: number;
+};
+
+export function WormholePlanContent({
+  scrollImpulseSign = 1,
+}: WormholePlanContentProps): ReactElement {
   const coinVisible = useWormholeCoinVisible();
   const blackHoleOverlay = useWormholeBlackHoleOverlayEnabled();
 
@@ -44,7 +51,11 @@ export function WormholePlanContent(): ReactElement {
           <CinematicHeroStage>
             <WormholeCoinDepthScale>
               <WormholeFallingCoin>
-                <Logo hideBlackHoleOverlay={!blackHoleOverlay} spinSyncScroll />
+                <Logo
+                  hideBlackHoleOverlay={!blackHoleOverlay}
+                  spinSyncScroll
+                  tunnelScrollImpulseSign={scrollImpulseSign}
+                />
               </WormholeFallingCoin>
             </WormholeCoinDepthScale>
           </CinematicHeroStage>

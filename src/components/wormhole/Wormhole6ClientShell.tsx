@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode, ReactElement } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { motionPrefs } from '@/core/motion';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
@@ -24,6 +24,7 @@ import {
   WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE,
   WORMHOLE_HOME_MICRO_INTRO_MS,
 } from '@/lib/wormholePageConfig';
+import { isLocalhostHostname } from '@/lib/isLocalhost';
 import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
@@ -34,12 +35,18 @@ function easeOutCubic(t: number): number {
 }
 
 /**
- * Production home shell: same Three.js stack + tunnel tuning as `/wormhole5`; no mode HUD or debug
- * panel; velocity-synced footer marquee. Also used when importing {@link Wormhole6Route} on `/`.
+ * Production home shell: same Three.js stack + tunnel tuning as `/wormhole5`; velocity-synced footer marquee.
+ * Tunnel debug panel appears on localhost only ({@link LocalTunnelChrome} `showDebugPanel`). Prod domains omit it.
  */
 export function Wormhole6ClientShell({ children }: { children: ReactNode }): ReactElement {
   const introRaf = useRef(0);
   const introStarted = useRef(false);
+  const [showTunnelDebugPanel, setShowTunnelDebugPanel] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setShowTunnelDebugPanel(isLocalhostHostname(window.location.hostname));
+  }, []);
 
   useLayoutEffect(() => {
     const reducedNow = motionPrefs.reduced;
@@ -66,6 +73,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevHelices3d = s.wormholeHelices3dEnabled;
     const prevRandomCamTilt = s.wormholeDebugRandomCamTilt;
     const prevCoinVisible = s.wormholeCoinVisible;
+    const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
     const prevBlackHoleOverlay = s.wormholeBlackHoleOverlayEnabled;
     const prevBloomStrength = s.bloomStrength;
     const prevBloomRadius = s.bloomRadius;
@@ -122,6 +130,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         wormholeHelices3dEnabled: prevHelices3d,
         wormholeDebugRandomCamTilt: prevRandomCamTilt,
         wormholeCoinVisible: prevCoinVisible,
+        wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
         wormholeBlackHoleOverlayEnabled: prevBlackHoleOverlay,
         bloomStrength: prevBloomStrength,
         bloomRadius: prevBloomRadius,
@@ -200,7 +209,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       <LocalTunnelChrome
         showWormholeControls
         showModeToggle={false}
-        showDebugPanel={false}
+        showDebugPanel={showTunnelDebugPanel}
         scrollOptions={{ impulseSign: WORMHOLE_CLASSIC_TUNNEL.scrollImpulseSign }}
       />
       <LandingTopNav />

@@ -374,6 +374,17 @@ export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPa
           </label>
         </>
       ) : null}
+      <label className="mb-2 flex cursor-pointer items-center gap-2 rounded border border-zinc-700/80 bg-zinc-950/40 px-2 py-1.5">
+        <input
+          type="checkbox"
+          checked={s.wormholeCoinClickTunnelBoost}
+          onChange={(e) => tunnelStore.setState({ wormholeCoinClickTunnelBoost: e.target.checked })}
+          className="rounded border-zinc-600"
+        />
+        <span className="leading-snug">
+          Coin tap → tunnel scroll boost <span className="text-zinc-500">(localhost)</span>
+        </span>
+      </label>
       <p className="mt-2 text-zinc-400">
         depth {s.depth.toFixed(2)} · vel {s.velocity.toFixed(2)}
       </p>
