@@ -1,32 +1,51 @@
 'use client';
 
 import type { ReactNode, ReactElement } from 'react';
-import { useLayoutEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
+import { motionPrefs } from '@/core/motion';
+import { CosmicBackdrop } from '@/components/cosmic/CosmicBackdrop';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { LocalTunnelChrome } from '@/components/landing/LocalTunnelChrome';
+import { SitePreloader } from '@/components/landing/SitePreloader';
 import { Wormhole4AtmosphereOverlayGate } from '@/components/wormhole/Wormhole4AtmosphereOverlayGate';
-import { WormholeJuliaThreeBackdrop } from '@/components/wormhole/WormholeJuliaThreeBackdrop';
+import { WormholeCoinSyncedMarqueeFooter } from '@/components/wormhole/WormholeCoinSyncedMarqueeFooter';
 import {
   getActiveLandingBackdropMode,
   setActiveLandingBackdropMode,
 } from '@/lib/landingBackdropMode';
 import {
-  WORMHOLE4_DEBUG_START,
+  WORMHOLE2_HELIX_LAB_POSTFX,
   WORMHOLE4_SENSITIVITY,
-  WORMHOLE4_TUNNEL_START,
+  WORMHOLE5_DEBUG_START,
+  WORMHOLE5_TUNNEL_START,
+  WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
 } from '@/lib/wormholePageConfig';
+import { isLocalhostHostname } from '@/lib/isLocalhost';
+import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
 /**
- * `/wormhole4` — classic tunnel counts, inverted rings, wormhole3-style journey camera,
- * fixed start depth/velocity + sensitivity. Wheel: down → into tunnel (depth +).
+ * `/cosmic` — volumetric nebula backdrop (no Julia wormhole rings). Shares tunnel store, scroll chrome,
+ * preloader, and atmosphere gate with wormhole lab routes; no `wormholeHomeIntroCam01` ramp.
  */
-export function Wormhole4ClientShell({ children }: { children: ReactNode }): ReactElement {
+export function CosmicClientShell({ children }: { children: ReactNode }): ReactElement {
+  const [showTunnelDebugPanel, setShowTunnelDebugPanel] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setShowTunnelDebugPanel(isLocalhostHostname(window.location.hostname));
+  }, []);
+
   useLayoutEffect(() => {
-    document.documentElement.style.setProperty('--nl-intro', '1');
+    const reducedNow = motionPrefs.reduced;
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--nl-intro', '1');
+      document.documentElement.style.setProperty('--nl-logo-o', reducedNow ? '1' : '0');
+      document.documentElement.style.setProperty('--nl-logo-grow', '1');
+    }
 
     const previousMode = getActiveLandingBackdropMode();
     setActiveLandingBackdropMode('original');
@@ -55,22 +74,37 @@ export function Wormhole4ClientShell({ children }: { children: ReactNode }): Rea
     const prevBloomThreshold = s.bloomThreshold;
     const prevFogDensity = s.fogDensity;
     const prevSensitivity = s.sensitivity;
+    const prevScrollInputIdle = s.scrollInputIdle;
+    const prevIntroDepthOv = s.wormholeIntroDepthOverride;
+    const prevHomeIntroCam = s.wormholeHomeIntroCam01;
+    const touchPrimary = isCoarseOrTouchPrimaryViewport();
+
     tunnelStore.setState({
       sensitivity: WORMHOLE4_SENSITIVITY,
       maxDepth: WORMHOLE_CLASSIC_TUNNEL.maxDepth,
-      wormholeIdleForward: 0.55,
+      wormholeIdleForward: 0,
       ringCount: WORMHOLE_CLASSIC_TUNNEL.ringCount,
       ringSpacing: WORMHOLE_CLASSIC_TUNNEL.ringSpacing,
-      mode: 'free',
-      depth: WORMHOLE4_TUNNEL_START.depth,
-      velocity: WORMHOLE4_TUNNEL_START.velocity,
+      wormholeIntroDepthOverride: null,
+      wormholeHomeIntroCam01: 1,
+      depth: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.depth : WORMHOLE5_TUNNEL_START.depth,
+      velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
+      scrollInputIdle: 1,
       wormholeScrollVisualMul: -1,
       wormholeScrollHelixVelGain: -0.42,
-      ...WORMHOLE4_DEBUG_START,
-      wormholeAtmosphereOverlayEnabled: false,
+      ...WORMHOLE5_DEBUG_START,
+      wormholeHelices3dEnabled: true,
+      ...WORMHOLE2_HELIX_LAB_POSTFX,
+      mode: 'locked',
     });
 
+    queueMicrotask(() => tunnelStore.setState({ mode: 'locked' }));
+
     return () => {
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.removeProperty('--nl-logo-grow');
+        document.documentElement.style.removeProperty('--nl-logo-o');
+      }
       setActiveLandingBackdropMode(previousMode);
       tunnelStore.setState({
         maxDepth: prevMaxDepth,
@@ -80,6 +114,9 @@ export function Wormhole4ClientShell({ children }: { children: ReactNode }): Rea
         mode: prevScrollMode,
         depth: prevDepth,
         velocity: prevVelocity,
+        scrollInputIdle: prevScrollInputIdle,
+        wormholeIntroDepthOverride: prevIntroDepthOv,
+        wormholeHomeIntroCam01: prevHomeIntroCam,
         wormholeScrollVisualMul: prevScrollVisualMul,
         wormholeScrollHelixVelGain: prevScrollHelixVelGain,
         wormhole3dBackgroundEnabled: prevWormhole3d,
@@ -100,16 +137,38 @@ export function Wormhole4ClientShell({ children }: { children: ReactNode }): Rea
     };
   }, []);
 
+  useEffect(() => {
+    tunnelStore.setState({ mode: 'locked' });
+  }, []);
+
+  const onPreloaderGone = useCallback(() => {
+    tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--nl-logo-o', '1');
+      document.documentElement.style.setProperty('--nl-logo-grow', '1');
+    }
+  }, []);
+
   return (
-    <div className="relative min-h-[100dvh] w-full">
-      <WormholeJuliaThreeBackdrop ringGrowthInversion throatCameraJourney />
+    <div className="relative min-h-[100dvh] w-full bg-[#030208]">
+      <p
+        className="pointer-events-none fixed left-1/2 top-[4.25rem] z-[90] max-w-[min(90vw,28rem)] -translate-x-1/2 rounded-md border border-violet-500/40 bg-black/80 px-2.5 py-1 text-center text-[10px] font-medium uppercase tracking-[0.08em] text-orange-100/90 shadow-lg backdrop-blur-sm"
+        aria-hidden
+      >
+        Cosmic preview — volumetric nebula + Julia blend (experimental)
+      </p>
+      <CosmicBackdrop />
       <Wormhole4AtmosphereOverlayGate />
       <LocalTunnelChrome
         showWormholeControls
+        showModeToggle={false}
+        showDebugPanel={showTunnelDebugPanel}
         scrollOptions={{ impulseSign: WORMHOLE_CLASSIC_TUNNEL.scrollImpulseSign }}
       />
       <LandingTopNav />
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 wormhole-home-intro-logo">{children}</div>
+      <WormholeCoinSyncedMarqueeFooter />
+      <SitePreloader onGone={onPreloaderGone} />
     </div>
   );
 }

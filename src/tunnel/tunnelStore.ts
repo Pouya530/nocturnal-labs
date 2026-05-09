@@ -58,6 +58,8 @@ export type TunnelState = {
   wormholeScrollHelixVelGain: number;
   /** Tunnel debug — `JuliaWormholeBackdrop`: random view tilt while scrolling the wormhole. */
   wormholeDebugRandomCamTilt: boolean;
+  /** Tunnel debug — slow circular pitch/yaw drift on the tunnel camera (idle “orbit” feel). */
+  wormholeDebugCircularCamTilt: boolean;
   /** Tunnel debug — show `BlackHoleOverlay` under the hero coin on wormhole lab routes. */
   wormholeBlackHoleOverlayEnabled: boolean;
   /**
@@ -65,6 +67,22 @@ export type TunnelState = {
    * ({@link queueWormholeCoinScrollBoost}).
    */
   wormholeCoinClickTunnelBoost: boolean;
+  /**
+   * Tunnel debug: when true, hero coin fades slightly while scrolling forward (depth increasing —
+   * positive velocity above locked cruise drift when `wormholeIdleForward` is set).
+   */
+  wormholeCoinFadeOnScrollForward: boolean;
+  /** `/wormhole4`–`/wormhole5` only: gradient vignette overlay above the GL tunnel. */
+  wormholeAtmosphereOverlayEnabled: boolean;
+  /**
+   * Localhost + `helixLab`: use Julia tube fragment shader (`uMode > 1.5`); when false, solid additive ribbons.
+   */
+  wormholeHelixJuliaRibbonShaderEnabled: boolean;
+  /**
+   * `/wormhole8` preview: apply helix wall inset boost (`helixWallInsetMul=5`) instead of base
+   * wormhole5-scale inset (`0.88`).
+   */
+  wormhole8HelixBoostEnabled: boolean;
   /**
    * Production home intro: when non-null, {@link useScrollDepth} applies this depth and zero
    * velocity each tick instead of integrating scroll (pan/zoom settle before hand-off).
@@ -75,6 +93,14 @@ export type TunnelState = {
    * the wormhole3 mouth look (`1` = full framing). Animated `0 → 1` after the loading veil dismisses.
    */
   wormholeHomeIntroCam01: number;
+  /** `/cosmic` — Julia density modulation in the volumetric raymarch (0 = off, 1.5 = strong). */
+  cosmicJuliaBlend: number;
+  /** `/cosmic` — scales fbm density in the nebula pass. */
+  cosmicCloudDensity: number;
+  /** `/cosmic` — central screen-space core brightness. */
+  cosmicCoreIntensity: number;
+  /** `/cosmic` — Julia feature scale in the blend (larger = finer filaments). */
+  cosmicJuliaZoom: number;
 };
 
 const initial: TunnelState = {
@@ -112,10 +138,19 @@ const initial: TunnelState = {
   wormholeScrollVisualMul: 1,
   wormholeScrollHelixVelGain: 0,
   wormholeDebugRandomCamTilt: false,
+  wormholeDebugCircularCamTilt: false,
   wormholeBlackHoleOverlayEnabled: false,
   wormholeCoinClickTunnelBoost: false,
+  wormholeCoinFadeOnScrollForward: true,
+  wormholeAtmosphereOverlayEnabled: true,
+  wormholeHelixJuliaRibbonShaderEnabled: true,
+  wormhole8HelixBoostEnabled: true,
   wormholeIntroDepthOverride: null,
   wormholeHomeIntroCam01: 1,
+  cosmicJuliaBlend: 0.7,
+  cosmicCloudDensity: 1.0,
+  cosmicCoreIntensity: 1.2,
+  cosmicJuliaZoom: 1.6,
 };
 
 let state: TunnelState = { ...initial };

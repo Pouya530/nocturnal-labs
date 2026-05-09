@@ -26,6 +26,7 @@ import {
   webglCoinCanvasDpr,
   webglPowerPreference,
 } from '@/lib/webglMobilePrefs';
+import { getWormholeFallMotionSnapshot } from '@/components/wormhole/wormholeFallMotionBridge';
 import { WORMHOLE_LAB_COIN_CANVAS_PERCENT } from '@/lib/wormholePageConfig';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
@@ -86,12 +87,24 @@ const CAM_SCROLL_LOCKED_FOV_MIN = 22;
  */
 const CAM_SCROLL_LOCKED_Z_SPEED_AWAY = 0.92;
 const CAM_SCROLL_LOCKED_FOV_SPEED_AWAY = 3.1;
+/** Locked backward zoom-in: 0 at mouth → full by this fraction of `maxDepth` (eases scroll-back clip). */
+const CAM_SCROLL_LOCKED_BACK_ZOOM_IN_DEPTH_FRAC = 0.045;
 
 /** Rim shimmer / point-light orbit: ramp phase speed only at very high tunnel scroll velocity. */
 const REFLECT_SCROLL_V_START = 48;
 const REFLECT_SCROLL_V_END = 108;
 /** Extra phase multiplier at max velocity (1 + this ≈ peak vs idle). */
 const REFLECT_PHASE_MUL_EXTRA = 5.5;
+
+/** Scroll-sync Y spin: exponential approach toward target rad/s (responsive during sustained scroll). */
+const SPIN_RATE_SMOOTH_LAMBDA = 13;
+/**
+ * Softer approach after hands leave idle (`scrollInputIdle` was high) — eases out of fall drift into
+ * steady vertical spin without snapping to full boost immediately.
+ */
+const SPIN_RATE_SMOOTH_LAMBDA_SOFT = 3.6;
+/** Seconds after idle→scroll where {@link SPIN_RATE_SMOOTH_LAMBDA_SOFT} applies. */
+const SPIN_SOFT_ENTRY_HOLD_SEC = 0.55;
 
 /** Per coin mount: randomise rim / point-light reflection phases & rates (see `reflectDna` in `CoinMesh`). */
 function makeReflectDna() {
@@ -243,7 +256,13 @@ function ScrollVelocityCamera({ enabled }: { enabled: boolean }): null {
         targetFov = CAM_BASE_FOV + eased * CAM_SCROLL_LOCKED_FOV_DOWN + fovSpeedAway;
       } else {
         /** Trim the last ~25% of the zoom-in lever so fast “in” scroll stops short of the harshest dolly/FOV. */
-        const zoomInEase = Math.min(eased, 0.74);
+        const maxD = Math.max(1, s.maxDepth);
+        const shallow01 = THREE.MathUtils.smoothstep(
+          s.depth / maxD,
+          0,
+          CAM_SCROLL_LOCKED_BACK_ZOOM_IN_DEPTH_FRAC,
+        );
+        const zoomInEase = Math.min(eased, 0.74) * shallow01;
         targetZ = CAM_BASE_Z - zoomInEase * CAM_SCROLL_LOCKED_Z_PUSH_UP + zSpeedAway;
         targetFov = Math.max(
           CAM_SCROLL_LOCKED_FOV_MIN,
@@ -275,6 +294,8 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
   }, [rimSideTex]);
 
   const spinGroup = useRef<THREE.Group>(null);
+  /** Fall drift tilt from `WormholeFallingCoin` (inside Y-spin). */
+  const fallWobbleGroup = useRef<THREE.Group>(null);
   const flipGroup = useRef<THREE.Group>(null);
   const rimMat = useRef<THREE.MeshStandardMaterial>(null);
   const vortexLightA = useRef<THREE.PointLight>(null);
@@ -343,19 +364,61 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
   const flipStartElapsed = useRef<number | null>(null);
   const reflectDna = useMemo<ReflectDna>(() => makeReflectDna(), []);
 
+  /** Signed scroll-driven spin rate (rad/s), smoothed toward tunnel velocity target. */
+  const scrollSpinRateSmoothedRef = useRef<number | null>(null);
+  const prevScrollInputIdleRef = useRef(1);
+  const spinSoftEntryUntilRef = useRef(0);
+
   useFrame((state, delta) => {
     const vortexReflective = backdropMode === 'vortext2';
     if (spin && spinGroup.current) {
       if (spinSyncScroll) {
-        const vel = tunnelStore.getState().velocity;
+        const s = tunnelStore.getState();
+        const vel = s.velocity;
         const av = Math.abs(vel);
         const scrollBoost = Math.min(av * 0.038, 4.2);
-        const w = 0.62 + scrollBoost;
-        const visMul = tunnelStore.getState().wormholeScrollVisualMul ?? 1;
+        const visMul = s.wormholeScrollVisualMul ?? 1;
         const dir = (av < 0.06 ? 1 : Math.sign(vel)) * visMul;
-        spinGroup.current.rotation.y += delta * w * dir;
+        const targetSpinRate = (0.62 + scrollBoost) * dir;
+
+        if (scrollSpinRateSmoothedRef.current === null) {
+          scrollSpinRateSmoothedRef.current = targetSpinRate;
+        }
+
+        const idle = s.scrollInputIdle;
+        if (
+          prevScrollInputIdleRef.current > 0.96 &&
+          idle < 0.88 &&
+          av > 0.14
+        ) {
+          spinSoftEntryUntilRef.current = state.clock.elapsedTime + SPIN_SOFT_ENTRY_HOLD_SEC;
+        }
+        prevScrollInputIdleRef.current = idle;
+
+        let lambda = SPIN_RATE_SMOOTH_LAMBDA;
+        if (state.clock.elapsedTime < spinSoftEntryUntilRef.current) {
+          lambda = SPIN_RATE_SMOOTH_LAMBDA_SOFT;
+        }
+
+        const prevRate = scrollSpinRateSmoothedRef.current;
+        scrollSpinRateSmoothedRef.current +=
+          (targetSpinRate - prevRate) * (1 - Math.exp(-lambda * delta));
+        spinGroup.current.rotation.y += delta * scrollSpinRateSmoothedRef.current;
       } else {
+        scrollSpinRateSmoothedRef.current = null;
         spinGroup.current.rotation.y += delta * 0.62;
+      }
+    }
+
+    const fw = fallWobbleGroup.current;
+    if (fw) {
+      if (spin && spinSyncScroll) {
+        const b = getWormholeFallMotionSnapshot();
+        fw.rotation.x = THREE.MathUtils.degToRad(b.rotateXDeg);
+        fw.rotation.z = THREE.MathUtils.degToRad(b.rotateZDeg);
+      } else {
+        fw.rotation.x = 0;
+        fw.rotation.z = 0;
       }
     }
 
@@ -489,8 +552,9 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
       <pointLight ref={vortexLightA} position={[1.8, 0.4, 1.8]} intensity={0} distance={9} />
 
       <group ref={spinGroup}>
-        <group ref={flipGroup}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <group ref={fallWobbleGroup}>
+          <group ref={flipGroup}>
+            <mesh rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[r, r, thickness, 72, 1, true]} />
             <meshStandardMaterial
               ref={rimMat}
@@ -513,6 +577,7 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
           <mesh position={[0, 0, -thickness / 2]} rotation={[0, Math.PI, 0]} material={faceMaterialBack}>
             <circleGeometry args={[r, 72]} />
           </mesh>
+          </group>
         </group>
       </group>
     </group>

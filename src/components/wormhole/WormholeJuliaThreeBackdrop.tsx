@@ -27,8 +27,12 @@ export type WormholeJuliaThreeBackdropProps = {
   introRingsOverlay?: boolean;
   /** `/wormhole6` — journey camera + desktop mouse aim from first frame (see `JuliaWormholeBackdrop`). */
   journeyCameraFromStart?: boolean;
+  /** `/wormhole5` — opening journey zoom-out driven by `wormholeHomeIntroCam01` (see `JuliaWormholeBackdrop`). */
+  openingJourneyCameraIntro?: boolean;
   /** `/wormhole6` — fullscreen helix bundle scale ({@link WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL}). */
   helixLabFullscreen?: boolean;
+  /** Optional helix bundle inset when not fullscreen — see `JuliaWormholeBackdrop` `helixWallInsetMul`. */
+  helixWallInsetMul?: number;
   /**
    * Production home only: helix ribbons match `/wormhole2` grading + spiraling feel without touching
    * rings or tunnel depth (`JuliaWormholeBackdrop` applies helix-only shading + synthetic twist).
@@ -47,7 +51,9 @@ export function WormholeJuliaThreeBackdrop({
   throatCameraJourney = false,
   introRingsOverlay = false,
   journeyCameraFromStart = false,
+  openingJourneyCameraIntro = false,
   helixLabFullscreen = false,
+  helixWallInsetMul,
   helixWormhole2RibbonStyle = false,
 }: WormholeJuliaThreeBackdropProps): ReactElement | null {
   const enabled = useSyncExternalStore(
@@ -67,7 +73,9 @@ export function WormholeJuliaThreeBackdrop({
         throatCameraJourney={throatCameraJourney}
         introRingsOverlay={introRingsOverlay}
         journeyCameraFromStart={journeyCameraFromStart}
+        openingJourneyCameraIntro={openingJourneyCameraIntro}
         helixLabFullscreen={helixLabFullscreen}
+        helixWallInsetMul={helixWallInsetMul}
         helixWormhole2RibbonStyle={helixWormhole2RibbonStyle}
       />
     </div>

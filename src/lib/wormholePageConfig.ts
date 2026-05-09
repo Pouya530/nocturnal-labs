@@ -22,6 +22,32 @@ export const WORMHOLE5_TUNNEL_START = {
   velocity: 0,
 } as const;
 
+/**
+ * `/wormhole5` — after {@link SitePreloader} dismisses: tunnel starts at this depth (vel 0), eases back to
+ * mouth (`0`), then coin + journey camera ramp (parallel with pullback unless reduced motion).
+ */
+export const WORMHOLE5_INTRO_DEPTH_START = 26.25;
+
+/** Duration (ms) for the depth pullback `WORMHOLE5_INTRO_DEPTH_START` → mouth (`0`). */
+export const WORMHOLE5_INTRO_DEPTH_PULLBACK_MS = 2600;
+
+/**
+ * `/wormhole5` — coin + journey camera ramp (runs in parallel with pullback; longer than {@link WORMHOLE_HOME_MICRO_INTRO_MS}).
+ */
+export const WORMHOLE5_COIN_MICRO_INTRO_MS = 1200;
+
+/** Linear intro progress (0–1) before the coin opacity eases in — wormhole5 only. */
+export const WORMHOLE5_COIN_MICRO_INTRO_LOGO_DELAY = 0.14;
+
+/** `/wormhole9` — same mouth lock as wormhole5 (homepage candidate preview). */
+export const WORMHOLE9_TUNNEL_START = WORMHOLE5_TUNNEL_START;
+
+/** `/wormhole10` — wormhole5 mouth lock + volumetric cosmic layer behind the Julia tunnel. */
+export const WORMHOLE10_TUNNEL_START = WORMHOLE5_TUNNEL_START;
+
+/** `/wormhole11` — same mouth / mobile start as wormhole9 (cosmic + wormhole5 GL + intro cam ramp). */
+export const WORMHOLE11_TUNNEL_START = WORMHOLE9_TUNNEL_START;
+
 /** Production `/` — touch-primary: start further into the tube; vel 0. */
 export const WORMHOLE6_MOBILE_TUNNEL_START = {
   depth: 122.76,
@@ -48,6 +74,20 @@ export const WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY = 0.14;
 
 /** Opening hero scale multiplier (`scale(...)`) before the micro-intro grows it to 1. */
 export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE = 0.74;
+
+/**
+ * `/wormhole5` — opening journey zoom + logo timeline (much longer than {@link WORMHOLE_HOME_MICRO_INTRO_MS}).
+ */
+export const WORMHOLE5_OPENING_INTRO_MS = 3600;
+
+/**
+ * Camera reaches full pullback by this fraction of {@link WORMHOLE5_OPENING_INTRO_MS} — keeps the zoom
+ * **fast** while the overall intro stays long (logo / settle).
+ */
+export const WORMHOLE5_OPENING_CAM_ZOOM_FRAC = 0.15;
+
+/** `/wormhole5` — linear intro progress (0–1) before the coin fades in. */
+export const WORMHOLE5_OPENING_LOGO_DELAY = 0.06;
 
 /**
  * `/` lab helices when `helixLabFullscreen`: bundle radius vs nominal tunnel wall (`ringRadius ×
@@ -87,6 +127,7 @@ export const WORMHOLE4_DEBUG_START = {
   wormhole3dBackgroundEnabled: true,
   wormholeHelices3dEnabled: false,
   wormholeDebugRandomCamTilt: false,
+  wormholeDebugCircularCamTilt: false,
   wormholeCoinVisible: true,
   wormholeBlackHoleOverlayEnabled: false,
   bloomStrength: 0.35,

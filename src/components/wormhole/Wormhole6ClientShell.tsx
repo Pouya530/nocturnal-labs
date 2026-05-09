@@ -35,8 +35,10 @@ function easeOutCubic(t: number): number {
 }
 
 /**
- * Production home shell: same Three.js stack + tunnel tuning as `/wormhole5`; velocity-synced footer marquee.
- * Tunnel debug panel appears on localhost only ({@link LocalTunnelChrome} `showDebugPanel`). Prod domains omit it.
+ * Production home shell (`/` and `/wormhole6`): inversion Julia rings + journey camera. `helixLabFullscreen` scales
+ * the lab helix bundle for full-viewport fill (same multipliers as `wormholePageConfig` home stack). Ribbon **shader**
+ * grading matches `/wormhole5` (softer rim, halo, brightness) — do not set `helixWormhole2RibbonStyle`, which would
+ * switch ribbons to the `/wormhole2` look. Tunnel debug on localhost only ({@link LocalTunnelChrome} `showDebugPanel`).
  */
 export function Wormhole6ClientShell({ children }: { children: ReactNode }): ReactElement {
   const introRaf = useRef(0);
@@ -72,9 +74,11 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevWormhole3d = s.wormhole3dBackgroundEnabled;
     const prevHelices3d = s.wormholeHelices3dEnabled;
     const prevRandomCamTilt = s.wormholeDebugRandomCamTilt;
+    const prevCircularCamTilt = s.wormholeDebugCircularCamTilt;
     const prevCoinVisible = s.wormholeCoinVisible;
     const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
     const prevBlackHoleOverlay = s.wormholeBlackHoleOverlayEnabled;
+    const prevHelixJuliaRibbonShader = s.wormholeHelixJuliaRibbonShaderEnabled;
     const prevBloomStrength = s.bloomStrength;
     const prevBloomRadius = s.bloomRadius;
     const prevBloomThreshold = s.bloomThreshold;
@@ -129,9 +133,11 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         wormhole3dBackgroundEnabled: prevWormhole3d,
         wormholeHelices3dEnabled: prevHelices3d,
         wormholeDebugRandomCamTilt: prevRandomCamTilt,
+        wormholeDebugCircularCamTilt: prevCircularCamTilt,
         wormholeCoinVisible: prevCoinVisible,
         wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
         wormholeBlackHoleOverlayEnabled: prevBlackHoleOverlay,
+        wormholeHelixJuliaRibbonShaderEnabled: prevHelixJuliaRibbonShader,
         bloomStrength: prevBloomStrength,
         bloomRadius: prevBloomRadius,
         bloomThreshold: prevBloomThreshold,
@@ -204,7 +210,6 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         throatCameraJourney
         journeyCameraFromStart
         helixLabFullscreen
-        helixWormhole2RibbonStyle={true}
       />
       <LocalTunnelChrome
         showWormholeControls

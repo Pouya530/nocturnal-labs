@@ -36,11 +36,15 @@ html.scroll-locked body {
 }
 
 /*
- * Free fly: `overflow: hidden` clips the hero coin when ScrollVelocityCamera zooms / WormholeCoinDepthScale
- * scales. Use axis-specific overflow + a wide horizontal clip margin so paint can extend past the viewport.
+ * Locked + free fly: plain `overflow: hidden` clips the hero coin when ScrollVelocityCamera zooms in on
+ * backward scroll (v−), when hero coin depth-scale returns to full size at the mouth (depth→0),
+ * or when the journey camera widens. Use axis-specific overflow + clip margins so paint can extend past
+ * the viewport on both axes (horizontal was the original issue; vertical clips when scrolling back to start).
  */
 html.scroll-locked[data-scroll-mode='free'],
-html.scroll-locked[data-scroll-mode='free'] body {
+html.scroll-locked[data-scroll-mode='locked'],
+html.scroll-locked[data-scroll-mode='free'] body,
+html.scroll-locked[data-scroll-mode='locked'] body {
   overflow-x: clip;
   overflow-y: hidden;
   height: 100%;
@@ -50,8 +54,11 @@ html.scroll-locked[data-scroll-mode='free'] body {
 
 @supports (overflow-clip-margin: 1px) {
   html.scroll-locked[data-scroll-mode='free'],
-  html.scroll-locked[data-scroll-mode='free'] body {
-    overflow-clip-margin: 0 min(32vw, 520px) 0 min(32vw, 520px);
+  html.scroll-locked[data-scroll-mode='locked'],
+  html.scroll-locked[data-scroll-mode='free'] body,
+  html.scroll-locked[data-scroll-mode='locked'] body {
+    /* 2-value form: vertical horizontal — fast backward scroll-zoom can still push GL past viewport */
+    overflow-clip-margin: min(36vh, 320px) min(40vw, 640px);
   }
 }
 
@@ -104,6 +111,13 @@ html.scroll-locked[data-scroll-mode='free'] body {
   transform-origin: center center;
 }
 
+/* Lab routes (e.g. `/wormhole5`) — same logo fade/scale vars without home-only `--hero-logo-size`. */
+.wormhole-lab-micro-intro-logo {
+  opacity: var(--nl-logo-o, 1);
+  transform: scale(var(--nl-logo-grow, 1));
+  transform-origin: center center;
+}
+
 /* `/` only — slightly smaller opening coin than shared `.hero-logo-size-var` lab defaults. */
 .wormhole-home-intro-logo .hero-logo-size-var {
   --hero-logo-size: min(264px, calc(100vw - 2.75rem));
@@ -112,6 +126,13 @@ html.scroll-locked[data-scroll-mode='free'] body {
 @media (min-width: 1024px) {
   .wormhole-home-intro-logo .hero-logo-size-var {
     --hero-logo-size: min(242px, calc(100vw - 3rem));
+  }
+}
+
+/* `/wormhole5` — lab desktop coin reduced further for mouth framing; mobile unchanged. */
+@media (min-width: 1024px) {
+  .wormhole5-hero-logo .hero-logo-size-var {
+    --hero-logo-size: min(182px, calc(100vw - 3rem));
   }
 }
 

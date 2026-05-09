@@ -1,14 +1,14 @@
 'use client';
 
 import type { ReactNode, ReactElement } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { motionPrefs } from '@/core/motion';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { LocalTunnelChrome } from '@/components/landing/LocalTunnelChrome';
 import { SitePreloader } from '@/components/landing/SitePreloader';
-import { WormholeCoinSyncedMarqueeFooter } from '@/components/wormhole/WormholeCoinSyncedMarqueeFooter';
 import { Wormhole4AtmosphereOverlayGate } from '@/components/wormhole/Wormhole4AtmosphereOverlayGate';
+import { WormholeCoinSyncedMarqueeFooter } from '@/components/wormhole/WormholeCoinSyncedMarqueeFooter';
 import { WormholeJuliaThreeBackdrop } from '@/components/wormhole/WormholeJuliaThreeBackdrop';
 import {
   getActiveLandingBackdropMode,
@@ -17,15 +17,16 @@ import {
 import {
   WORMHOLE2_HELIX_LAB_POSTFX,
   WORMHOLE4_SENSITIVITY,
-  WORMHOLE5_COIN_MICRO_INTRO_LOGO_DELAY,
-  WORMHOLE5_COIN_MICRO_INTRO_MS,
   WORMHOLE5_DEBUG_START,
-  WORMHOLE5_INTRO_DEPTH_PULLBACK_MS,
-  WORMHOLE5_INTRO_DEPTH_START,
   WORMHOLE5_TUNNEL_START,
+  WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
+  WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY,
   WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE,
+  WORMHOLE_HOME_MICRO_INTRO_MS,
 } from '@/lib/wormholePageConfig';
+import { isLocalhostHostname } from '@/lib/isLocalhost';
+import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
@@ -35,108 +36,24 @@ function easeOutCubic(t: number): number {
 }
 
 /**
- * `/wormhole5` — helix-lab 3D ribbons (as `/wormhole2`) **plus** wormhole4 inverted Julia rings,
- * journey camera, intro mouth rings, atmosphere; **locked** at intro depth then mouth with no idle drift.
- *
- * `localHomePresentation`: localhost `/` only — no locked/free HUD or tunnel debug; marquee footer like production home.
+ * `/wormhole7` preview only: same tunnel store + chrome pattern as production home (`Wormhole6ClientShell`),
+ * but Three.js matches `/wormhole5` — intro mouth rings, no `helixLabFullscreen`, no `journeyCameraFromStart`
+ * (journey eases in from the mouth). Atmosphere gate matches wormhole4/5.
  */
-export function Wormhole5ClientShell({
-  children,
-  localHomePresentation = false,
-}: {
-  children: ReactNode;
-  localHomePresentation?: boolean;
-}): ReactElement {
-  const depthPullRaf = useRef(0);
-  const coinIntroRaf = useRef(0);
+export function Wormhole7ClientShell({ children }: { children: ReactNode }): ReactElement {
+  const introRaf = useRef(0);
   const introStarted = useRef(false);
+  const [showTunnelDebugPanel, setShowTunnelDebugPanel] = useState(false);
 
-  const runCoinMicroIntro = useCallback(() => {
-    const t0 = performance.now();
-    const duration = WORMHOLE5_COIN_MICRO_INTRO_MS;
-    const logoDelay = WORMHOLE5_COIN_MICRO_INTRO_LOGO_DELAY;
-    const scaleStart = WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE;
-
-    const step = (now: number) => {
-      const linear = Math.min(1, (now - t0) / duration);
-      const camEase = easeOutCubic(linear);
-      tunnelStore.setState({ wormholeHomeIntroCam01: camEase });
-
-      const logoGrow = scaleStart + (1 - scaleStart) * easeOutCubic(linear);
-
-      let logoO = 0;
-      if (linear > logoDelay) {
-        logoO = easeOutCubic((linear - logoDelay) / Math.max(1e-6, 1 - logoDelay));
-      }
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.setProperty('--nl-logo-grow', String(logoGrow));
-        document.documentElement.style.setProperty('--nl-logo-o', String(logoO));
-      }
-
-      if (linear < 1) {
-        coinIntroRaf.current = requestAnimationFrame(step);
-      } else {
-        tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
-        if (typeof document !== 'undefined') {
-          document.documentElement.style.setProperty('--nl-logo-o', '1');
-          document.documentElement.style.setProperty('--nl-logo-grow', '1');
-        }
-      }
-    };
-    coinIntroRaf.current = requestAnimationFrame(step);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setShowTunnelDebugPanel(isLocalhostHostname(window.location.hostname));
   }, []);
-
-  const runDepthPullback = useCallback(() => {
-    const t0 = performance.now();
-    const from = WORMHOLE5_INTRO_DEPTH_START;
-    const dur = WORMHOLE5_INTRO_DEPTH_PULLBACK_MS;
-
-    const step = (now: number) => {
-      const k = Math.min(1, (now - t0) / dur);
-      const eased = easeOutCubic(k);
-      const d = from * (1 - eased);
-      tunnelStore.setState({ wormholeIntroDepthOverride: d, velocity: 0 });
-      if (k < 1) {
-        depthPullRaf.current = requestAnimationFrame(step);
-      } else {
-        tunnelStore.setState({
-          wormholeIntroDepthOverride: null,
-          depth: WORMHOLE5_TUNNEL_START.depth,
-          velocity: WORMHOLE5_TUNNEL_START.velocity,
-        });
-      }
-    };
-    depthPullRaf.current = requestAnimationFrame(step);
-  }, []);
-
-  const onPreloaderGone = useCallback(() => {
-    const reducedNow = motionPrefs.reduced;
-    if (reducedNow) {
-      tunnelStore.setState({
-        wormholeIntroDepthOverride: null,
-        depth: WORMHOLE5_TUNNEL_START.depth,
-        velocity: WORMHOLE5_TUNNEL_START.velocity,
-        wormholeHomeIntroCam01: 1,
-      });
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.setProperty('--nl-logo-o', '1');
-        document.documentElement.style.setProperty('--nl-logo-grow', '1');
-      }
-      return;
-    }
-    if (introStarted.current) return;
-    introStarted.current = true;
-
-    runDepthPullback();
-    runCoinMicroIntro();
-  }, [runCoinMicroIntro, runDepthPullback]);
 
   useLayoutEffect(() => {
-    introStarted.current = false;
-    document.documentElement.style.setProperty('--nl-intro', '1');
-
     const reducedNow = motionPrefs.reduced;
     if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--nl-intro', '1');
       document.documentElement.style.setProperty('--nl-logo-o', reducedNow ? '1' : '0');
       document.documentElement.style.setProperty(
         '--nl-logo-grow',
@@ -172,39 +89,33 @@ export function Wormhole5ClientShell({
     const prevFogDensity = s.fogDensity;
     const prevSensitivity = s.sensitivity;
     const prevScrollInputIdle = s.scrollInputIdle;
-    const prevHomeIntroCam = s.wormholeHomeIntroCam01;
     const prevIntroDepthOv = s.wormholeIntroDepthOverride;
+    const prevHomeIntroCam = s.wormholeHomeIntroCam01;
+    const touchPrimary = isCoarseOrTouchPrimaryViewport();
 
-    const introDepth = WORMHOLE5_INTRO_DEPTH_START;
     tunnelStore.setState({
       sensitivity: WORMHOLE4_SENSITIVITY,
       maxDepth: WORMHOLE_CLASSIC_TUNNEL.maxDepth,
       wormholeIdleForward: 0,
       ringCount: WORMHOLE_CLASSIC_TUNNEL.ringCount,
       ringSpacing: WORMHOLE_CLASSIC_TUNNEL.ringSpacing,
+      wormholeIntroDepthOverride: null,
       wormholeHomeIntroCam01: reducedNow ? 1 : 0,
-      wormholeIntroDepthOverride: reducedNow ? null : introDepth,
-      depth: reducedNow ? WORMHOLE5_TUNNEL_START.depth : introDepth,
-      velocity: WORMHOLE5_TUNNEL_START.velocity,
+      depth: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.depth : WORMHOLE5_TUNNEL_START.depth,
+      velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
       scrollInputIdle: 1,
       wormholeScrollVisualMul: -1,
       wormholeScrollHelixVelGain: -0.42,
       ...WORMHOLE5_DEBUG_START,
-      /** Same as wormhole2 default — lab Julia tubes on (wormhole4 debug preset had helices off). */
       wormholeHelices3dEnabled: true,
-      /** Helix glow/colour read like `/wormhole2` (wormhole4 debug bloom is much weaker). */
       ...WORMHOLE2_HELIX_LAB_POSTFX,
-      wormholeAtmosphereOverlayEnabled: false,
-      /** Last so nothing in the spread can override; wormhole5 always boots in locked scroll (not free fly). */
       mode: 'locked',
     });
 
-    /** Beat Strict Mode remount / any same-tick store writes so HUD + scroll integrator stay locked. */
     queueMicrotask(() => tunnelStore.setState({ mode: 'locked' }));
 
     return () => {
-      cancelAnimationFrame(depthPullRaf.current);
-      cancelAnimationFrame(coinIntroRaf.current);
+      cancelAnimationFrame(introRaf.current);
       if (typeof document !== 'undefined') {
         document.documentElement.style.removeProperty('--nl-logo-grow');
         document.documentElement.style.removeProperty('--nl-logo-o');
@@ -219,8 +130,8 @@ export function Wormhole5ClientShell({
         depth: prevDepth,
         velocity: prevVelocity,
         scrollInputIdle: prevScrollInputIdle,
-        wormholeHomeIntroCam01: prevHomeIntroCam,
         wormholeIntroDepthOverride: prevIntroDepthOv,
+        wormholeHomeIntroCam01: prevHomeIntroCam,
         wormholeScrollVisualMul: prevScrollVisualMul,
         wormholeScrollHelixVelGain: prevScrollHelixVelGain,
         wormhole3dBackgroundEnabled: prevWormhole3d,
@@ -245,34 +156,81 @@ export function Wormhole5ClientShell({
     tunnelStore.setState({ mode: 'locked' });
   }, []);
 
-  useEffect(() => {
-    return () => {
-      cancelAnimationFrame(depthPullRaf.current);
-      cancelAnimationFrame(coinIntroRaf.current);
+  const onPreloaderGone = useCallback(() => {
+    const reducedNow = motionPrefs.reduced;
+    if (reducedNow) {
+      tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--nl-logo-o', '1');
+        document.documentElement.style.setProperty('--nl-logo-grow', '1');
+      }
+      return;
+    }
+    if (introStarted.current) return;
+    introStarted.current = true;
+
+    const t0 = performance.now();
+    const duration = WORMHOLE_HOME_MICRO_INTRO_MS;
+    const logoDelay = WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY;
+    const scaleStart = WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE;
+
+    const step = (now: number) => {
+      const linear = Math.min(1, (now - t0) / duration);
+      const camEase = easeOutCubic(linear);
+      tunnelStore.setState({ wormholeHomeIntroCam01: camEase });
+
+      const logoGrow = scaleStart + (1 - scaleStart) * easeOutCubic(linear);
+
+      let logoO = 0;
+      if (linear > logoDelay) {
+        logoO = easeOutCubic((linear - logoDelay) / Math.max(1e-6, 1 - logoDelay));
+      }
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--nl-logo-grow', String(logoGrow));
+        document.documentElement.style.setProperty('--nl-logo-o', String(logoO));
+      }
+
+      if (linear < 1) {
+        introRaf.current = requestAnimationFrame(step);
+      } else {
+        tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
+        if (typeof document !== 'undefined') {
+          document.documentElement.style.setProperty('--nl-logo-o', '1');
+          document.documentElement.style.setProperty('--nl-logo-grow', '1');
+        }
+      }
     };
+    introRaf.current = requestAnimationFrame(step);
+  }, []);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(introRaf.current);
   }, []);
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#030208]">
+      <p
+        className="pointer-events-none fixed left-1/2 top-[4.25rem] z-[90] max-w-[min(90vw,28rem)] -translate-x-1/2 rounded-md border border-amber-500/35 bg-black/80 px-2.5 py-1 text-center text-[10px] font-medium uppercase tracking-[0.08em] text-amber-100/90 shadow-lg backdrop-blur-sm"
+        aria-hidden
+      >
+        Wormhole 7 preview — home tunnel + wormhole5 GL (no fullscreen helix)
+      </p>
       <WormholeJuliaThreeBackdrop
         helixLab
         ringGrowthInversion
         throatCameraJourney
         introRingsOverlay
-        openingJourneyCameraIntro
       />
       <Wormhole4AtmosphereOverlayGate />
       <LocalTunnelChrome
-        showWormholeControls={!localHomePresentation}
+        showWormholeControls
+        showModeToggle={false}
+        showDebugPanel={showTunnelDebugPanel}
         scrollOptions={{ impulseSign: WORMHOLE_CLASSIC_TUNNEL.scrollImpulseSign }}
-        showModeToggle={!localHomePresentation}
-        showDebugPanel={!localHomePresentation}
       />
       <LandingTopNav />
-      <div className="wormhole5-hero-logo wormhole-lab-micro-intro-logo relative z-10">
-        {children}
-      </div>
-      {localHomePresentation ? <WormholeCoinSyncedMarqueeFooter /> : null}
+      <div className="relative z-10 wormhole-home-intro-logo">{children}</div>
+      <WormholeCoinSyncedMarqueeFooter />
       <SitePreloader onGone={onPreloaderGone} />
     </div>
   );

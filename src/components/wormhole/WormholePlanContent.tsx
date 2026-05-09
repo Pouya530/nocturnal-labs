@@ -8,7 +8,19 @@ import { CinematicHeroStage } from '@/components/landing/CinematicHeroStage';
 import { WormholeCoinDepthScale } from '@/components/wormhole/WormholeCoinDepthScale';
 import { WormholeFallingCoin } from '@/components/wormhole/WormholeFallingCoin';
 import { dmSans } from '@/lib/fonts';
+import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
+
+/** Scales fade vs forward speed above cruise (`wormholeIdleForward` in locked flight). */
+const COIN_SCROLL_FORWARD_VEL_REF = 4;
+const COIN_SCROLL_FORWARD_OPACITY_MIN = 0.72;
+
+function wormholeForwardScrollExcess(velocity: number, mode: ScrollMode, idleForward: number): number {
+  if (mode === 'locked' && idleForward > 0) {
+    return Math.max(0, velocity - idleForward - 0.06);
+  }
+  return Math.max(0, velocity - 0.06);
+}
 
 function useWormholeCoinVisible(): boolean {
   return useSyncExternalStore(
@@ -26,6 +38,20 @@ function useWormholeBlackHoleOverlayEnabled(): boolean {
   );
 }
 
+function useWormholeCoinScrollForwardOpacity(): number {
+  return useSyncExternalStore(
+    tunnelStore.subscribe,
+    () => {
+      const s = tunnelStore.getState();
+      if (!s.wormholeCoinFadeOnScrollForward) return 1;
+      const advance = wormholeForwardScrollExcess(s.velocity, s.mode, s.wormholeIdleForward);
+      const u = Math.min(1, advance / COIN_SCROLL_FORWARD_VEL_REF);
+      return 1 + (COIN_SCROLL_FORWARD_OPACITY_MIN - 1) * u;
+    },
+    () => 1,
+  );
+}
+
 /** `/wormhole` — centered coin; wormhole + nav come from the shell. */
 export type WormholePlanContentProps = {
   /** Passed through to `Logo` for localhost coin tap → tunnel impulse ({@link queueWormholeCoinScrollBoost}). */
@@ -37,6 +63,7 @@ export function WormholePlanContent({
 }: WormholePlanContentProps): ReactElement {
   const coinVisible = useWormholeCoinVisible();
   const blackHoleOverlay = useWormholeBlackHoleOverlayEnabled();
+  const coinScrollForwardOpacity = useWormholeCoinScrollForwardOpacity();
 
   return (
     <main
@@ -47,7 +74,10 @@ export function WormholePlanContent({
       ].join(' ')}
     >
       {coinVisible ? (
-        <div className="hero-logo-size-var mx-auto flex w-full max-w-full justify-center">
+        <div
+          className="hero-logo-size-var mx-auto flex w-full max-w-full justify-center"
+          style={{ opacity: coinScrollForwardOpacity }}
+        >
           <CinematicHeroStage>
             <WormholeCoinDepthScale>
               <WormholeFallingCoin>
