@@ -426,3 +426,19 @@ html.scroll-locked[data-scroll-mode='locked'] body {
     background-position: 50% 50%;
   }
 }
+
+/* Portrait + fold-inner width + coarse pointer only (e.g. Galaxy Z Fold inner portrait ~840–980 CSS px).
+ * Perspective + translateZ shifts the coin horizontally on wide canvases; flatten 3D for this viewport only. */
+@media (orientation: portrait) and (pointer: coarse) and (min-width: 840px) and (max-width: 980px) {
+  .wormhole-hero-perspective-root {
+    perspective: none !important;
+  }
+
+  .cinematic-hero-perspective {
+    perspective: none !important;
+  }
+
+  .wormhole-lab-micro-intro-logo {
+    transform: translateZ(0) scale(var(--nl-logo-grow, 1));
+  }
+}
