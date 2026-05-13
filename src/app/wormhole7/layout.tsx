@@ -4,23 +4,22 @@ import type { ReactNode } from 'react';
 import { SITE_NAME } from '@/config/seo';
 import { wormholePreviewRobots } from '@/lib/isPreviewRoute';
 
-const title = 'Tunnel';
+const title = 'Wormhole 7 — Nocturnal Labs';
 
-/** Canonical experience lives at `/`; this route mirrors it for bookmarks / labs links. */
 export const metadata: Metadata = {
   title,
-  description: 'Interactive Julia wormhole tunnel — scroll-flight demo.',
+  description: 'Julia wormhole lab preview route — scroll-driven tunnel and shell experiments.',
   alternates: {
-    canonical: '/',
+    canonical: '/wormhole7',
   },
   robots: wormholePreviewRobots,
   openGraph: {
     title: `${title} | ${SITE_NAME}`,
-    description: 'Interactive Julia wormhole tunnel.',
-    url: '/',
+    description: 'Wormhole 7 preview lab.',
+    url: '/wormhole7',
   },
 };
 
-export default function Wormhole6Layout({ children }: { children: ReactNode }) {
+export default function Wormhole7Layout({ children }: { children: ReactNode }) {
   return children;
 }
