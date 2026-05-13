@@ -2,7 +2,11 @@ import type { MetadataRoute } from 'next';
 
 import { getSiteUrl } from '@/lib/site';
 
-const disallow = ['/api/', '/_next/', '/private/'];
+const disallow = [
+  '/api/',
+  '/_next/',
+  '/private/',
+];
 
 export default function robots(): MetadataRoute.Robots {
   const base = getSiteUrl();

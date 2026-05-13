@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import { SITE_NAME } from '@/config/seo';
-import { wormholePreviewRobots } from '@/lib/isPreviewRoute';
 
 const title = 'Julia Wormhole — throat (wormhole3)';
 
@@ -13,7 +12,6 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/wormhole3',
   },
-  robots: wormholePreviewRobots,
   openGraph: {
     title: `${title} | ${SITE_NAME}`,
     description: 'Three.js Julia wormhole throat variant with scroll-inverted flight.',
