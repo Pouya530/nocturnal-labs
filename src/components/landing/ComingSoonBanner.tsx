@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 
+import { NL_BOOT_HIDE_CHROME_CLASS } from '@/lib/nlBootChromeCover';
 import { dmSans } from '@/lib/fonts';
 
 const segment =
@@ -18,6 +19,7 @@ export function ComingSoonBanner(): ReactElement {
   return (
     <div
       className={[
+        NL_BOOT_HIDE_CHROME_CLASS,
         'coming-soon-banner-shell fixed bottom-0 left-0 right-0 z-20 py-2',
         dmSans.className,
       ].join(' ')}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import { SITE_NAME } from '@/config/seo';
+import { wormholeLabRobots } from '@/lib/wormholeLabSeo';
 
 const title = 'Tunnel';
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
+  robots: wormholeLabRobots,
   openGraph: {
     title: `${title} | ${SITE_NAME}`,
     description: 'Interactive Julia wormhole tunnel.',

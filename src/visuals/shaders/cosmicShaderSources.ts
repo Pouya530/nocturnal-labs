@@ -133,6 +133,7 @@ export const cosmicFragment = /* glsl */ `
 /** Cosmic stream + stars: distance-scaled `gl_PointSize` + sharp radial falloff (no soft sprite texture). */
 export const cosmicPointVertex = /* glsl */ `
   attribute vec3 cosmicVertexColor;
+  attribute float cosmicPointSize;
   varying vec3 vColor;
   varying float vFog;
   uniform float uFogDensity;
@@ -153,7 +154,7 @@ export const cosmicPointVertex = /* glsl */ `
     if (uMinPointPx > 0.001) {
       psClamped = max(psClamped, uMinPointPx * uPixelRatio);
     }
-    gl_PointSize = psClamped;
+    gl_PointSize = psClamped * cosmicPointSize;
     // Distant star shell uses uFogDistanceScale << 1 so exp() fog does not erase the field.
     vFog = exp(-uFogDensity * length(mvPosition.xyz) * uFogDistanceScale);
   }

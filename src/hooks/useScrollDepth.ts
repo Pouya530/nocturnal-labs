@@ -2,19 +2,18 @@
 
 import { useEffect, useRef } from 'react';
 
+import {
+  wormholeScrollCoastTauSec,
+  wormholeScrollFrictionEffective,
+  wormholeScrollReversalBrakePerSec,
+  wormholeScrollReversalImpulseMul,
+  wormholeScrollVelSettlePerSec,
+} from '@/lib/wormholeScrollMobile';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
 const DEFAULT_MAX_DEPTH = 256;
 const TOUCH_MULTIPLIER = 2.5;
 const KEY_DELTA = 5;
-
-/** Wheel impulse decays with ~this e-folding time (seconds) so motion lingers ~1+ minute. */
-const SCROLL_COAST_TAU_SEC = 72;
-/**
- * When there is no wheel/touch impulse this frame, velocity is pulled toward 0 with this rate (1/s)
- * on top of coast + friction so motion **eventually stops** (free fly and locked).
- */
-const VEL_SETTLE_PER_SEC = 2.15;
 /** Snap velocity to 0 below this to avoid endless float noise. */
 const VEL_SNAP_EPS = 0.004;
 /**
@@ -33,7 +32,6 @@ const LOCKED_IMPULSE_FAST_ABS = 40;
 const LOCKED_IMPULSE_FAST_MUL = 1.42;
 const LOCKED_IMPULSE_VFAST_ABS = 72;
 const LOCKED_IMPULSE_VFAST_MUL = 1.88;
-
 /** Same units as `wheelAccumRef` after route {@link ScrollDepthOptions.impulseSign}. */
 let queuedCoinScrollBoost = 0;
 
@@ -103,22 +101,6 @@ function touchPanRouteBoost(): number {
   return isTouchPrimaryOrMobileWebKit(navigator.userAgent) ? 1.16 : 1;
 }
 
-/**
- * Chrome + mobile: **less** scroll drag — higher `friction` coeff (closer to 1) so
- * `Math.pow(friction, dt*8)` bleeds velocity slightly slower than desktop Safari’s raw store value.
- */
-function scrollFrictionEffective(storeFriction: number): number {
-  if (typeof navigator === 'undefined' || typeof window === 'undefined') return storeFriction;
-  const ua = navigator.userAgent;
-  if (isDesktopWebKitSafari(ua) && !isTouchPrimaryOrMobileWebKit(ua)) {
-    return storeFriction;
-  }
-  if (isTouchPrimaryOrMobileWebKit(ua) || isChromiumDesktopBrowser(ua)) {
-    return Math.min(0.99, storeFriction + 0.06);
-  }
-  return storeFriction;
-}
-
 export type ScrollDepthOptions = {
   /**
    * Multiply wheel / touch / key impulses before integrating (`+1` default).
@@ -130,7 +112,7 @@ export type ScrollDepthOptions = {
 /**
  * Maps wheel / touch / keys → `tunnelStore.depth` + `velocity`.
  * **Locked:** stronger wheel impulse + higher `|velocity|` cap; same coast × friction ×
- * {@link VEL_SETTLE_PER_SEC} when input stops so motion **settles like free fly**. Optional
+ * {@link wormholeScrollVelSettlePerSec} when input stops so motion **settles like free fly**. Optional
  * `wormholeIdleForward` cruise resumes only after `scrollInputIdle` crosses
  * {@link LOCKED_CRUISE_AFTER_SCROLL_IDLE}.
  * **Free fly:** touch-pan, lower cap; same friction + settle when input stops.
@@ -248,8 +230,11 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
 
       const s = tunnelStore.getState();
       const maxDepth = Math.max(1, s.maxDepth ?? DEFAULT_MAX_DEPTH);
-      const coast = Math.exp(-dt / SCROLL_COAST_TAU_SEC);
-      const frictionEff = scrollFrictionEffective(s.friction);
+      const coast = Math.exp(-dt / wormholeScrollCoastTauSec());
+      const frictionEff = wormholeScrollFrictionEffective(s.friction);
+      const velSettlePerSec = wormholeScrollVelSettlePerSec();
+      const reversalBrakePerSec = wormholeScrollReversalBrakePerSec();
+      const reversalImpulseMul = wormholeScrollReversalImpulseMul();
       const effSens = s.sensitivity * sensRouteBoost;
 
       const advanceScrollInputIdle = (hadInput: boolean) => {
@@ -287,7 +272,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
         if (d >= maxDepth && v > 0) v = 0;
         v *= coast * Math.pow(frictionEff, dt * 8);
         if (!hadInput) {
-          v *= Math.exp(-dt * VEL_SETTLE_PER_SEC);
+          v *= Math.exp(-dt * velSettlePerSec);
         }
         if (Math.abs(v) < VEL_SNAP_EPS) v = 0;
         currentDepthRef.current = d;
@@ -302,8 +287,15 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
         let impulseMul = LOCKED_IMPULSE_BASE;
         if (chunk >= LOCKED_IMPULSE_VFAST_ABS) impulseMul *= LOCKED_IMPULSE_VFAST_MUL;
         else if (chunk >= LOCKED_IMPULSE_FAST_ABS) impulseMul *= LOCKED_IMPULSE_FAST_MUL;
-        const impulse = rawWheel * effSens * impulseMul;
-        let v = currentVelocityRef.current + impulse;
+        let v = currentVelocityRef.current;
+        const opposing = hadInput && rawWheel * v < 0;
+        if (opposing && Math.abs(v) > 0.05) {
+          v *= Math.exp(-dt * reversalBrakePerSec);
+          if (chunk > 3.5) v *= 0.28;
+        }
+        const impulse =
+          rawWheel * effSens * impulseMul * (opposing && Math.abs(v) > 0.04 ? reversalImpulseMul : 1);
+        v += impulse;
         v = Math.max(-LOCKED_VEL_MAX, Math.min(LOCKED_VEL_MAX, v));
         let d = currentDepthRef.current + v * dt;
         d = Math.max(0, Math.min(maxDepth, d));
@@ -311,7 +303,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
         if (d >= maxDepth && v > 0) v = 0;
         v *= coast * Math.pow(frictionEff, dt * 8);
         if (!hadInput) {
-          v *= Math.exp(-dt * VEL_SETTLE_PER_SEC);
+          v *= Math.exp(-dt * velSettlePerSec);
         }
         if (Math.abs(v) < VEL_SNAP_EPS) v = 0;
         const scrollInputIdle = advanceScrollInputIdle(hadInput);

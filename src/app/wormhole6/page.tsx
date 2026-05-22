@@ -1,9 +1,8 @@
 import dynamic from 'next/dynamic';
 
 /**
- * Mirrors `/`: same {@link Wormhole6Route} tunnel (fullscreen helix, wormhole5-style ribbons, inversion rings, journey),
- * site preloader, and subtle throat-style zoom-out + coin fade.
- * Canonical URL remains `/` (see `layout.tsx`); keeps bookmarks sharing `/wormhole6`.
+ * Lab preview — {@link Wormhole6Route} (fullscreen helix, inversion rings, journey). Canonical home is `/`
+ * ({@link LocalHomeWormhole5Route}, same as localhost:3001 dev).
  */
 const TunnelMirrorExperience = dynamic(
   () =>

@@ -7,6 +7,13 @@ import { Logo } from '@/components/Hero/Logo';
 import { CinematicHeroStage } from '@/components/landing/CinematicHeroStage';
 import { WormholeCoinDepthScale } from '@/components/wormhole/WormholeCoinDepthScale';
 import { WormholeFallingCoin } from '@/components/wormhole/WormholeFallingCoin';
+import {
+  GhostEchoLabStage,
+  GravityWellLabStage,
+  PrismBreachLabStage,
+  StageRevealLabStage,
+} from '@/components/wormhole/labIntroStages';
+import { useWormholeLabIntroName } from '@/components/wormhole/WormholeLabIntroContext';
 import { dmSans } from '@/lib/fonts';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
@@ -64,6 +71,32 @@ export function WormholePlanContent({
   const coinVisible = useWormholeCoinVisible();
   const blackHoleOverlay = useWormholeBlackHoleOverlayEnabled();
   const coinScrollForwardOpacity = useWormholeCoinScrollForwardOpacity();
+  const labIntro = useWormholeLabIntroName();
+
+  const coinTree = (
+    <WormholeCoinDepthScale>
+      <WormholeFallingCoin>
+        <Logo
+          hideBlackHoleOverlay={!blackHoleOverlay}
+          spinSyncScroll
+          tunnelScrollImpulseSign={scrollImpulseSign}
+        />
+      </WormholeFallingCoin>
+    </WormholeCoinDepthScale>
+  );
+
+  const heroStage =
+    labIntro === 'prism-breach' ? (
+      <PrismBreachLabStage>{coinTree}</PrismBreachLabStage>
+    ) : labIntro === 'ghost-echo' ? (
+      <GhostEchoLabStage>{coinTree}</GhostEchoLabStage>
+    ) : labIntro === 'gravity-well' ? (
+      <GravityWellLabStage>{coinTree}</GravityWellLabStage>
+    ) : labIntro !== null ? (
+      <StageRevealLabStage>{coinTree}</StageRevealLabStage>
+    ) : (
+      <CinematicHeroStage>{coinTree}</CinematicHeroStage>
+    );
 
   return (
     <main
@@ -78,17 +111,7 @@ export function WormholePlanContent({
           className="hero-logo-size-var mx-auto flex w-full max-w-full justify-center"
           style={{ opacity: coinScrollForwardOpacity }}
         >
-          <CinematicHeroStage>
-            <WormholeCoinDepthScale>
-              <WormholeFallingCoin>
-                <Logo
-                  hideBlackHoleOverlay={!blackHoleOverlay}
-                  spinSyncScroll
-                  tunnelScrollImpulseSign={scrollImpulseSign}
-                />
-              </WormholeFallingCoin>
-            </WormholeCoinDepthScale>
-          </CinematicHeroStage>
+          {heroStage}
         </div>
       ) : null}
     </main>

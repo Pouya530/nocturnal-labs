@@ -48,8 +48,11 @@ export function Wormhole4ClientShell({ children }: { children: ReactNode }): Rea
     const prevCoinVisible = s.wormholeCoinVisible;
     const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
     const prevBlackHoleOverlay = s.wormholeBlackHoleOverlayEnabled;
-    const prevAtmosphereOverlay = s.wormholeAtmosphereOverlayEnabled;
+    const prevAtmospherePreset = s.wormholeAtmospherePreset;
+    const prevCosmicOverlay = s.wormholeCosmicOverlayEnabled;
     const prevHelixJuliaRibbonShader = s.wormholeHelixJuliaRibbonShaderEnabled;
+    const prevHelixTubeVariant = s.wormholeHelixTubeVariant;
+    const prevHelixTubeJuliaPatternEnabled = s.wormholeHelixTubeJuliaPatternEnabled;
     const prevBloomStrength = s.bloomStrength;
     const prevBloomRadius = s.bloomRadius;
     const prevBloomThreshold = s.bloomThreshold;
@@ -67,7 +70,7 @@ export function Wormhole4ClientShell({ children }: { children: ReactNode }): Rea
       wormholeScrollVisualMul: -1,
       wormholeScrollHelixVelGain: -0.42,
       ...WORMHOLE4_DEBUG_START,
-      wormholeAtmosphereOverlayEnabled: false,
+      wormholeAtmospherePreset: 'off',
     });
 
     return () => {
@@ -89,8 +92,11 @@ export function Wormhole4ClientShell({ children }: { children: ReactNode }): Rea
         wormholeCoinVisible: prevCoinVisible,
         wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
         wormholeBlackHoleOverlayEnabled: prevBlackHoleOverlay,
-        wormholeAtmosphereOverlayEnabled: prevAtmosphereOverlay,
+        wormholeAtmospherePreset: prevAtmospherePreset,
+        wormholeCosmicOverlayEnabled: prevCosmicOverlay,
         wormholeHelixJuliaRibbonShaderEnabled: prevHelixJuliaRibbonShader,
+        wormholeHelixTubeVariant: prevHelixTubeVariant,
+        wormholeHelixTubeJuliaPatternEnabled: prevHelixTubeJuliaPatternEnabled,
         bloomStrength: prevBloomStrength,
         bloomRadius: prevBloomRadius,
         bloomThreshold: prevBloomThreshold,

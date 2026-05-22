@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 
 import { Capability, initCapability } from '@/core/capability';
 import { motionPrefs } from '@/core/motion';
+import { ZOOM_RATE_BASE } from '@/lib/tunnelZoomGain';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 import { juliaFractalVertCover } from '@/visuals/shaders/juliaFractalShaderSources';
 import { juliaVortexFrag } from '@/visuals/shaders/juliaVortexFrag';
@@ -40,7 +41,6 @@ function smoothstep3(t: number): number {
 /** Max radius `(jcr, jci)` is allowed to drift from base (engine's `fractalJuliaDiscEffSm`). */
 const J_DISC_RADIUS = 0.172;
 const MAX_TUNNEL_DEPTH = 256;
-const ZOOM_RATE_BASE = 0.25;
 
 /** Matches tunnel wheel feel (`useScrollDepth`): long coast + per-frame friction damping. */
 const SCROLL_ZOOM_COAST_TAU_SEC = 72;
@@ -165,6 +165,7 @@ export function JuliaVortexFractalBackdrop({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef(0);
+  const drawFnRef = useRef<(now: number) => void>(() => {});
   const glRef = useRef<WebGLRenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const locRef = useRef<{
@@ -532,6 +533,7 @@ export function JuliaVortexFractalBackdrop({
       rafRef.current = requestAnimationFrame(draw);
     };
 
+    drawFnRef.current = draw;
     rafRef.current = requestAnimationFrame(draw);
 
     const onResize = () => {

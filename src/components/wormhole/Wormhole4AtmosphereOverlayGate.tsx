@@ -10,15 +10,15 @@ export type Wormhole4AtmosphereOverlayGateProps = {
   fullscreenBleed?: boolean;
 };
 
-/** `/wormhole4`–`/wormhole5`: mounts `Wormhole4AtmosphereOverlay` when tunnel debug allows it. */
+/** Lab routes: mounts `Wormhole4AtmosphereOverlay` when preset is not `off`. */
 export function Wormhole4AtmosphereOverlayGate({
   fullscreenBleed = false,
 }: Wormhole4AtmosphereOverlayGateProps): ReactElement | null {
-  const enabled = useSyncExternalStore(
+  const preset = useSyncExternalStore(
     tunnelStore.subscribe,
-    () => tunnelStore.getState().wormholeAtmosphereOverlayEnabled,
-    () => true,
+    () => tunnelStore.getState().wormholeAtmospherePreset,
+    () => 'nebula' as const,
   );
-  if (!enabled) return null;
-  return <Wormhole4AtmosphereOverlay fullscreenBleed={fullscreenBleed} />;
+  if (preset === 'off') return null;
+  return <Wormhole4AtmosphereOverlay fullscreenBleed={fullscreenBleed} preset={preset} />;
 }

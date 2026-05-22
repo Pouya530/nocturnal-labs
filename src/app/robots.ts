@@ -6,6 +6,17 @@ const disallow = [
   '/api/',
   '/_next/',
   '/private/',
+  '/wormhole',
+  '/wormhole2',
+  '/wormhole3',
+  '/wormhole4',
+  '/wormhole5',
+  '/wormhole6',
+  '/wormhole7',
+  '/wormhole8',
+  '/wormhole9',
+  '/wormhole10',
+  '/wormhole11',
 ];
 
 export default function robots(): MetadataRoute.Robots {

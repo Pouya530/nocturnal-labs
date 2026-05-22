@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 
 import { Capability, initCapability } from '@/core/capability';
 import { motionPrefs } from '@/core/motion';
+import { ZOOM_RATE_BASE } from '@/lib/tunnelZoomGain';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 import { juliaFractalFrag, juliaFractalVertCover } from '@/visuals/shaders/juliaFractalShaderSources';
 
@@ -15,9 +16,6 @@ const J_BASE_CI = 0.1889;
 const JULIA_ZOOM = 0.48;
 const INTRO_ZOOM_LERP = 0.35;
 const MAX_DEPTH = 256;
-/** Matches `tunnelStore.zoomRate` default — slider multiplies scroll zoom vs this baseline. */
-const ZOOM_RATE_BASE = 0.25;
-
 const INTRO_T_DEFAULT: MutableRefObject<number> = { current: 1 };
 
 const COVER_TRI = new Float32Array([-1, -1, 3, -1, -1, 3]);
@@ -85,6 +83,7 @@ export function JuliaTunnelFractalBackdrop({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef(0);
+  const drawFnRef = useRef<() => void>(() => {});
   const glRef = useRef<WebGLRenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const locRef = useRef<{
@@ -244,6 +243,7 @@ export function JuliaTunnelFractalBackdrop({
       rafRef.current = requestAnimationFrame(draw);
     };
 
+    drawFnRef.current = draw;
     rafRef.current = requestAnimationFrame(draw);
 
     let resizeTO: ReturnType<typeof setTimeout> | undefined;

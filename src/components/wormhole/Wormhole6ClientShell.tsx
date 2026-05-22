@@ -20,28 +20,36 @@ import {
   WORMHOLE5_TUNNEL_START,
   WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
-  WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY,
-  WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE,
-  WORMHOLE_HOME_MICRO_INTRO_MS,
+  WORMHOLE_HOME_DESKTOP_PROD_TUNNEL,
+  WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP,
+  WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH,
+  WORMHOLE_HOME_TUNNEL_VISUAL,
+  wormholeHomeIntroDepthPullbackMs,
 } from '@/lib/wormholePageConfig';
+import { wormholeDesktopProductionHighQuality } from '@/lib/wormholeProductionQuality';
+import {
+  wormholeHomeIntroCam01FromDepthEased,
+  wormholeHomeIntroDepthEased,
+  wormholeHomeIntroFreezeTranslateZOnProduction,
+} from '@/lib/wormholeHomeIntroEasing';
+import { WORMHOLE5_INTRO_LOGO_START_TZ_PX } from '@/lib/wormholePageConfig';
+import { clearStageReveal, initStageReveal } from '@/lib/stageReveal';
+import { runWormholeHeroStageReveal } from '@/lib/wormholeHeroStageReveal';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
 import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
-function easeOutCubic(t: number): number {
-  const x = Math.min(1, Math.max(0, t));
-  return 1 - Math.pow(1 - x, 3);
-}
-
 /**
- * Production home shell (`/` and `/wormhole6`): inversion Julia rings + journey camera. `helixLabFullscreen` scales
- * the lab helix bundle for full-viewport fill (same multipliers as `wormholePageConfig` home stack). Ribbon **shader**
- * grading matches `/wormhole5` (softer rim, halo, brightness) — do not set `helixWormhole2RibbonStyle`, which would
- * switch ribbons to the `/wormhole2` look. Tunnel debug on localhost only ({@link LocalTunnelChrome} `showDebugPanel`).
+ * Production home shell (`/` and `/wormhole6`): inversion Julia rings + journey camera; intro depth pullback from
+ * {@link WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP} / `_TOUCH`; pullback ms via {@link wormholeHomeIntroDepthPullbackMs}. `helixLabFullscreen` scales the lab helix bundle for full-viewport fill (same multipliers as
+ * `wormholePageConfig` home stack). Ribbon **shader** grading matches `/wormhole5` (softer rim, halo, brightness) —
+ * do not set `helixWormhole2RibbonStyle`, which would switch ribbons to the `/wormhole2` look. Tunnel debug on
+ * localhost only ({@link LocalTunnelChrome} `showDebugPanel`).
  */
 export function Wormhole6ClientShell({ children }: { children: ReactNode }): ReactElement {
-  const introRaf = useRef(0);
+  const depthPullRaf = useRef(0);
+  const stageRevealCancel = useRef({ cancel: () => {} });
   const introStarted = useRef(false);
   const [showTunnelDebugPanel, setShowTunnelDebugPanel] = useState(false);
 
@@ -51,11 +59,17 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
   }, []);
 
   useLayoutEffect(() => {
+    introStarted.current = false;
     const reducedNow = motionPrefs.reduced;
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--nl-intro', '1');
-      document.documentElement.style.setProperty('--nl-logo-o', reducedNow ? '1' : '0');
-      document.documentElement.style.setProperty('--nl-logo-grow', reducedNow ? '1' : String(WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE));
+    }
+    initStageReveal();
+    if (typeof document !== 'undefined' && !reducedNow && wormholeHomeIntroFreezeTranslateZOnProduction()) {
+      const root = document.documentElement;
+      root.dataset.nlIntroTz = 'progress';
+      root.style.setProperty('--nl-logo-tz-start', `${WORMHOLE5_INTRO_LOGO_START_TZ_PX}px`);
+      root.style.removeProperty('--nl-logo-tz');
     }
 
     const previousMode = getActiveLandingBackdropMode();
@@ -79,6 +93,8 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
     const prevBlackHoleOverlay = s.wormholeBlackHoleOverlayEnabled;
     const prevHelixJuliaRibbonShader = s.wormholeHelixJuliaRibbonShaderEnabled;
+    const prevHelixTubeVariant = s.wormholeHelixTubeVariant;
+    const prevHelixTubeJuliaPatternEnabled = s.wormholeHelixTubeJuliaPatternEnabled;
     const prevBloomStrength = s.bloomStrength;
     const prevBloomRadius = s.bloomRadius;
     const prevBloomThreshold = s.bloomThreshold;
@@ -88,6 +104,14 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevIntroDepthOv = s.wormholeIntroDepthOverride;
     const prevHomeIntroCam = s.wormholeHomeIntroCam01;
     const touchPrimary = isCoarseOrTouchPrimaryViewport();
+    const introSettleDepth = touchPrimary
+      ? WORMHOLE6_MOBILE_TUNNEL_START.depth
+      : WORMHOLE5_TUNNEL_START.depth;
+    const introPeakDepth = reducedNow
+      ? introSettleDepth
+      : touchPrimary
+        ? WORMHOLE6_MOBILE_TUNNEL_START.depth + WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH
+        : WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP;
 
     tunnelStore.setState({
       sensitivity: WORMHOLE4_SENSITIVITY,
@@ -95,9 +119,9 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       wormholeIdleForward: 0,
       ringCount: WORMHOLE_CLASSIC_TUNNEL.ringCount,
       ringSpacing: WORMHOLE_CLASSIC_TUNNEL.ringSpacing,
-      wormholeIntroDepthOverride: null,
+      wormholeIntroDepthOverride: reducedNow ? null : introPeakDepth,
       wormholeHomeIntroCam01: reducedNow ? 1 : 0,
-      depth: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.depth : WORMHOLE5_TUNNEL_START.depth,
+      depth: introPeakDepth,
       velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
       scrollInputIdle: 1,
       wormholeScrollVisualMul: -1,
@@ -105,16 +129,22 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       ...WORMHOLE5_DEBUG_START,
       wormholeHelices3dEnabled: true,
       ...WORMHOLE2_HELIX_LAB_POSTFX,
+      ...WORMHOLE_HOME_TUNNEL_VISUAL,
+      ...(wormholeDesktopProductionHighQuality() ? WORMHOLE_HOME_DESKTOP_PROD_TUNNEL : {}),
       mode: 'locked',
     });
 
     queueMicrotask(() => tunnelStore.setState({ mode: 'locked' }));
 
     return () => {
-      cancelAnimationFrame(introRaf.current);
+      cancelAnimationFrame(depthPullRaf.current);
+      stageRevealCancel.current.cancel();
+      clearStageReveal();
       if (typeof document !== 'undefined') {
-        document.documentElement.style.removeProperty('--nl-logo-grow');
-        document.documentElement.style.removeProperty('--nl-logo-o');
+        const root = document.documentElement;
+        delete root.dataset.nlIntroTz;
+        root.style.removeProperty('--nl-logo-tz');
+        root.style.removeProperty('--nl-logo-tz-start');
       }
       setActiveLandingBackdropMode(previousMode);
       tunnelStore.setState({
@@ -138,6 +168,8 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
         wormholeBlackHoleOverlayEnabled: prevBlackHoleOverlay,
         wormholeHelixJuliaRibbonShaderEnabled: prevHelixJuliaRibbonShader,
+        wormholeHelixTubeVariant: prevHelixTubeVariant,
+        wormholeHelixTubeJuliaPatternEnabled: prevHelixTubeJuliaPatternEnabled,
         bloomStrength: prevBloomStrength,
         bloomRadius: prevBloomRadius,
         bloomThreshold: prevBloomThreshold,
@@ -151,55 +183,70 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     tunnelStore.setState({ mode: 'locked' });
   }, []);
 
+  const runDepthPullback = useCallback(() => {
+    const touchPrimary = isCoarseOrTouchPrimaryViewport();
+    const from = touchPrimary
+      ? WORMHOLE6_MOBILE_TUNNEL_START.depth + WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH
+      : WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP;
+    const to = touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.depth : WORMHOLE5_TUNNEL_START.depth;
+    const dur = wormholeHomeIntroDepthPullbackMs(touchPrimary);
+    const t0 = performance.now();
+
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / dur);
+      const depthEased = wormholeHomeIntroDepthEased(k);
+      const d = from * (1 - depthEased) + to * depthEased;
+      const cam01 = wormholeHomeIntroCam01FromDepthEased(depthEased);
+      tunnelStore.setState({
+        wormholeIntroDepthOverride: d,
+        wormholeHomeIntroCam01: cam01,
+        velocity: 0,
+      });
+      if (k < 1) {
+        depthPullRaf.current = requestAnimationFrame(step);
+      } else {
+        tunnelStore.setState({
+          wormholeIntroDepthOverride: null,
+          depth: to,
+          wormholeHomeIntroCam01: 1,
+          velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
+        });
+      }
+    };
+
+    depthPullRaf.current = requestAnimationFrame(step);
+  }, []);
+
   const onPreloaderGone = useCallback(() => {
     const reducedNow = motionPrefs.reduced;
+    const touchPrimary = isCoarseOrTouchPrimaryViewport();
+    const settleDepth = touchPrimary
+      ? WORMHOLE6_MOBILE_TUNNEL_START.depth
+      : WORMHOLE5_TUNNEL_START.depth;
     if (reducedNow) {
-      tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.setProperty('--nl-logo-o', '1');
-        document.documentElement.style.setProperty('--nl-logo-grow', '1');
-      }
+      tunnelStore.setState({
+        wormholeHomeIntroCam01: 1,
+        wormholeIntroDepthOverride: null,
+        depth: settleDepth,
+        velocity: touchPrimary ? WORMHOLE6_MOBILE_TUNNEL_START.velocity : WORMHOLE5_TUNNEL_START.velocity,
+      });
       return;
     }
     if (introStarted.current) return;
     introStarted.current = true;
 
-    const t0 = performance.now();
-    const duration = WORMHOLE_HOME_MICRO_INTRO_MS;
-    const logoDelay = WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY;
-    const scaleStart = WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE;
-
-    const step = (now: number) => {
-      const linear = Math.min(1, (now - t0) / duration);
-      const camEase = easeOutCubic(linear);
-      tunnelStore.setState({ wormholeHomeIntroCam01: camEase });
-
-      const logoGrow = scaleStart + (1 - scaleStart) * easeOutCubic(linear);
-
-      let logoO = 0;
-      if (linear > logoDelay) {
-        logoO = easeOutCubic((linear - logoDelay) / Math.max(1e-6, 1 - logoDelay));
-      }
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.setProperty('--nl-logo-grow', String(logoGrow));
-        document.documentElement.style.setProperty('--nl-logo-o', String(logoO));
-      }
-
-      if (linear < 1) {
-        introRaf.current = requestAnimationFrame(step);
-      } else {
-        tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
-        if (typeof document !== 'undefined') {
-          document.documentElement.style.setProperty('--nl-logo-o', '1');
-          document.documentElement.style.setProperty('--nl-logo-grow', '1');
-        }
-      }
-    };
-    introRaf.current = requestAnimationFrame(step);
-  }, []);
+    runDepthPullback();
+    stageRevealCancel.current = runWormholeHeroStageReveal({
+      introTranslateZ: true,
+      driveIntroCam: false,
+    });
+  }, [runDepthPullback]);
 
   useEffect(() => {
-    return () => cancelAnimationFrame(introRaf.current);
+    return () => {
+      cancelAnimationFrame(depthPullRaf.current);
+      stageRevealCancel.current.cancel();
+    };
   }, []);
 
   return (
@@ -218,9 +265,11 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         scrollOptions={{ impulseSign: WORMHOLE_CLASSIC_TUNNEL.scrollImpulseSign }}
       />
       <LandingTopNav />
-      <div className="relative z-10 wormhole-home-intro-logo">{children}</div>
+      <div className="wormhole-hero-perspective-root relative z-10 [perspective:1600px]">
+        <div className="wormhole-home-intro-logo [transform-style:preserve-3d]">{children}</div>
+      </div>
       <WormholeCoinSyncedMarqueeFooter />
-      <SitePreloader onGone={onPreloaderGone} />
+      <SitePreloader onFadeComplete={onPreloaderGone} />
     </div>
   );
 }

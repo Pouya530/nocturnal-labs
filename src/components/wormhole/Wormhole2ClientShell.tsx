@@ -36,6 +36,8 @@ export function Wormhole2ClientShell({ children }: { children: ReactNode }): Rea
     const prevIdle = s.wormholeIdleForward;
     const prevScrollMode: ScrollMode = s.mode;
     const prevHelixJuliaRibbonShader = s.wormholeHelixJuliaRibbonShaderEnabled;
+    const prevHelixTubeVariant = s.wormholeHelixTubeVariant;
+    const prevHelixTubeJuliaPatternEnabled = s.wormholeHelixTubeJuliaPatternEnabled;
     const startFree = desktopFreeFlyDefault();
 
     tunnelStore.setState({
@@ -51,6 +53,8 @@ export function Wormhole2ClientShell({ children }: { children: ReactNode }): Rea
         wormholeIdleForward: prevIdle,
         mode: prevScrollMode,
         wormholeHelixJuliaRibbonShaderEnabled: prevHelixJuliaRibbonShader,
+        wormholeHelixTubeVariant: prevHelixTubeVariant,
+        wormholeHelixTubeJuliaPatternEnabled: prevHelixTubeJuliaPatternEnabled,
       });
     };
   }, []);

@@ -11,8 +11,9 @@ import {
   SITE_NAME,
   getGaMeasurementId,
 } from '@/config/seo';
-import { dmSans } from '@/lib/fonts';
+import { dmSans, jetbrainsMono } from '@/lib/fonts';
 import { getSiteUrl } from '@/lib/site';
+import { NL_BOOT_CHROME_HIDE_STYLE_ID, NL_BOOT_HIDE_CHROME_CLASS } from '@/lib/nlBootChromeCover';
 import './globals.css';
 
 const site = getSiteUrl();
@@ -129,7 +130,7 @@ const structuredData = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en-GB" className={dmSans.variable}>
+    <html lang="en-GB" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
       <head>
         {gaId ? (
           <>
@@ -144,6 +145,23 @@ gtag('config', '${gaId}');`}
         ) : null}
       </head>
       <body>
+        <Script
+          id="nl-boot-chrome-hide-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  try {
+    var p = window.location.pathname || '';
+    if (p !== '/' && p.indexOf('/cosmic') !== 0 && p.indexOf('/wormhole') !== 0) return;
+    if (document.getElementById('${NL_BOOT_CHROME_HIDE_STYLE_ID}')) return;
+    var s = document.createElement('style');
+    s.id = '${NL_BOOT_CHROME_HIDE_STYLE_ID}';
+    s.textContent = '.${NL_BOOT_HIDE_CHROME_CLASS}{visibility:hidden!important;pointer-events:none!important;}';
+    document.head.appendChild(s);
+  } catch (e) {}
+})();`,
+          }}
+        />
         <JsonLd data={structuredData} />
         {children}
       </body>

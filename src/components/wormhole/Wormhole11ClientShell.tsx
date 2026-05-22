@@ -22,26 +22,20 @@ import {
   WORMHOLE6_MOBILE_TUNNEL_START,
   WORMHOLE11_TUNNEL_START,
   WORMHOLE_CLASSIC_TUNNEL,
-  WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY,
-  WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE,
-  WORMHOLE_HOME_MICRO_INTRO_MS,
 } from '@/lib/wormholePageConfig';
+import { clearStageReveal, initStageReveal } from '@/lib/stageReveal';
+import { runWormholeHeroStageReveal } from '@/lib/wormholeHeroStageReveal';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
 import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
-
-function easeOutCubic(t: number): number {
-  const x = Math.min(1, Math.max(0, t));
-  return 1 - Math.pow(1 - x, 3);
-}
 
 /**
  * `/wormhole11` — **Cosmic** behind **wormhole5** Julia stack, with **wormhole9** journey intro
  * (`journeyCameraFromStart`, `helixWallInsetMul` 1.0, micro-intro + preloader). Isolated preview route.
  */
 export function Wormhole11ClientShell({ children }: { children: ReactNode }): ReactElement {
-  const introRaf = useRef(0);
+  const stageRevealCancel = useRef({ cancel: () => {} });
   const introStarted = useRef(false);
   const [showTunnelDebugPanel, setShowTunnelDebugPanel] = useState(false);
 
@@ -51,15 +45,12 @@ export function Wormhole11ClientShell({ children }: { children: ReactNode }): Re
   }, []);
 
   useLayoutEffect(() => {
+    introStarted.current = false;
     const reducedNow = motionPrefs.reduced;
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--nl-intro', '1');
-      document.documentElement.style.setProperty('--nl-logo-o', reducedNow ? '1' : '0');
-      document.documentElement.style.setProperty(
-        '--nl-logo-grow',
-        reducedNow ? '1' : String(WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE),
-      );
     }
+    initStageReveal();
 
     const previousMode = getActiveLandingBackdropMode();
     setActiveLandingBackdropMode('original');
@@ -81,8 +72,11 @@ export function Wormhole11ClientShell({ children }: { children: ReactNode }): Re
     const prevCoinVisible = s.wormholeCoinVisible;
     const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
     const prevBlackHoleOverlay = s.wormholeBlackHoleOverlayEnabled;
-    const prevAtmosphereOverlay = s.wormholeAtmosphereOverlayEnabled;
+    const prevAtmospherePreset = s.wormholeAtmospherePreset;
+    const prevCosmicOverlay = s.wormholeCosmicOverlayEnabled;
     const prevHelixJuliaRibbonShader = s.wormholeHelixJuliaRibbonShaderEnabled;
+    const prevHelixTubeVariant = s.wormholeHelixTubeVariant;
+    const prevHelixTubeJuliaPatternEnabled = s.wormholeHelixTubeJuliaPatternEnabled;
     const prevBloomStrength = s.bloomStrength;
     const prevBloomRadius = s.bloomRadius;
     const prevBloomThreshold = s.bloomThreshold;
@@ -115,11 +109,8 @@ export function Wormhole11ClientShell({ children }: { children: ReactNode }): Re
     queueMicrotask(() => tunnelStore.setState({ mode: 'locked' }));
 
     return () => {
-      cancelAnimationFrame(introRaf.current);
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.removeProperty('--nl-logo-grow');
-        document.documentElement.style.removeProperty('--nl-logo-o');
-      }
+      stageRevealCancel.current.cancel();
+      clearStageReveal();
       setActiveLandingBackdropMode(previousMode);
       tunnelStore.setState({
         maxDepth: prevMaxDepth,
@@ -141,8 +132,11 @@ export function Wormhole11ClientShell({ children }: { children: ReactNode }): Re
         wormholeCoinVisible: prevCoinVisible,
         wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
         wormholeBlackHoleOverlayEnabled: prevBlackHoleOverlay,
-        wormholeAtmosphereOverlayEnabled: prevAtmosphereOverlay,
+        wormholeAtmospherePreset: prevAtmospherePreset,
+        wormholeCosmicOverlayEnabled: prevCosmicOverlay,
         wormholeHelixJuliaRibbonShaderEnabled: prevHelixJuliaRibbonShader,
+        wormholeHelixTubeVariant: prevHelixTubeVariant,
+        wormholeHelixTubeJuliaPatternEnabled: prevHelixTubeJuliaPatternEnabled,
         bloomStrength: prevBloomStrength,
         bloomRadius: prevBloomRadius,
         bloomThreshold: prevBloomThreshold,
@@ -160,51 +154,12 @@ export function Wormhole11ClientShell({ children }: { children: ReactNode }): Re
     const reducedNow = motionPrefs.reduced;
     if (reducedNow) {
       tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.setProperty('--nl-logo-o', '1');
-        document.documentElement.style.setProperty('--nl-logo-grow', '1');
-      }
       return;
     }
     if (introStarted.current) return;
     introStarted.current = true;
 
-    const t0 = performance.now();
-    const duration = WORMHOLE_HOME_MICRO_INTRO_MS;
-    const logoDelay = WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY;
-    const scaleStart = WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE;
-
-    const step = (now: number) => {
-      const linear = Math.min(1, (now - t0) / duration);
-      const camEase = easeOutCubic(linear);
-      tunnelStore.setState({ wormholeHomeIntroCam01: camEase });
-
-      const logoGrow = scaleStart + (1 - scaleStart) * easeOutCubic(linear);
-
-      let logoO = 0;
-      if (linear > logoDelay) {
-        logoO = easeOutCubic((linear - logoDelay) / Math.max(1e-6, 1 - logoDelay));
-      }
-      if (typeof document !== 'undefined') {
-        document.documentElement.style.setProperty('--nl-logo-grow', String(logoGrow));
-        document.documentElement.style.setProperty('--nl-logo-o', String(logoO));
-      }
-
-      if (linear < 1) {
-        introRaf.current = requestAnimationFrame(step);
-      } else {
-        tunnelStore.setState({ wormholeHomeIntroCam01: 1 });
-        if (typeof document !== 'undefined') {
-          document.documentElement.style.setProperty('--nl-logo-o', '1');
-          document.documentElement.style.setProperty('--nl-logo-grow', '1');
-        }
-      }
-    };
-    introRaf.current = requestAnimationFrame(step);
-  }, []);
-
-  useEffect(() => {
-    return () => cancelAnimationFrame(introRaf.current);
+    stageRevealCancel.current = runWormholeHeroStageReveal({ introTranslateZ: false });
   }, []);
 
   return (
@@ -236,7 +191,7 @@ export function Wormhole11ClientShell({ children }: { children: ReactNode }): Re
       <LandingTopNav />
       <div className="relative z-10 wormhole-home-intro-logo">{children}</div>
       <WormholeCoinSyncedMarqueeFooter />
-      <SitePreloader onGone={onPreloaderGone} />
+      <SitePreloader onFadeComplete={onPreloaderGone} />
     </div>
   );
 }

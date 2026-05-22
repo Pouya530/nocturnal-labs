@@ -13,6 +13,8 @@ export type LocalTunnelChromeProps = {
   showModeToggle?: boolean;
   /** When false, hides tunnel debug panel (default true). */
   showDebugPanel?: boolean;
+  /** When true, tunnel debug shows intro sequence controls on `/wormhole5`. */
+  showIntroSequence?: boolean;
 };
 
 /** Wires scroll depth + optional HUD. */
@@ -22,12 +24,15 @@ export function LocalTunnelChrome(props: LocalTunnelChromeProps): ReactElement {
     scrollOptions,
     showModeToggle = true,
     showDebugPanel = true,
+    showIntroSequence = false,
   } = props;
   useScrollDepth(true, scrollOptions);
   return (
     <>
       {showModeToggle ? <ModeToggleHUD /> : null}
-      {showDebugPanel ? <DebugTunnelPanel showWormholeControls={showWormholeControls} /> : null}
+      {showDebugPanel ? (
+        <DebugTunnelPanel showWormholeControls={showWormholeControls} showIntroSequence={showIntroSequence} />
+      ) : null}
     </>
   );
 }

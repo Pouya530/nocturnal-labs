@@ -25,6 +25,15 @@ body {
   overflow-y: auto;
 }
 
+/* Universal menu (UNIVERSAL_MENU.md) — timing shared by burger icon + overlay */
+:root {
+  --nl-menu-anim-mobile: 0.45s;
+  --nl-menu-anim-tablet: 0.55s;
+  --nl-menu-anim-desktop: 0.65s;
+  --nl-menu-easing: cubic-bezier(0.7, 0, 0.2, 1);
+  --nl-link-hover-anim: 0.2s ease-in-out;
+}
+
 /* Localhost tunnel: wheel drives fractal depth — lock native page scroll while tunnel is active */
 html.scroll-locked,
 html.scroll-locked body {
@@ -104,17 +113,20 @@ html.scroll-locked[data-scroll-mode='locked'] body {
   overflow: visible !important;
 }
 
-/* `/` wormhole home — hero opacity + scale micro-intro (see Wormhole6ClientShell). */
-.wormhole-home-intro-logo {
-  opacity: var(--nl-logo-o, 1);
-  transform: scale(var(--nl-logo-grow, 1));
+/* Lab routes (e.g. `/wormhole5`) — Z parallax during intro; scale/opacity on inner subject. */
+.wormhole-lab-micro-intro-logo {
+  transform: translateZ(var(--nl-logo-tz, 0px));
   transform-origin: center center;
 }
 
-/* Lab routes (e.g. `/wormhole5`) — same logo fade/scale vars without home-only `--hero-logo-size`. */
-.wormhole-lab-micro-intro-logo {
-  opacity: var(--nl-logo-o, 1);
-  transform: scale(var(--nl-logo-grow, 1));
+/**
+ * Production home coin intro — Z follows stage reveal; `min(1, progress)` freezes at mouth when progress hits 1.
+ */
+html[data-nl-intro-tz='progress'] .wormhole-lab-micro-intro-logo,
+html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
+  transform: translateZ(
+    calc(var(--nl-logo-tz-start, -132px) * (1 - min(1, var(--stage-reveal-progress, 0))))
+  );
   transform-origin: center center;
 }
 
@@ -136,14 +148,194 @@ html.scroll-locked[data-scroll-mode='locked'] body {
   }
 }
 
-/* Cinematic intro: logo recedes with --nl-intro (0→1) — see CinematicClientShell & JuliaFractalBackdrop */
+/* Cinematic intro: depth + rim scale follow stage reveal or legacy `--nl-intro` (CinematicClientShell). */
 .cinematic-hero-depth {
-  transform: translate3d(0, 0, calc(32px * (1 - var(--nl-intro, 1))))
-    scale(calc(1.04 - 0.04 * var(--nl-intro, 1)));
+  transform: translate3d(0, 0, calc(32px * (1 - var(--stage-reveal-progress, var(--nl-intro, 1)))))
+    scale(calc(1.04 - 0.04 * var(--stage-reveal-progress, var(--nl-intro, 1))));
   transform-style: preserve-3d;
   overflow: visible;
   -webkit-backface-visibility: visible;
   backface-visibility: visible;
+}
+
+/* STAGE_REVEAL.md — subject inside cinematic / wormhole hero stacks */
+/* Opacity lives on `.cinematic-hero-stage-subject` so fade + scale stay one choreographed motion. */
+.stage-reveal-stage-root {
+  opacity: 1;
+}
+
+.cinematic-hero-stage-subject {
+  transform: scale(var(--stage-reveal-scale, 1));
+  opacity: var(--stage-reveal-opacity, 1);
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+/* THREE_INTRO_SEQUENCES.md — lab hero intros (`/wormhole5` + tunnel debug) */
+
+.prism-stage {
+  position: relative;
+}
+
+.prism-ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: var(--prism-ghost-opacity, 0);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.prism-ghost--r {
+  filter: hue-rotate(0deg) saturate(2);
+  color: #ff4d6e;
+  transform: translateX(var(--prism-offset-r-x, 0px));
+}
+
+.prism-ghost--g {
+  filter: hue-rotate(120deg) saturate(2);
+  color: #4dffd2;
+  transform: translateX(var(--prism-offset-g-x, 0px));
+}
+
+.prism-subject {
+  position: relative;
+  opacity: var(--prism-subject-opacity, 1);
+  transform: scale(var(--prism-subject-scale, 1));
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.prism-scanline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  width: 4px;
+  transform: translateX(var(--prism-scanline-x, -100vw));
+  opacity: var(--prism-scanline-opacity, 0);
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(142, 59, 255, 0.8),
+    rgba(255, 255, 255, 1),
+    rgba(142, 59, 255, 0.8),
+    transparent
+  );
+  filter: blur(2px);
+  mix-blend-mode: screen;
+}
+
+.ghost-stage {
+  position: relative;
+}
+
+.ghost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: transform, opacity, filter;
+}
+
+.ghost--0 {
+  transform: translate(var(--ghost-x-0, 0px), var(--ghost-y-0, 0px));
+  opacity: var(--ghost-opacity-0, 0);
+  filter: blur(var(--ghost-blur-0, 0px));
+}
+
+.ghost--1 {
+  transform: translate(var(--ghost-x-1, 0px), var(--ghost-y-1, 0px));
+  opacity: var(--ghost-opacity-1, 0);
+  filter: blur(var(--ghost-blur-1, 0px));
+}
+
+.ghost--2 {
+  transform: translate(var(--ghost-x-2, 0px), var(--ghost-y-2, 0px));
+  opacity: var(--ghost-opacity-2, 0);
+  filter: blur(var(--ghost-blur-2, 0px));
+}
+
+.ghost--3 {
+  transform: translate(var(--ghost-x-3, 0px), var(--ghost-y-3, 0px));
+  opacity: var(--ghost-opacity-3, 0);
+  filter: blur(var(--ghost-blur-3, 0px));
+}
+
+.ghost--4 {
+  transform: translate(var(--ghost-x-4, 0px), var(--ghost-y-4, 0px));
+  opacity: var(--ghost-opacity-4, 0);
+  filter: blur(var(--ghost-blur-4, 0px));
+}
+
+.ghost-subject {
+  position: relative;
+  opacity: var(--ghost-subject-opacity, 1);
+  transform: scale(var(--ghost-subject-scale, 1));
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.gravity-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.gravity-subject {
+  position: relative;
+  z-index: 2;
+  opacity: var(--gravity-subject-opacity, 1);
+  transform: scale(var(--gravity-subject-scale, 1));
+  transform-origin: center;
+  will-change: transform;
+}
+
+.gravity-bloom {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    hsl(var(--gravity-bloom-hue, 280) 100% 65% / var(--gravity-bloom-opacity, 0)) 0%,
+    hsl(var(--gravity-bloom-hue, 280) 100% 55% / calc(var(--gravity-bloom-opacity, 0) * 0.4)) 40%,
+    transparent 70%
+  );
+  box-shadow:
+    0 0 calc(var(--gravity-bloom-size, 0px)) calc(var(--gravity-bloom-size, 0px) * 0.3)
+      hsl(var(--gravity-bloom-hue, 280) 100% 65% / calc(var(--gravity-bloom-opacity, 0) * 0.6));
+  filter: blur(calc(var(--gravity-bloom-size, 0px) * 0.05));
+  mix-blend-mode: screen;
+}
+
+.gravity-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 30%,
+    rgba(0, 0, 0, var(--gravity-vignette-opacity, 0)) 100%
+  );
+}
+
+.gravity-vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(var(--gravity-edge-distort, 0px));
+  mask-image: radial-gradient(ellipse at center, transparent 50%, black 100%);
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 50%, black 100%);
+  pointer-events: none;
 }
 
 /* Hero logo: path + spin are split (Logo.tsx) so Y can ease ballistically while rotateX stays linear = no "float" in spin at apex. */
@@ -243,6 +435,101 @@ html.scroll-locked[data-scroll-mode='locked'] body {
   paint-order: stroke fill;
 }
 
+/* Top bar: no focus ring box (Tailwind + browser defaults were drawing a visible border). */
+.landing-nav-burger:focus,
+.landing-nav-burger:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Mobile burger icon — gradient bars + Universal Menu motion timing */
+.landing-nav-burger-lines {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 22px;
+}
+
+@media (min-width: 800px) and (max-width: 1199px) {
+  .landing-nav-burger-lines {
+    width: 26px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .landing-nav-burger-lines {
+    width: 28px;
+  }
+}
+
+.landing-nav-burger-line {
+  display: block;
+  height: 1px;
+  width: 100%;
+  border-radius: 1px;
+  background-image: linear-gradient(
+    95deg,
+    #ff0080 0%,
+    #c026d3 12%,
+    #7c3aed 24%,
+    #2563eb 36%,
+    #0ea5e9 48%,
+    #14b8a6 60%,
+    #22c55e 72%,
+    #eab308 84%,
+    #f97316 92%,
+    #ff0080 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: coming-soon-iridescent 14s ease-in-out infinite;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.92)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.62))
+    drop-shadow(0 4px 14px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))
+    drop-shadow(0 0 22px rgba(236, 72, 153, 0.22));
+  transition:
+    transform var(--nl-menu-anim-mobile) var(--nl-menu-easing),
+    opacity var(--nl-menu-anim-mobile) var(--nl-menu-easing);
+  transform-origin: center;
+}
+
+@media (min-width: 800px) and (max-width: 1199px) {
+  .landing-nav-burger-line {
+    transition-duration: var(--nl-menu-anim-tablet), var(--nl-menu-anim-tablet);
+  }
+}
+
+@media (min-width: 1200px) {
+  .landing-nav-burger-line {
+    transition-duration: var(--nl-menu-anim-desktop), var(--nl-menu-anim-desktop);
+  }
+}
+
+.landing-nav-burger[aria-expanded='true'] .landing-nav-burger-line:nth-of-type(1) {
+  transform: translateY(calc((6px + 1px) / 2)) rotate(45deg);
+}
+
+.landing-nav-burger[aria-expanded='true'] .landing-nav-burger-line:nth-of-type(2) {
+  transform: translateY(calc((6px + 1px) / -2)) rotate(-45deg);
+}
+
+/* MENU/CLOSE label — Universal tier sizes (iridescent classes still apply) */
+.landing-nav-menu-label-universal {
+  font-size: 11px;
+}
+
+@media (min-width: 800px) {
+  .landing-nav-menu-label-universal {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-nav-burger-line {
+    transition-duration: 0.01s !important;
+    transition-delay: 0s !important;
+  }
+}
+
 @keyframes coming-soon-iridescent {
   0% {
     background-position: 0% 50%;
@@ -259,25 +546,230 @@ html.scroll-locked[data-scroll-mode='locked'] body {
   display: none;
 }
 
-/* Site preloader: soft radial + slow outer drift (CSS only, no extra JS). */
-.site-preloader-ambient {
-  background: radial-gradient(
-    circle at 50% 45%,
-    rgba(124, 58, 237, 0.22) 0%,
-    rgba(236, 72, 153, 0.08) 38%,
-    rgba(2, 2, 4, 0) 72%
-  );
+/* Terminal boot preloader (TERMINAL_BOOT_PRELOADER.md) */
+.term-preloader {
+  --term-bg: #050208;
+  --term-fg: #4dffb0;
+  --term-fg-dim: #2a9968;
+  --term-fg-bright: #c4ffee;
+  --term-ok: #4dffb0;
+  --term-warn: #f5ff61;
+  --term-fail: #ff4d6e;
+  --term-info: #3b7bff;
+  --term-accent: #8e3bff;
+  --term-special: #ff4da8;
+  --term-cursor: #c4ffee;
+  --term-font-size: clamp(11px, 1.1vw, 14px);
+  --term-line-height: 1.45;
+  --term-padding: clamp(20px, 4vw, 48px);
+  --term-max-width: 880px;
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Above universal menu (9986–9988); TERMINAL_BOOT_PRELOADER.md */
+  z-index: 99999;
+  background-color: var(--term-bg);
+  color: var(--term-fg);
+  font-family: var(--font-jetbrains-mono), ui-monospace, Menlo, Monaco, 'Cascadia Code', monospace;
+  font-size: var(--term-font-size);
+  line-height: var(--term-line-height);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0) 0px,
+      rgba(255, 255, 255, 0) 2px,
+      rgba(255, 255, 255, 0.015) 2px,
+      rgba(255, 255, 255, 0.015) 3px
+    ),
+    radial-gradient(ellipse at top left, rgba(77, 255, 176, 0.06) 0%, transparent 65%);
+  box-shadow: inset 0 0 200px 60px rgba(0, 0, 0, 0.8);
+  opacity: 1;
+  transition: opacity 0.5s ease-out;
 }
 
-@keyframes site-preloader-spin {
+.term-preloader[data-state='gone'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Dev: full-screen black → site after terminal preloader (see devPostPreloaderFade.ts) */
+.nl-post-preloader-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: #000;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 480ms ease-out;
+}
+
+.nl-post-preloader-fade--out {
+  opacity: 0;
+}
+
+.term-preloader__inner {
+  max-width: var(--term-max-width);
+  width: min(100%, var(--term-max-width));
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--term-padding);
+  padding-left: calc(var(--term-padding) + env(safe-area-inset-left, 0px));
+  padding-right: calc(var(--term-padding) + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(var(--term-padding) + env(safe-area-inset-bottom, 0px));
+  padding-top: calc(var(--term-padding) + env(safe-area-inset-top, 0px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.term-preloader__output {
+  box-sizing: border-box;
+  width: 100%;
+  /* Tall enough for ~26 lines at default font; JS keeps scroll pinned to latest line */
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* Room below last line — avoids descenders clipping at scroll edge */
+  padding-bottom: max(0.45em, 6px);
+  scroll-padding-bottom: max(0.45em, 6px);
+}
+
+.term-preloader__line {
+  display: block;
+  opacity: 0;
+  transform: translateY(-6px);
+  animation: termLineIn 0.18s ease-out forwards;
+}
+
+@keyframes termLineIn {
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@keyframes site-preloader-drift {
-  to {
-    transform: rotate(-360deg);
+.term-preloader__line .ts {
+  color: var(--term-fg-dim);
+}
+.term-preloader__line .prefix {
+  color: var(--term-fg-dim);
+}
+.term-preloader__line .ok {
+  color: var(--term-ok);
+  font-weight: 600;
+}
+.term-preloader__line .warn {
+  color: var(--term-warn);
+  font-weight: 600;
+}
+.term-preloader__line .fail {
+  color: var(--term-fail);
+  font-weight: 600;
+}
+.term-preloader__line .info {
+  color: var(--term-info);
+  font-weight: 600;
+}
+.term-preloader__line .svc {
+  color: var(--term-accent);
+}
+.term-preloader__line .special {
+  color: var(--term-special);
+}
+.term-preloader__line .bright {
+  color: var(--term-fg-bright);
+}
+
+.term-preloader__progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+  opacity: 0;
+  animation: termLineIn 0.3s ease-out 0.2s forwards;
+}
+
+.term-preloader__progress-bar {
+  flex: 1;
+  height: 14px;
+  position: relative;
+  background: rgba(77, 255, 176, 0.08);
+  border: 1px solid rgba(77, 255, 176, 0.25);
+  overflow: hidden;
+}
+
+.term-preloader__progress-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--term-progress, 0%);
+  background: linear-gradient(90deg, var(--term-fg) 0%, var(--term-fg-bright) 50%, var(--term-accent) 100%);
+  transition: width 0.15s linear;
+  background-size: 200% 100%;
+  animation: termProgressShimmer 1.8s linear infinite;
+}
+
+@keyframes termProgressShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.term-preloader__progress-pct {
+  color: var(--term-fg-bright);
+  font-variant-numeric: tabular-nums;
+  min-width: 4ch;
+  text-align: right;
+}
+
+.term-preloader__prompt {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  color: var(--term-fg-bright);
+}
+
+.term-preloader__prompt[data-visible='true'] {
+  opacity: 1;
+}
+
+.term-preloader__cursor {
+  display: inline-block;
+  color: var(--term-cursor);
+  animation: termCursorBlink 1s steps(2) infinite;
+}
+
+@keyframes termCursorBlink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .term-preloader__line {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .term-preloader__progress-bar::before {
+    animation: none;
+  }
+  .term-preloader__cursor {
+    animation: none;
+  }
+  .term-preloader {
+    transition: none;
   }
 }
 
@@ -427,6 +919,87 @@ html.scroll-locked[data-scroll-mode='locked'] body {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Landscape + short height + coarse pointer only (phones / fold inner).
+ * Excludes desktop & portrait & pointer:fine tablets. Fixes coin centre, scale,
+ * and halo overspill on wide-short foldables (Issue 1–3).
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .hero-logo-size-var,
+  .wormhole-home-intro-logo .hero-logo-size-var,
+  .wormhole5-hero-logo .hero-logo-size-var {
+    --hero-logo-size: min(180px, calc(100dvh - 4rem));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) and (min-height: 501px) and (min-width: 700px) and (pointer: coarse) {
+  .hero-logo-size-var,
+  .wormhole-home-intro-logo .hero-logo-size-var,
+  .wormhole5-hero-logo .hero-logo-size-var {
+    --hero-logo-size: min(220px, calc(100dvh - 5rem));
+  }
+}
+
+@media
+  ((orientation: landscape) and (max-height: 500px) and (pointer: coarse)),
+  ((orientation: landscape) and (max-height: 600px) and (min-height: 501px) and (min-width: 700px) and (pointer: coarse)) {
+  /*
+   * Issue 1: perspective + translateZ micro-intro shifts the coin horizontally on wide canvases;
+   * flatten 3D for this viewport only. Issue 3: tighten halo / black-hole discs so blur rings do not
+   * hug fold/display seams.
+   */
+  .wormhole-hero-perspective-root {
+    perspective: none !important;
+  }
+
+  .cinematic-hero-perspective {
+    perspective: none !important;
+  }
+
+  .wormhole-lab-micro-intro-logo {
+    transform: translateZ(0) scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
+  }
+
+  main[aria-label='Wormhole'] {
+    align-items: center;
+    justify-content: center;
+    margin-inline: auto;
+    width: 100%;
+    max-width: 100%;
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  .hero-logo-size-var.mx-auto.flex {
+    margin-inline: auto;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .black-hole-overlay {
+    width: calc(var(--hero-logo-size, 200px) * 2.65);
+    height: calc(var(--hero-logo-size, 200px) * 2.65);
+    filter: blur(2.5px);
+  }
+
+  .hero-logo-iridescent-soft.hero-logo-iridescent-soft--coin {
+    width: calc(var(--hero-logo-size, 200px) * 2.85);
+    height: calc(var(--hero-logo-size, 200px) * 2.85);
+    filter: blur(18px);
+  }
+
+  @supports (overflow-clip-margin: 1px) {
+    html,
+    body {
+      overflow-clip-margin: 0;
+    }
+  }
+}
+
 /* Portrait + fold-inner width + coarse pointer only (e.g. Galaxy Z Fold inner portrait ~840–980 CSS px).
  * Perspective + translateZ shifts the coin horizontally on wide canvases; flatten 3D for this viewport only. */
 @media (orientation: portrait) and (pointer: coarse) and (min-width: 840px) and (max-width: 980px) {
@@ -439,6 +1012,6 @@ html.scroll-locked[data-scroll-mode='locked'] body {
   }
 
   .wormhole-lab-micro-intro-logo {
-    transform: translateZ(0) scale(var(--nl-logo-grow, 1));
+    transform: translateZ(0) scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
   }
 }

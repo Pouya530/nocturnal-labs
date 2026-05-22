@@ -104,6 +104,7 @@ export function JuliaFractalBackdrop({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef(0);
+  const drawFnRef = useRef<(now: number) => void>(() => {});
   const glRef = useRef<WebGLRenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
   const locRef = useRef<{
@@ -364,6 +365,7 @@ export function JuliaFractalBackdrop({
       rafRef.current = requestAnimationFrame(draw);
     };
 
+    drawFnRef.current = draw;
     rafRef.current = requestAnimationFrame(draw);
 
     const onResize = () => {

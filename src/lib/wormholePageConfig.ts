@@ -23,21 +23,37 @@ export const WORMHOLE5_TUNNEL_START = {
 } as const;
 
 /**
- * `/wormhole5` — after {@link SitePreloader} dismisses: tunnel starts at this depth (vel 0), eases back to
- * mouth (`0`), then coin + journey camera ramp (parallel with pullback unless reduced motion).
+ * `/wormhole5` / localhost `/` — after {@link SitePreloader} dismisses: tunnel starts at this depth (vel 0),
+ * eases back to mouth (`0`), then coin + journey camera ramp (parallel with pullback unless reduced motion).
+ * Kept at +25% vs legacy 26.25 together with {@link WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP} /
+ * {@link WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH}.
  */
-export const WORMHOLE5_INTRO_DEPTH_START = 26.25;
+export const WORMHOLE5_INTRO_DEPTH_START = 32.8125;
 
-/** Duration (ms) for the depth pullback `WORMHOLE5_INTRO_DEPTH_START` → mouth (`0`). */
-export const WORMHOLE5_INTRO_DEPTH_PULLBACK_MS = 2600;
+/** Duration (ms) for home intro depth sweep into mouth (production; see {@link wormholeHomeIntroDepthPullbackMs}). */
+export const WORMHOLE5_INTRO_DEPTH_PULLBACK_MS = 3600;
+
+/** Desktop/laptop depth pullback (`/wormhole6`); matches localhost:3001 dev. */
+export const WORMHOLE_HOME_INTRO_DEPTH_PULLBACK_MS_DEV_DESKTOP = 10_000;
+
+/** Post-preloader depth pullback duration (desktop: 10s like dev; touch: {@link WORMHOLE5_INTRO_DEPTH_PULLBACK_MS}). */
+export function wormholeHomeIntroDepthPullbackMs(touchPrimary: boolean): number {
+  if (!touchPrimary) {
+    return WORMHOLE_HOME_INTRO_DEPTH_PULLBACK_MS_DEV_DESKTOP;
+  }
+  return WORMHOLE5_INTRO_DEPTH_PULLBACK_MS;
+}
 
 /**
- * `/wormhole5` — coin + journey camera ramp (runs in parallel with pullback; longer than {@link WORMHOLE_HOME_MICRO_INTRO_MS}).
+ * `/wormhole5` — coin + journey camera ramp (runs in parallel with pullback; tuned with {@link WORMHOLE_HOME_MICRO_INTRO_MS}).
  */
-export const WORMHOLE5_COIN_MICRO_INTRO_MS = 1200;
+export const WORMHOLE5_COIN_MICRO_INTRO_MS = 820;
 
 /** Linear intro progress (0–1) before the coin opacity eases in — wormhole5 only. */
-export const WORMHOLE5_COIN_MICRO_INTRO_LOGO_DELAY = 0.14;
+export const WORMHOLE5_COIN_MICRO_INTRO_LOGO_DELAY = 0.06;
+
+/** Hero logo `translateZ` start (px): coin reads deeper “in the tunnel”, eases to `0` with the intro. */
+export const WORMHOLE5_INTRO_LOGO_START_TZ_PX = -132;
 
 /** `/wormhole9` — same mouth lock as wormhole5 (homepage candidate preview). */
 export const WORMHOLE9_TUNNEL_START = WORMHOLE5_TUNNEL_START;
@@ -54,26 +70,54 @@ export const WORMHOLE6_MOBILE_TUNNEL_START = {
   velocity: 0,
 } as const;
 
-/** `/` intro — scroll-depth sweep amplitude into tube → settle at mouth (desktop). */
-export const WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP = 208;
-
-/** `/` intro — slightly smaller sweep on touch-first (already deeper via {@link WORMHOLE6_MOBILE_TUNNEL_START}). */
-export const WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH = 112;
-
-/** Logo fade follows tunnel sweep when linear intro progress crosses this threshold (0–1). */
-export const WORMHOLE_HOME_INTRO_LOGO_FADE_START = 0.36;
+/**
+ * Production `/` desktop (`Wormhole6ClientShell`) — post-preloader tunnel depth before pullback to mouth (`0`).
+ */
+export const WORMHOLE_HOME_INTRO_DEPTH_DELTA_DESKTOP = 4000;
 
 /**
- * `/` after the loading veil is dismissed: duration for subtle throat-style zoom-out (FOV + camera dolly
- * ease from tight → wormhole3 mouth framing). Not the legacy scroll-depth sweep.
+ * Production `/` touch-first — sweep on top of {@link WORMHOLE6_MOBILE_TUNNEL_START}.depth (+25% vs legacy 112).
  */
-export const WORMHOLE_HOME_MICRO_INTRO_MS = 760;
+export const WORMHOLE_HOME_INTRO_DEPTH_DELTA_TOUCH = 140;
 
-/** Same timeline (0–1): hero coin stays hidden until this linear progress, then eases in. */
+/** Ms after preloader before coin fade/zoom (`0` = parallel with tunnel, matches localhost:3001). */
+export const WORMHOLE_HOME_MICRO_INTRO_DELAY_MS = 0;
+
+/** Fraction of pullback time that covers {@link WORMHOLE_HOME_INTRO_DEPTH_FAST_DISTANCE_FRAC} of depth travel. */
+export const WORMHOLE_HOME_INTRO_DEPTH_FAST_TIME_FRAC = 0.52;
+
+/** Depth eased progress reached by end of the fast leg (see {@link wormholeHomeIntroDepthEased}). */
+export const WORMHOLE_HOME_INTRO_DEPTH_FAST_DISTANCE_FRAC = 0.84;
+
+/** Journey cam (`wormholeHomeIntroCam01`) reaches `1` when depth eased progress hits this (0–1). */
+export const WORMHOLE_HOME_INTRO_CAM_AT_DEPTH_EASED = 0.36;
+
+/**
+ * Hero coin fade + scale after preloader (matches localhost:3001 — parallel with tunnel on `/`).
+ */
+export const WORMHOLE_HOME_MICRO_INTRO_MS = 4000;
+
+/** @deprecated Use {@link WORMHOLE_HOME_MICRO_INTRO_DELAY_MS}. */
+export const WORMHOLE_HOME_MICRO_INTRO_DELAY_MS_DEV = WORMHOLE_HOME_MICRO_INTRO_DELAY_MS;
+
+/** @deprecated Use {@link WORMHOLE_HOME_MICRO_INTRO_MS}. */
+export const WORMHOLE_HOME_MICRO_INTRO_MS_DEV = WORMHOLE_HOME_MICRO_INTRO_MS;
+
+/** Stage-reveal + coin GL intro duration (ms) for home / wormhole hero stacks. */
+export function wormholeHomeMicroIntroMs(): number {
+  return WORMHOLE_HOME_MICRO_INTRO_MS;
+}
+
+/** Ms to wait after preloader before coin fade/zoom begins. */
+export function wormholeHomeMicroIntroDelayMs(): number {
+  return WORMHOLE_HOME_MICRO_INTRO_DELAY_MS;
+}
+
+/** Legacy gate (0–1); stage-reveal opacity now tracks scale ease — kept for call-site compatibility. */
 export const WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY = 0.14;
 
-/** Opening hero scale multiplier (`scale(...)`) before the micro-intro grows it to 1. */
-export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE = 0.74;
+/** Opening hero scale multiplier before the intro grows to 1 (smaller = more dramatic arrival). */
+export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE = 0.58;
 
 /**
  * `/wormhole5` — opening journey zoom + logo timeline (much longer than {@link WORMHOLE_HOME_MICRO_INTRO_MS}).
@@ -143,6 +187,70 @@ export const WORMHOLE4_DEBUG_START = {
 export const WORMHOLE5_DEBUG_START = {
   ...WORMHOLE4_DEBUG_START,
   wormholeHelices3dEnabled: true,
+} as const;
+
+/** Production `/` — tunnel debug tuning baked for live (no debug panel). */
+export const WORMHOLE_HOME_TUNNEL_VISUAL = {
+  zoomRate: 1000,
+  holeRadius: 0.55,
+} as const;
+
+/**
+ * Production desktop/laptop (`next start` / Vercel) — framebuffer scale ceiling.
+ * {@link WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR} supersamples sub-3× displays.
+ */
+export const WORMHOLE_DESKTOP_PRODUCTION_DPR_MAX = 4;
+
+/** Minimum render scale on desktop prod (sharp on 1×/2× laptop panels). */
+export const WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR = 2.5;
+
+/** Inversion-stack ring tessellation when {@link wormholeDesktopProductionHighQuality}. */
+export const WORMHOLE_DESKTOP_PROD_RING_SEGS_INVERSION = 192;
+
+/** Classic / intro ring tessellation when {@link wormholeDesktopProductionHighQuality}. */
+export const WORMHOLE_DESKTOP_PROD_RING_SEGS_CLASSIC = 144;
+
+/** Inversion rings when {@link wormholeTunnelRingsMaxQuality} (helix / wormhole prod tier unchanged). */
+export const WORMHOLE_TUNNEL_MAX_RING_SEGS_INVERSION = 256;
+
+/** Classic + intro mouth rings when {@link wormholeTunnelRingsMaxQuality}. */
+export const WORMHOLE_TUNNEL_MAX_RING_SEGS_CLASSIC = 192;
+
+/** Background stars in the Julia tunnel (not helix geometry). */
+export const WORMHOLE_TUNNEL_MAX_STAR_COUNT = 2200;
+
+/** Sky sphere segments behind the ring stack. */
+export const WORMHOLE_TUNNEL_MAX_SKY_SEGS = { w: 64, h: 40 } as const;
+
+/** Drift motes along the tube (tunnel particles only). */
+export const WORMHOLE_TUNNEL_MAX_PARTICLE_COUNT = 4000;
+
+/** Lab helix tube radial segments when {@link wormholeDesktopProductionHighQuality}. */
+export const WORMHOLE_DESKTOP_PROD_HELIX_TUBE_RADIAL_SEGS = 24;
+
+/** Catmull-Rom samples along each helix strand (desktop prod). */
+export const WORMHOLE_DESKTOP_PROD_HELIX_PATH_PTS = 1400;
+
+/** Background star count (desktop prod). */
+export const WORMHOLE_DESKTOP_PROD_STAR_COUNT = 2200;
+
+/** Sky sphere width/height segments (desktop prod). */
+export const WORMHOLE_DESKTOP_PROD_SKY_SEGS = { w: 64, h: 40 } as const;
+
+/** ACES tone-map exposure on the wormhole renderer (desktop prod). */
+export const WORMHOLE_DESKTOP_PROD_TONE_EXPOSURE = 1.1;
+
+/**
+ * Production desktop home — minimal bloom + low helix blur for crisp edges (mobile unchanged).
+ * Applied in {@link Wormhole5ClientShell} / {@link Wormhole6ClientShell} when
+ * {@link wormholeDesktopProductionHighQuality} is true.
+ */
+export const WORMHOLE_HOME_DESKTOP_PROD_TUNNEL = {
+  bloomStrength: 0.18,
+  bloomRadius: 0.22,
+  bloomThreshold: 0.08,
+  wormholeHelixJuliaInteriorBlur: 0.12,
+  wormholeHelixJuliaShimmer: 0.85,
 } as const;
 
 /**

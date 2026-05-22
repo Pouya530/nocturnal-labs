@@ -1,3 +1,9 @@
+import {
+  WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR,
+  WORMHOLE_DESKTOP_PRODUCTION_DPR_MAX,
+} from '@/lib/wormholePageConfig';
+import { wormholeDesktopProductionHighQuality } from '@/lib/wormholeProductionQuality';
+
 /**
  * iOS / iPadOS WebKit: prefer conservative WebGL; post-processing + high DPR often black-screens
  * or fails context creation. iPad "Request Desktop Website" reports MacIntel + touch points.
@@ -17,6 +23,7 @@ export function isIOSLike(): boolean {
  */
 export function webglPowerPreference(): 'default' | 'high-performance' {
   if (typeof window === 'undefined') return 'high-performance';
+  if (wormholeDesktopProductionHighQuality()) return 'high-performance';
   if (isIOSLike()) return 'default';
   return window.matchMedia('(pointer: coarse)').matches ? 'default' : 'high-performance';
 }
@@ -24,14 +31,22 @@ export function webglPowerPreference(): 'default' | 'high-performance' {
 /** Full-viewport tunnel: disable MSAA on coarse / iOS to reduce GPU load. */
 export function webglWormholeAntialias(): boolean {
   if (typeof window === 'undefined') return true;
+  if (wormholeDesktopProductionHighQuality()) return true;
   if (isIOSLike()) return false;
   return !window.matchMedia('(pointer: coarse)').matches;
 }
 
 /** Cap DPR for the wormhole renderer (memory + iOS stability). */
 export function webglWormholePixelRatio(devicePixelRatio: number): number {
+  const dpr = Math.max(1, devicePixelRatio || 1);
+  if (wormholeDesktopProductionHighQuality()) {
+    return Math.min(
+      Math.max(dpr, WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR),
+      WORMHOLE_DESKTOP_PRODUCTION_DPR_MAX,
+    );
+  }
   const cap = isIOSLike() ? 1 : 2;
-  return Math.min(Math.max(1, devicePixelRatio || 1), cap);
+  return Math.min(dpr, cap);
 }
 
 /**
@@ -47,8 +62,15 @@ export function webglCoinAntialias(): boolean {
  * pixelated on 2×/3× iPhone. Cap at 2 — sharp enough, lighter than uncapped 3×.
  */
 export function webglCoinCanvasDpr(devicePixelRatio: number): number | [number, number] {
+  const dpr = Math.max(1, devicePixelRatio || 1);
+  if (wormholeDesktopProductionHighQuality()) {
+    return Math.min(
+      Math.max(dpr, WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR),
+      WORMHOLE_DESKTOP_PRODUCTION_DPR_MAX,
+    );
+  }
   if (isIOSLike()) {
-    return Math.min(2, Math.max(1, devicePixelRatio || 1));
+    return Math.min(2, dpr);
   }
   return [1, 2];
 }
@@ -70,4 +92,15 @@ export function isCoarseOrTouchPrimaryViewport(): boolean {
 export function wormholeNarrowViewport(): boolean {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(max-width: 767px)').matches;
+}
+
+/**
+ * Julia ring stack + tunnel ambience (stars, motes, sky tessellation) — does not change helix path
+ * density, tube segments, or helix shader uniforms.
+ */
+export function wormholeTunnelRingsMaxQuality(): boolean {
+  if (typeof window === 'undefined') return true;
+  if (isIOSLike()) return false;
+  if (isCoarseOrTouchPrimaryViewport()) return false;
+  return true;
 }

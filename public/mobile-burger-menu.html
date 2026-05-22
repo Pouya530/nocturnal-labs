@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mobile Burger Menu — spec preview</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,100..1000&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* MOBILE_BURGER_MENU.md — design tokens */
+      :root {
+        --menu-bg: #1e1e1e;
+        --menu-text: #ffffff;
+        --menu-divider: #3e3e3e;
+        --burger-line: #ffffff;
+        --burger-text: #ffffff;
+        --menu-edge-pad-d: 60px;
+        --menu-edge-pad-m: 20px;
+        --burger-line-w: 24px;
+        --burger-line-gap: 6px;
+        --menu-font: 'DM Sans', system-ui, -apple-system, sans-serif;
+        --menu-link-main: clamp(60px, 8vw, 160px);
+        --menu-link-second: clamp(14px, 2vw, 32px);
+        --menu-label: 12px;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--menu-font);
+        background: #0a0a0a;
+        color: #888;
+      }
+
+      .demo-hint {
+        padding: 24px;
+        max-width: 42rem;
+        line-height: 1.5;
+      }
+
+      .burger {
+        position: fixed;
+        top: var(--menu-edge-pad-m);
+        right: var(--menu-edge-pad-m);
+        z-index: 9988;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        font-family: var(--menu-font);
+        color: var(--burger-text);
+      }
+
+      @media (min-width: 800px) {
+        .burger {
+          top: var(--menu-edge-pad-d);
+          right: var(--menu-edge-pad-d);
+        }
+      }
+
+      .burger__icon {
+        display: inline-flex;
+        flex-direction: column;
+        gap: var(--burger-line-gap);
+        width: var(--burger-line-w);
+      }
+
+      .burger__line {
+        display: block;
+        width: 100%;
+        height: 1px;
+        background: var(--burger-line);
+        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        transform-origin: center;
+      }
+
+      .burger[aria-expanded='true'] .burger__line:nth-child(1) {
+        transform: translateY(calc((var(--burger-line-gap) + 1px) / 2)) rotate(45deg);
+      }
+      .burger[aria-expanded='true'] .burger__line:nth-child(2) {
+        transform: translateY(calc((var(--burger-line-gap) + 1px) / -2)) rotate(-45deg);
+      }
+
+      .burger__label {
+        font-size: var(--menu-label);
+        font-weight: 600;
+        letter-spacing: 2.4px;
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .menu {
+        position: fixed;
+        inset: 0;
+        z-index: 9986;
+        background-color: var(--menu-bg);
+        color: var(--menu-text);
+        max-width: 0;
+        margin-left: auto;
+        overflow: hidden;
+        transition: max-width 0.5s ease-in-out;
+        pointer-events: none;
+      }
+
+      .menu[aria-hidden='false'] {
+        max-width: 100vw;
+        pointer-events: auto;
+      }
+
+      .menu__inner {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: flex-start;
+        padding: var(--menu-edge-pad-m);
+        padding-bottom: calc(var(--menu-edge-pad-m) + 40px);
+        min-width: 100vw;
+      }
+
+      @media (min-width: 800px) {
+        .menu__inner {
+          padding: var(--menu-edge-pad-d);
+          padding-bottom: calc(var(--menu-edge-pad-d) + 60px);
+        }
+      }
+
+      .menu__list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .menu__list--main {
+        display: flex;
+        flex-direction: column;
+        gap: 0.05em;
+      }
+
+      .menu__list--main a {
+        display: inline-block;
+        font-family: var(--menu-font);
+        font-size: var(--menu-link-main);
+        font-weight: 600;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--menu-text);
+        text-decoration: none;
+        transition: opacity 0.2s ease-in-out, padding-left 0.2s ease-in-out;
+      }
+
+      @media (min-width: 800px) {
+        .menu__list--main:hover a {
+          opacity: 0.5;
+        }
+        .menu__list--main a:hover {
+          opacity: 1;
+          padding-left: 10px;
+        }
+        .menu__list--main:focus-within a {
+          opacity: 0.5;
+        }
+        .menu__list--main a:focus-visible {
+          opacity: 1;
+          padding-left: 10px;
+          outline: 2px solid var(--menu-text);
+          outline-offset: 4px;
+        }
+      }
+
+      .menu__divider {
+        width: 100%;
+        height: 1px;
+        background-color: var(--menu-divider);
+        margin: 40px 0 24px;
+      }
+
+      .menu__list--secondary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 40px;
+      }
+
+      .menu__list--secondary a {
+        font-family: var(--menu-font);
+        font-size: var(--menu-link-second);
+        font-weight: 400;
+        color: var(--menu-text);
+        text-decoration: none;
+        line-height: 1;
+        transition: opacity 0.2s ease-in-out, padding-left 0.2s ease-in-out;
+      }
+
+      @media (min-width: 800px) {
+        .menu__list--secondary:hover a {
+          opacity: 0.5;
+        }
+        .menu__list--secondary a:hover {
+          opacity: 1;
+          padding-left: 10px;
+        }
+        .menu__list--secondary:focus-within a {
+          opacity: 0.5;
+        }
+        .menu__list--secondary a:focus-visible {
+          opacity: 1;
+          padding-left: 10px;
+          outline: 2px solid var(--menu-text);
+          outline-offset: 4px;
+        }
+      }
+
+      @media (max-width: 799px) {
+        .menu__list--secondary {
+          gap: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <p class="demo-hint">
+      Preview for <strong>MOBILE_BURGER_MENU.md</strong>. Use the burger (top-right). This file is static in
+      <code>/public/mobile-burger-menu.html</code>.
+    </p>
+
+    <button class="burger" type="button" aria-expanded="false" aria-controls="primary-menu">
+      <span class="burger__icon" aria-hidden="true">
+        <span class="burger__line"></span>
+        <span class="burger__line"></span>
+      </span>
+      <span class="burger__label" data-open="MENU" data-close="CLOSE">MENU</span>
+    </button>
+
+    <nav id="primary-menu" class="menu" aria-hidden="true">
+      <div class="menu__inner">
+        <ul class="menu__list menu__list--main">
+          <li><a href="#">Work</a></li>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Services</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+
+        <div class="menu__divider" aria-hidden="true"></div>
+
+        <ul class="menu__list menu__list--secondary">
+          <li><a href="#">News</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <script>
+      (function () {
+        const burger = document.querySelector('.burger');
+        const menu = document.getElementById('primary-menu');
+        if (!burger || !menu) return;
+
+        const label = burger.querySelector('.burger__label');
+        const openText = label?.dataset.open ?? 'MENU';
+        const closeText = label?.dataset.close ?? 'CLOSE';
+
+        function setOpen(isOpen) {
+          burger.setAttribute('aria-expanded', String(isOpen));
+          menu.setAttribute('aria-hidden', String(!isOpen));
+          if (label) label.textContent = isOpen ? closeText : openText;
+          document.body.style.overflow = isOpen ? 'hidden' : '';
+        }
+
+        burger.addEventListener('click', () => {
+          const isOpen = burger.getAttribute('aria-expanded') === 'true';
+          setOpen(!isOpen);
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && burger.getAttribute('aria-expanded') === 'true') {
+            setOpen(false);
+            burger.focus();
+          }
+        });
+
+        menu.addEventListener('click', (e) => {
+          if (e.target.closest('a')) setOpen(false);
+        });
+      })();
+    </script>
+  </body>
+</html>

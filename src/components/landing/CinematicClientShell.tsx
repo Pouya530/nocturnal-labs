@@ -14,28 +14,20 @@ import { LandingTopNav } from '@/components/landing/LandingTopNav';
 import { SitePreloader } from '@/components/landing/SitePreloader';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
 import type { LandingBackdropMode } from '@/lib/landingBackdropMode';
-import {
-  setActiveLandingBackdropMode,
-  persistLandingBackdropMode,
-  readStoredLandingBackdropMode,
-} from '@/lib/landingBackdropMode';
+import { setActiveLandingBackdropMode, readStoredLandingBackdropMode } from '@/lib/landingBackdropMode';
 import { motionPrefs } from '@/core/motion';
+import { clearStageReveal, initStageReveal, runStageReveal } from '@/lib/stageReveal';
 
 /** If set, the portal intro is skipped for the rest of the browser tab session. */
 const SESSION_KEY = 'nl-portal-played';
-const INTRO_MS = 4800;
-
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
 
 export function CinematicClientShell({ children }: { children: ReactNode }) {
   const reduced = useSyncExternalStore(motionPrefs.subscribe, () => motionPrefs.reduced, () => false);
   const [isLocalhost, setIsLocalhost] = useState(false);
   const [backdropMode, setBackdropMode] = useState<LandingBackdropMode>('tunnel');
   const introTRef = useRef(0);
-  const rafId = useRef(0);
   const introStarted = useRef(false);
+  const stageRevealCancel = useRef({ cancel: () => {} });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -47,12 +39,6 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const onBackdropModeChange = useCallback((mode: LandingBackdropMode) => {
-    setBackdropMode(mode);
-    persistLandingBackdropMode(mode);
-    setActiveLandingBackdropMode(mode);
-  }, []);
-
   useEffect(() => {
     if (!isLocalhost) {
       setActiveLandingBackdropMode('original');
@@ -62,10 +48,12 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
   }, [isLocalhost, backdropMode]);
 
   useLayoutEffect(() => {
+    introStarted.current = false;
     if (typeof document === 'undefined') return;
     if (reduced) {
       introTRef.current = 1;
       document.documentElement.style.setProperty('--nl-intro', '1');
+      initStageReveal();
       try {
         sessionStorage.setItem(SESSION_KEY, '1');
       } catch {
@@ -77,6 +65,9 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
       if (sessionStorage.getItem(SESSION_KEY) === '1') {
         introTRef.current = 1;
         document.documentElement.style.setProperty('--nl-intro', '1');
+        document.documentElement.style.setProperty('--stage-reveal-progress', '1');
+        document.documentElement.style.setProperty('--stage-reveal-scale', '1');
+        document.documentElement.style.setProperty('--stage-reveal-opacity', '1');
         return;
       }
     } catch {
@@ -84,6 +75,7 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
     }
     introTRef.current = 0;
     document.documentElement.style.setProperty('--nl-intro', '0');
+    initStageReveal();
   }, [reduced]);
 
   const onPreloaderGone = useCallback(() => {
@@ -95,17 +87,13 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
     }
     if (introStarted.current) return;
     introStarted.current = true;
-    const t0 = performance.now();
-    const step = (now: number) => {
-      const u = Math.min(1, (now - t0) / INTRO_MS);
-      const e = easeInOutCubic(u);
-      introTRef.current = e;
-      if (document.documentElement) {
-        document.documentElement.style.setProperty('--nl-intro', String(e));
-      }
-      if (u < 1) {
-        rafId.current = requestAnimationFrame(step);
-      } else {
+    stageRevealCancel.current.cancel();
+    stageRevealCancel.current = runStageReveal({
+      onFrame(_linear, eased) {
+        introTRef.current = eased;
+        document.documentElement.style.setProperty('--nl-intro', String(eased));
+      },
+      onComplete() {
         introTRef.current = 1;
         document.documentElement.style.setProperty('--nl-intro', '1');
         try {
@@ -113,14 +101,14 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
         } catch {
           /* */
         }
-      }
-    };
-    rafId.current = requestAnimationFrame(step);
+      },
+    });
   }, [reduced]);
 
   useEffect(() => {
     return () => {
-      cancelAnimationFrame(rafId.current);
+      stageRevealCancel.current.cancel();
+      clearStageReveal();
     };
   }, []);
 
@@ -154,11 +142,7 @@ export function CinematicClientShell({ children }: { children: ReactNode }) {
       {isLocalhost && (backdropMode === 'tunnel' || backdropMode === 'vortextunnel') ? (
         <LocalTunnelChrome />
       ) : null}
-      <LandingTopNav
-        backdropToggle={
-          isLocalhost ? { mode: backdropMode, onChange: onBackdropModeChange } : undefined
-        }
-      />
+      <LandingTopNav />
       <div className="relative z-10">{children}</div>
       <ComingSoonBanner />
       <SitePreloader onGone={onPreloaderGone} />

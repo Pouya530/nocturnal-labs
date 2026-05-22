@@ -50,8 +50,11 @@ export function Wormhole10ClientShell({ children }: { children: ReactNode }): Re
     const prevCoinVisible = s.wormholeCoinVisible;
     const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
     const prevBlackHoleOverlay = s.wormholeBlackHoleOverlayEnabled;
-    const prevAtmosphereOverlay = s.wormholeAtmosphereOverlayEnabled;
+    const prevAtmospherePreset = s.wormholeAtmospherePreset;
+    const prevCosmicOverlay = s.wormholeCosmicOverlayEnabled;
     const prevHelixJuliaRibbonShader = s.wormholeHelixJuliaRibbonShaderEnabled;
+    const prevHelixTubeVariant = s.wormholeHelixTubeVariant;
+    const prevHelixTubeJuliaPatternEnabled = s.wormholeHelixTubeJuliaPatternEnabled;
     const prevBloomStrength = s.bloomStrength;
     const prevBloomRadius = s.bloomRadius;
     const prevBloomThreshold = s.bloomThreshold;
@@ -98,8 +101,11 @@ export function Wormhole10ClientShell({ children }: { children: ReactNode }): Re
         wormholeCoinVisible: prevCoinVisible,
         wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
         wormholeBlackHoleOverlayEnabled: prevBlackHoleOverlay,
-        wormholeAtmosphereOverlayEnabled: prevAtmosphereOverlay,
+        wormholeAtmospherePreset: prevAtmospherePreset,
+        wormholeCosmicOverlayEnabled: prevCosmicOverlay,
         wormholeHelixJuliaRibbonShaderEnabled: prevHelixJuliaRibbonShader,
+        wormholeHelixTubeVariant: prevHelixTubeVariant,
+        wormholeHelixTubeJuliaPatternEnabled: prevHelixTubeJuliaPatternEnabled,
         bloomStrength: prevBloomStrength,
         bloomRadius: prevBloomRadius,
         bloomThreshold: prevBloomThreshold,

@@ -12,7 +12,7 @@ const require = createRequire(join(root, 'package.json'));
 const nextCli = require.resolve('next/dist/bin/next');
 
 const env = { ...process.env, NEXT_DIST_DEV: '1' };
-const child = spawn(process.execPath, [nextCli, 'dev'], {
+const child = spawn(process.execPath, [nextCli, 'dev', '-p', '3001'], {
   cwd: root,
   stdio: 'inherit',
   env,

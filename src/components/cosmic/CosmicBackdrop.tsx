@@ -17,6 +17,15 @@ import {
 } from '@/visuals/shaders/cosmicShaderSources';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
+export type CosmicBackdropProps = {
+  /**
+   * When true, this canvas sits above the Julia wormhole with CSS `mix-blend-screen` and no solid
+   * backdrop so black pixels reveal the tunnel. Hides only the distant **star shell** (static
+   * background points); stream particles + volumetric nebula stay on.
+   */
+  wormholeOverlayStack?: boolean;
+};
+
 /** Match {@link JuliaWormholeBackdrop} narrow-viewport bloom strength feel on phones. */
 const COSMIC_MOBILE_BLOOM_STRENGTH_MUL = 1.1;
 
@@ -28,7 +37,7 @@ const PALETTE = [
   new THREE.Color('#f5ff61'),
 ];
 
-export function CosmicBackdrop() {
+export function CosmicBackdrop({ wormholeOverlayStack = false }: CosmicBackdropProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -107,16 +116,19 @@ export function CosmicBackdrop() {
     cloudScene.add(cloudMesh);
     const cloudCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-    const streamBoost = isMobile ? 7.4 : 11.2;
-    const streamClamp = isMobile ? 54 : 82;
+    /** Wormhole screen-blend layer: much smaller points so the tunnel stays readable. */
+    const ol = wormholeOverlayStack ? 0.38 : 1.0;
+    const streamBoost = (isMobile ? 7.4 : 11.2) * ol;
+    const streamClamp = (isMobile ? 54 : 82) * ol;
     /** Distant shell ~200+ units: larger boost + min pixel size so discs stay visible (fog scale separate). */
-    const starBoost = isMobile ? 4.2 : 6.4;
-    const starClamp = isMobile ? 56 : 78;
-    const starMinPx = isMobile ? 1.35 : 2.1;
+    const starBoost = (isMobile ? 4.2 : 6.4) * ol;
+    const starClamp = (isMobile ? 56 : 78) * ol;
+    const starMinPx = (isMobile ? 1.35 : 2.1) * (wormholeOverlayStack ? 0.55 : 1.0);
 
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(PARTICLE_COUNT * 3);
     const pCol = new Float32Array(PARTICLE_COUNT * 3);
+    const pSize = new Float32Array(PARTICLE_COUNT);
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const r = 4 + Math.random() * 6;
       const theta = Math.random() * Math.PI * 2;
@@ -128,9 +140,13 @@ export function CosmicBackdrop() {
       pCol[i * 3] = tint.r;
       pCol[i * 3 + 1] = tint.g;
       pCol[i * 3 + 2] = tint.b;
+      pSize[i] = wormholeOverlayStack
+        ? 0.38 + Math.random() * 0.62
+        : 0.58 + Math.random() * 0.55;
     }
     pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
     pGeo.setAttribute('cosmicVertexColor', new THREE.BufferAttribute(pCol, 3));
+    pGeo.setAttribute('cosmicPointSize', new THREE.BufferAttribute(pSize, 1));
     const streamMat = new THREE.ShaderMaterial({
       vertexShader: cosmicPointVertex,
       fragmentShader: cosmicPointFragment,
@@ -156,6 +172,7 @@ export function CosmicBackdrop() {
     const starGeo = new THREE.BufferGeometry();
     const starPos = new Float32Array(STAR_COUNT * 3);
     const starCol = new Float32Array(STAR_COUNT * 3);
+    const starSize = new Float32Array(STAR_COUNT);
     for (let i = 0; i < STAR_COUNT; i++) {
       const r = 200 + Math.random() * 12;
       const theta = Math.random() * Math.PI * 2;
@@ -167,9 +184,13 @@ export function CosmicBackdrop() {
       starCol[i * 3] = tint.r;
       starCol[i * 3 + 1] = tint.g;
       starCol[i * 3 + 2] = tint.b;
+      starSize[i] = wormholeOverlayStack
+        ? 0.42 + Math.random() * 0.58
+        : 0.55 + Math.random() * 0.65;
     }
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
     starGeo.setAttribute('cosmicVertexColor', new THREE.BufferAttribute(starCol, 3));
+    starGeo.setAttribute('cosmicPointSize', new THREE.BufferAttribute(starSize, 1));
     const starMat = new THREE.ShaderMaterial({
       vertexShader: cosmicPointVertex,
       fragmentShader: cosmicPointFragment,
@@ -254,9 +275,10 @@ export function CosmicBackdrop() {
       cloudMat.uniforms.uJuliaC.value.set(s.juliaCx, s.juliaCy);
       cloudMat.uniforms.uPaletteOffset.value = s.paletteOffset;
       cloudMat.uniforms.uReducedMotion.value = reduced ? 1 : 0;
-      cloudMat.uniforms.uJuliaBlend.value = s.wormholeHelixJuliaRibbonShaderEnabled
-        ? s.cosmicJuliaBlend
-        : 0;
+      cloudMat.uniforms.uJuliaBlend.value =
+        s.wormholeHelixJuliaRibbonShaderEnabled || s.wormholeCosmicOverlayEnabled
+          ? s.cosmicJuliaBlend
+          : 0;
       cloudMat.uniforms.uCloudDensity.value = s.cosmicCloudDensity;
       cloudMat.uniforms.uCoreIntensity.value = s.cosmicCoreIntensity;
       cloudMat.uniforms.uJuliaZoom.value = s.cosmicJuliaZoom;
@@ -267,7 +289,9 @@ export function CosmicBackdrop() {
       bloom.radius = s.bloomRadius;
       bloom.threshold = s.bloomThreshold;
 
-      particles.visible = s.wormholeHelices3dEnabled;
+      particles.visible = s.wormholeHelices3dEnabled || s.wormholeCosmicOverlayEnabled;
+      /** Distant static starfield — off for wormhole screen-blend layer only. */
+      stars.visible = !wormholeOverlayStack;
 
       if (scene.fog instanceof THREE.FogExp2) {
         scene.fog.density = s.fogDensity;
@@ -341,7 +365,7 @@ export function CosmicBackdrop() {
       }
       pGeo.attributes.position.needsUpdate = true;
 
-      if (!reduced) {
+      if (!wormholeOverlayStack && !reduced) {
         stars.rotation.z = time * 0.00055;
       }
 
@@ -370,13 +394,11 @@ export function CosmicBackdrop() {
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, []);
+  }, [wormholeOverlayStack]);
 
-  return (
-    <div
-      ref={containerRef}
-      className="pointer-events-none fixed inset-0 z-0 min-h-[100dvh] w-full bg-[#030208]"
-      aria-hidden
-    />
-  );
+  const wrapClass = wormholeOverlayStack
+    ? 'pointer-events-none fixed inset-0 z-[2] min-h-[100dvh] w-full mix-blend-screen'
+    : 'pointer-events-none fixed inset-0 z-0 min-h-[100dvh] w-full bg-[#030208]';
+
+  return <div ref={containerRef} className={wrapClass} aria-hidden />;
 }

@@ -1,5 +1,5 @@
 /**
- * Canonical origin for metadata, sitemap, robots, and JSON-LD absolute URLs.
+ * Canonical origin for metadata, sitemap, and JSON-LD absolute URLs.
  *
  * Set **`NEXT_PUBLIC_SITE_URL`** in production (e.g. `https://your-domain.com`) so
  * canonicals and social cards never point at transient preview hosts.

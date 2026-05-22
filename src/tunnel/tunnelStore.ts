@@ -1,10 +1,18 @@
 'use client';
 
+import type { WormholeAtmospherePreset } from '@/tunnel/wormholeAtmospherePreset';
+import type { WormholeHelixTubeVariant } from '@/tunnel/wormholeHelixTubePreset';
+import type { WormholeJourneyMouseParallaxMode } from '@/tunnel/wormholeJourneyMouseParallax';
+
 /**
  * Lightweight tunnel state (Zustand-shaped) without an extra runtime dependency.
  * Used only when `isLocalhostHostname` is true in the browser.
  */
 export type ScrollMode = 'locked' | 'free';
+
+export type { WormholeAtmospherePreset } from '@/tunnel/wormholeAtmospherePreset';
+export type { WormholeHelixTubeVariant } from '@/tunnel/wormholeHelixTubePreset';
+export type { WormholeJourneyMouseParallaxMode } from '@/tunnel/wormholeJourneyMouseParallax';
 
 export type TunnelState = {
   mode: ScrollMode;
@@ -60,6 +68,10 @@ export type TunnelState = {
   wormholeDebugRandomCamTilt: boolean;
   /** Tunnel debug — slow circular pitch/yaw drift on the tunnel camera (idle “orbit” feel). */
   wormholeDebugCircularCamTilt: boolean;
+  /**
+   * Journey / throat: pointer nudges `camera.lookAt` slightly (parallax). Does not change scroll.
+   */
+  wormholeJourneyMouseParallax: WormholeJourneyMouseParallaxMode;
   /** Tunnel debug — show `BlackHoleOverlay` under the hero coin on wormhole lab routes. */
   wormholeBlackHoleOverlayEnabled: boolean;
   /**
@@ -72,12 +84,68 @@ export type TunnelState = {
    * positive velocity above locked cruise drift when `wormholeIdleForward` is set).
    */
   wormholeCoinFadeOnScrollForward: boolean;
-  /** `/wormhole4`–`/wormhole5` only: gradient vignette overlay above the GL tunnel. */
-  wormholeAtmosphereOverlayEnabled: boolean;
+  /**
+   * Screen-space atmosphere / vignette above the GL tunnel (`off` or one of the lab presets).
+   * Tunneled routes may force `off` on entry; debug panel cycles presets on localhost.
+   */
+  wormholeAtmospherePreset: WormholeAtmospherePreset;
+  /**
+   * `/wormhole5` (and localhost home clone): second WebGL pass — {@link CosmicBackdrop} stacked above
+   * {@link JuliaWormholeBackdrop} with screen blending so nebula / stream add on without replacing the tunnel.
+   */
+  wormholeCosmicOverlayEnabled: boolean;
   /**
    * Localhost + `helixLab`: use Julia tube fragment shader (`uMode > 1.5`); when false, solid additive ribbons.
    */
   wormholeHelixJuliaRibbonShaderEnabled: boolean;
+  /**
+   * When Julia helix tubes are on: fragment style index (`0` classic, `1`–`6` lab presets in `juliaWormholeShaderSources`).
+   */
+  wormholeHelixTubeVariant: WormholeHelixTubeVariant;
+  /** When false, helix tubes use smooth bands only (no Julia fractal detail inside the strand). */
+  wormholeHelixTubeJuliaPatternEnabled: boolean;
+  /**
+   * Helix lab + Julia pattern on: scales tube interior RGB before the scene bloom pass (1 = default).
+   * Does not affect rings, sky, or helix tubes when the interior pattern is off.
+   */
+  wormholeHelixJuliaPatternBloomMul: number;
+  /**
+   * Helix + Julia pattern on: multi-tap smoothing in Julia space (0 = off, ~0.5 = softer seams).
+   */
+  wormholeHelixJuliaInteriorBlur: number;
+  /**
+   * Helix + Julia pattern on: slow shimmer on strand brightness (0 = off).
+   */
+  wormholeHelixJuliaShimmer: number;
+  /**
+   * `/wormhole5` only (hero coin): adds coloured point lights along helix-like paths matching Julia ribbon hues.
+   */
+  wormhole5CoinHelixReflectionEnabled: boolean;
+  /**
+   * Hero coin gunmetal **cylinder edge**: seven orbiting sweep lights (LogoCoin rim kit A–G).
+   */
+  wormholeCoinGunmetalRimSweepLightsEnabled: boolean;
+  /**
+   * Hero coin: three **near-surface** point lights (same motion families, tighter radius) for edge grazing.
+   */
+  wormholeCoinGunmetalRimEdgeGrazeLightsEnabled: boolean;
+  /**
+   * Hero coin: two lights orbiting in the **plane of the rim** (tangent to the cylinder) for specular edge streaks.
+   */
+  wormholeCoinGunmetalRimTangentRingLightsEnabled: boolean;
+  /**
+   * Hero coin: animate **reed texture** UV scroll on the rim cylinder (`rimSideTex`).
+   */
+  wormholeCoinGunmetalRimUvMotionEnabled: boolean;
+  /**
+   * Hero coin: animated **emissive** tint on the gunmetal rim material (iridescent shimmer).
+   */
+  wormholeCoinGunmetalRimEmissiveShimmerEnabled: boolean;
+  /**
+   * Hero coin (dev / tunnel debug): **full-disc** emissive on front/back when that face points toward
+   * the bright GL tunnel — tunnel debug toggle.
+   */
+  wormholeCoinBackdropFaceLightEnabled: boolean;
   /**
    * `/wormhole8` preview: apply helix wall inset boost (`helixWallInsetMul=5`) instead of base
    * wormhole5-scale inset (`0.88`).
@@ -139,11 +207,25 @@ const initial: TunnelState = {
   wormholeScrollHelixVelGain: 0,
   wormholeDebugRandomCamTilt: false,
   wormholeDebugCircularCamTilt: false,
+  wormholeJourneyMouseParallax: 'off',
   wormholeBlackHoleOverlayEnabled: false,
   wormholeCoinClickTunnelBoost: false,
   wormholeCoinFadeOnScrollForward: true,
-  wormholeAtmosphereOverlayEnabled: true,
+  wormholeAtmospherePreset: 'nebula',
+  wormholeCosmicOverlayEnabled: false,
   wormholeHelixJuliaRibbonShaderEnabled: true,
+  wormholeHelixTubeVariant: 0,
+  wormholeHelixTubeJuliaPatternEnabled: true,
+  wormholeHelixJuliaPatternBloomMul: 1,
+  wormholeHelixJuliaInteriorBlur: 0,
+  wormholeHelixJuliaShimmer: 0,
+  wormhole5CoinHelixReflectionEnabled: false,
+  wormholeCoinGunmetalRimSweepLightsEnabled: true,
+  wormholeCoinGunmetalRimEdgeGrazeLightsEnabled: true,
+  wormholeCoinGunmetalRimTangentRingLightsEnabled: true,
+  wormholeCoinGunmetalRimUvMotionEnabled: true,
+  wormholeCoinGunmetalRimEmissiveShimmerEnabled: true,
+  wormholeCoinBackdropFaceLightEnabled: false,
   wormhole8HelixBoostEnabled: true,
   wormholeIntroDepthOverride: null,
   wormholeHomeIntroCam01: 1,

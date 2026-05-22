@@ -3,9 +3,27 @@
 import type { ReactElement } from 'react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import { isLocalhostHostname } from '@/lib/isLocalhost';
+import {
+  WORMHOLE_ATMOSPHERE_PRESET_IDS,
+  WORMHOLE_ATMOSPHERE_PRESET_LABELS,
+  type WormholeAtmospherePreset,
+} from '@/tunnel/wormholeAtmospherePreset';
+import {
+  WORMHOLE_HELIX_TUBE_LABELS,
+  WORMHOLE_HELIX_TUBE_VARIANTS,
+  clampHelixTubeVariant,
+  type WormholeHelixTubeVariant,
+} from '@/tunnel/wormholeHelixTubePreset';
+import {
+  WORMHOLE_JOURNEY_MOUSE_PARALLAX_LABELS,
+  WORMHOLE_JOURNEY_MOUSE_PARALLAX_MODES,
+  type WormholeJourneyMouseParallaxMode,
+} from '@/tunnel/wormholeJourneyMouseParallax';
 import { tunnelStore } from '@/tunnel/tunnelStore';
+import { LabIntroDebugSection } from '@/components/wormhole/LabIntroDebugSection';
 
 function useTunnelSnap() {
   return useSyncExternalStore(
@@ -22,15 +40,18 @@ function clamp(n: number, min: number, max: number): number {
 export type DebugTunnelPanelProps = {
   /** When true (e.g. `/wormhole` route), show bloom/fog sliders. Avoids `usePathname` CSR issues in dev. */
   showWormholeControls?: boolean;
+  /** When true and path is `/wormhole5`, show THREE_INTRO_SEQUENCES intro picker. */
+  showIntroSequence?: boolean;
 };
 
 /** Native debug controls (Leva substitute) — dev or `?debug=1` on localhost. */
-export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPanelProps): ReactElement | null {
+export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequence = false }: DebugTunnelPanelProps): ReactElement | null {
   const [enabled, setEnabled] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   /** Dims the viewport behind the panel (scroll/wheel still reach the page — backdrop is inert). */
   const [fullscreenBackdrop, setFullscreenBackdrop] = useState(false);
   const [localhost, setLocalhost] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('debug');
@@ -335,17 +356,50 @@ export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPa
               Show 3D helices (tube strands)
             </span>
           </label>
+          <label className="mb-2 block pl-1">
+            <span className="mb-1 block leading-snug">
+              Atmosphere overlay <span className="text-zinc-500">(vignette)</span>
+            </span>
+            <select
+              value={s.wormholeAtmospherePreset}
+              onChange={(e) => {
+                const wormholeAtmospherePreset = e.target.value as WormholeAtmospherePreset;
+                tunnelStore.setState({ wormholeAtmospherePreset });
+                if (localhost) {
+                  try {
+                    sessionStorage.setItem('nl-wormhole-atmosphere-preset', wormholeAtmospherePreset);
+                  } catch {
+                    /* ignore */
+                  }
+                }
+              }}
+              className="mt-0.5 w-full rounded border border-zinc-600 bg-zinc-950/90 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-violet-500/60"
+            >
+              {WORMHOLE_ATMOSPHERE_PRESET_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {id === 'off'
+                    ? 'Off'
+                    : WORMHOLE_ATMOSPHERE_PRESET_LABELS[id]}
+                </option>
+              ))}
+            </select>
+            {localhost ? (
+              <span className="mt-1 block text-[10px] text-zinc-500">
+                Writes choice to sessionStorage for this tab (re-apply from the menu after route changes if needed)
+              </span>
+            ) : null}
+          </label>
           <label className="mb-2 flex cursor-pointer items-center gap-2 pl-1">
             <input
               type="checkbox"
-              checked={s.wormholeAtmosphereOverlayEnabled}
+              checked={s.wormholeCosmicOverlayEnabled}
               onChange={(e) =>
-                tunnelStore.setState({ wormholeAtmosphereOverlayEnabled: e.target.checked })
+                tunnelStore.setState({ wormholeCosmicOverlayEnabled: e.target.checked })
               }
               className="rounded border-zinc-600"
             />
             <span className="leading-snug">
-              Wormhole 4–5 atmosphere overlay <span className="text-zinc-500">(vignette)</span>
+              Cosmic nebula layer <span className="text-zinc-500">(screen-blend stack on /wormhole5)</span>
             </span>
           </label>
           {localhost ? (
@@ -371,6 +425,161 @@ export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPa
               </span>
             </label>
           ) : null}
+          <label className="mb-2 block pl-1">
+            <span
+              className={
+                !s.wormhole3dBackgroundEnabled || !s.wormholeHelixJuliaRibbonShaderEnabled
+                  ? 'mb-1 block text-zinc-500'
+                  : 'mb-1 block leading-snug'
+              }
+            >
+              Helix tube shader style{' '}
+              <span className="text-zinc-500">(1–6 = lab looks; fractal toggle is separate)</span>
+            </span>
+            <select
+              value={s.wormholeHelixTubeVariant}
+              disabled={!s.wormhole3dBackgroundEnabled || !s.wormholeHelixJuliaRibbonShaderEnabled}
+              onChange={(e) =>
+                tunnelStore.setState({
+                  wormholeHelixTubeVariant: clampHelixTubeVariant(Number(e.target.value)),
+                })
+              }
+              className="mt-0.5 w-full rounded border border-zinc-600 bg-zinc-950/90 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-violet-500/60 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {WORMHOLE_HELIX_TUBE_VARIANTS.map((id) => (
+                <option key={id} value={id}>
+                  {WORMHOLE_HELIX_TUBE_LABELS[id as WormholeHelixTubeVariant]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="mb-2 flex cursor-pointer items-center gap-2 pl-1">
+            <input
+              type="checkbox"
+              checked={s.wormholeHelixTubeJuliaPatternEnabled}
+              disabled={
+                !s.wormhole3dBackgroundEnabled || !s.wormholeHelixJuliaRibbonShaderEnabled
+              }
+              onChange={(e) =>
+                tunnelStore.setState({
+                  wormholeHelixTubeJuliaPatternEnabled: e.target.checked,
+                })
+              }
+              className="rounded border-zinc-600 disabled:opacity-40"
+            />
+            <span
+              className={
+                !s.wormhole3dBackgroundEnabled || !s.wormholeHelixJuliaRibbonShaderEnabled
+                  ? 'text-zinc-500'
+                  : 'leading-snug'
+              }
+            >
+              Julia fractal pattern inside helix tubes
+            </span>
+          </label>
+          <label
+            className={`mb-2 block pl-1 ${
+              !s.wormhole3dBackgroundEnabled ||
+              !s.wormholeHelixJuliaRibbonShaderEnabled ||
+              !s.wormholeHelixTubeJuliaPatternEnabled
+                ? 'text-zinc-500'
+                : ''
+            }`}
+          >
+            <span className="mb-1 block leading-snug">
+              Helix Julia pattern bloom{' '}
+              <span className="text-zinc-500">
+                (brightens fractal strand only; uses scene bloom pass)
+              </span>
+            </span>
+            <input
+              type="range"
+              min={0.25}
+              max={3.5}
+              step={0.05}
+              disabled={
+                !s.wormhole3dBackgroundEnabled ||
+                !s.wormholeHelixJuliaRibbonShaderEnabled ||
+                !s.wormholeHelixTubeJuliaPatternEnabled
+              }
+              value={clamp(s.wormholeHelixJuliaPatternBloomMul, 0.25, 3.5)}
+              onChange={(e) =>
+                tunnelStore.setState({
+                  wormholeHelixJuliaPatternBloomMul: Number(e.target.value),
+                })
+              }
+              className="w-full disabled:cursor-not-allowed disabled:opacity-45"
+            />
+            <span className="text-[10px] text-zinc-500">
+              ×{s.wormholeHelixJuliaPatternBloomMul.toFixed(2)} — turn fractal pattern on to edit
+            </span>
+          </label>
+          <label
+            className={`mb-2 block pl-1 ${
+              !s.wormhole3dBackgroundEnabled ||
+              !s.wormholeHelixJuliaRibbonShaderEnabled ||
+              !s.wormholeHelixTubeJuliaPatternEnabled
+                ? 'text-zinc-500'
+                : ''
+            }`}
+          >
+            <span className="mb-1 block leading-snug">
+              Helix Julia interior blur{' '}
+              <span className="text-zinc-500">(multi-sample soften; helps seamy / clipped look)</span>
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.02}
+              disabled={
+                !s.wormhole3dBackgroundEnabled ||
+                !s.wormholeHelixJuliaRibbonShaderEnabled ||
+                !s.wormholeHelixTubeJuliaPatternEnabled
+              }
+              value={clamp(s.wormholeHelixJuliaInteriorBlur, 0, 1)}
+              onChange={(e) =>
+                tunnelStore.setState({
+                  wormholeHelixJuliaInteriorBlur: Number(e.target.value),
+                })
+              }
+              className="w-full disabled:cursor-not-allowed disabled:opacity-45"
+            />
+            <span className="text-[10px] text-zinc-500">{s.wormholeHelixJuliaInteriorBlur.toFixed(2)}</span>
+          </label>
+          <label
+            className={`mb-2 block pl-1 ${
+              !s.wormhole3dBackgroundEnabled ||
+              !s.wormholeHelixJuliaRibbonShaderEnabled ||
+              !s.wormholeHelixTubeJuliaPatternEnabled
+                ? 'text-zinc-500'
+                : ''
+            }`}
+          >
+            <span className="mb-1 block leading-snug">
+              Helix Julia shimmer{' '}
+              <span className="text-zinc-500">(slow wave on strand brightness)</span>
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.02}
+              disabled={
+                !s.wormhole3dBackgroundEnabled ||
+                !s.wormholeHelixJuliaRibbonShaderEnabled ||
+                !s.wormholeHelixTubeJuliaPatternEnabled
+              }
+              value={clamp(s.wormholeHelixJuliaShimmer, 0, 1)}
+              onChange={(e) =>
+                tunnelStore.setState({
+                  wormholeHelixJuliaShimmer: Number(e.target.value),
+                })
+              }
+              className="w-full disabled:cursor-not-allowed disabled:opacity-45"
+            />
+            <span className="text-[10px] text-zinc-500">{s.wormholeHelixJuliaShimmer.toFixed(2)}</span>
+          </label>
           {localhost ? (
             <label className="mb-2 flex cursor-pointer items-center gap-2 pl-1">
               <input
@@ -414,6 +623,31 @@ export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPa
             <span className={!s.wormhole3dBackgroundEnabled ? 'text-zinc-500' : ''}>
               Subtle circular camera drift (3D)
             </span>
+          </label>
+          <label className="mb-2 block pl-1">
+            <span
+              className={
+                !s.wormhole3dBackgroundEnabled ? 'mb-1 block text-zinc-500' : 'mb-1 block leading-snug'
+              }
+            >
+              Mouse parallax <span className="text-zinc-500">(slight look-at angle; scroll unchanged)</span>
+            </span>
+            <select
+              value={s.wormholeJourneyMouseParallax}
+              disabled={!s.wormhole3dBackgroundEnabled}
+              onChange={(e) =>
+                tunnelStore.setState({
+                  wormholeJourneyMouseParallax: e.target.value as WormholeJourneyMouseParallaxMode,
+                })
+              }
+              className="mt-0.5 w-full rounded border border-zinc-600 bg-zinc-950/90 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-violet-500/60 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {WORMHOLE_JOURNEY_MOUSE_PARALLAX_MODES.map((id) => (
+                <option key={id} value={id}>
+                  {WORMHOLE_JOURNEY_MOUSE_PARALLAX_LABELS[id]}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="mb-1 block">
             bloom {s.bloomStrength.toFixed(2)}
@@ -465,7 +699,8 @@ export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPa
           </label>
           <p className="mb-1 mt-3 font-semibold text-orange-200/90">Cosmic backdrop</p>
           <p className="mb-2 text-[10px] font-normal text-zinc-500">
-            Affects <span className="text-zinc-400">/cosmic</span> volumetric pass
+            Affects <span className="text-zinc-400">/cosmic</span> and the optional cosmic layer on{' '}
+            <span className="text-zinc-400">/wormhole5</span>
           </p>
           <label className="mb-1 block">
             cosmic Julia blend {s.cosmicJuliaBlend.toFixed(2)}
@@ -524,6 +759,92 @@ export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPa
             />
             <span>Show hero coin</span>
           </label>
+          <div className="mb-2 rounded-md border border-amber-900/45 bg-amber-950/25 px-2 py-2">
+            <p className="mb-1.5 font-semibold leading-snug text-amber-100/95">
+              Gunmetal rim <span className="font-normal text-zinc-500">(coin edge / cylinder)</span>
+            </p>
+            <label className="mb-1 flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={s.wormholeCoinGunmetalRimSweepLightsEnabled}
+                onChange={(e) =>
+                  tunnelStore.setState({
+                    wormholeCoinGunmetalRimSweepLightsEnabled: e.target.checked,
+                  })
+                }
+                className="rounded border-zinc-600"
+              />
+              <span className="leading-snug">Rim sweep lights (7× orbit / diagonal / vertical)</span>
+            </label>
+            <label className="mb-1 flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={s.wormholeCoinGunmetalRimEdgeGrazeLightsEnabled}
+                onChange={(e) =>
+                  tunnelStore.setState({
+                    wormholeCoinGunmetalRimEdgeGrazeLightsEnabled: e.target.checked,
+                  })
+                }
+                className="rounded border-zinc-600"
+              />
+              <span className="leading-snug">Near-edge graze lights (3× tight radius)</span>
+            </label>
+            <label className="mb-1 flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={s.wormholeCoinGunmetalRimTangentRingLightsEnabled}
+                onChange={(e) =>
+                  tunnelStore.setState({
+                    wormholeCoinGunmetalRimTangentRingLightsEnabled: e.target.checked,
+                  })
+                }
+                className="rounded border-zinc-600"
+              />
+              <span className="leading-snug">Tangent ring lights (2× in-plane edge specular)</span>
+            </label>
+            <label className="mb-1 flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={s.wormholeCoinGunmetalRimUvMotionEnabled}
+                onChange={(e) =>
+                  tunnelStore.setState({
+                    wormholeCoinGunmetalRimUvMotionEnabled: e.target.checked,
+                  })
+                }
+                className="rounded border-zinc-600"
+              />
+              <span className="leading-snug">Reed UV motion (rim texture scroll)</span>
+            </label>
+            <label className="mb-0 flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={s.wormholeCoinGunmetalRimEmissiveShimmerEnabled}
+                onChange={(e) =>
+                  tunnelStore.setState({
+                    wormholeCoinGunmetalRimEmissiveShimmerEnabled: e.target.checked,
+                  })
+                }
+                className="rounded border-zinc-600"
+              />
+              <span className="leading-snug">Rim emissive shimmer (iridescent cylinder)</span>
+            </label>
+          </div>
+          {pathname === '/wormhole5' ? (
+            <label className="mb-1 flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={s.wormhole5CoinHelixReflectionEnabled}
+                onChange={(e) =>
+                  tunnelStore.setState({ wormhole5CoinHelixReflectionEnabled: e.target.checked })
+                }
+                className="rounded border-zinc-600"
+              />
+              <span className="leading-snug">
+                Julia helix ribbon reflections on coin{' '}
+                <span className="text-zinc-500">(/wormhole5)</span>
+              </span>
+            </label>
+          ) : null}
           <label className="mb-1 flex cursor-pointer items-center gap-2">
             <input
               type="checkbox"
@@ -562,9 +883,26 @@ export function DebugTunnelPanel({ showWormholeControls = false }: DebugTunnelPa
           <span className="text-zinc-500">(into the tube; above cruise in locked flight)</span>
         </span>
       </label>
+      <label className="mb-2 flex cursor-pointer items-center gap-2 rounded border border-sky-900/40 bg-sky-950/20 px-2 py-1.5">
+        <input
+          type="checkbox"
+          checked={s.wormholeCoinBackdropFaceLightEnabled}
+          onChange={(e) =>
+            tunnelStore.setState({ wormholeCoinBackdropFaceLightEnabled: e.target.checked })
+          }
+          className="rounded border-zinc-600"
+        />
+        <span className="leading-snug">
+          Tunnel backdrop on coin faces{' '}
+          <span className="text-zinc-500">
+            (full-disc emissive toward the tunnel — swaps with spin; follows coin camera)
+          </span>
+        </span>
+      </label>
       <p className="mt-2 text-zinc-400">
         depth {s.depth.toFixed(2)} · vel {s.velocity.toFixed(2)}
       </p>
+      {showIntroSequence && pathname === '/wormhole5' ? <LabIntroDebugSection /> : null}
       <button
         type="button"
         className="mt-2 w-full rounded border border-zinc-600 py-1 text-zinc-300 hover:bg-zinc-800"
