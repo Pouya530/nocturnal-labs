@@ -512,6 +512,69 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   transform: translateY(calc((6px + 1px) / -2)) rotate(-45deg);
 }
 
+/* Top-right cluster — audio + menu triggers in one row (no stacked fixed buttons). */
+.landing-nav-right-cluster {
+  display: inline-flex;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+.landing-nav-right-cluster__prepend {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.landing-nav-right-cluster > .landing-nav-trigger,
+.landing-nav-right-cluster > .landing-nav-burger,
+.landing-nav-right-cluster__prepend {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Trigger icon slot — same width tiers as burger lines. */
+.landing-nav-trigger-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+}
+
+@media (min-width: 800px) and (max-width: 1199px) {
+  .landing-nav-trigger-icon {
+    width: 26px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .landing-nav-trigger-icon {
+    width: 28px;
+  }
+}
+
+.landing-nav-burger-line--icon {
+  flex-shrink: 0;
+}
+
+.landing-nav-trigger-icon--pause {
+  flex-direction: row;
+  gap: 5px;
+  height: 13px;
+}
+
+.landing-nav-trigger-icon--pause .landing-nav-burger-line--icon {
+  width: 5px;
+  height: 13px;
+}
+
+.landing-nav-trigger-icon--play.landing-nav-burger-line--icon {
+  display: block;
+  width: 100%;
+  height: 13px;
+  clip-path: polygon(34% 10%, 34% 90%, 90% 50%);
+}
+
 /* MENU/CLOSE label — Universal tier sizes (iridescent classes still apply) */
 .landing-nav-menu-label-universal {
   font-size: 11px;
@@ -738,10 +801,56 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   opacity: 0;
   transition: opacity 0.3s ease-out;
   color: var(--term-fg-bright);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
 }
 
 .term-preloader__prompt[data-visible='true'] {
   opacity: 1;
+}
+
+.term-preloader__enter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--term-cursor) 55%, var(--term-fg));
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--term-cursor) 12%, transparent);
+  color: var(--term-fg-bright);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.term-preloader__enter-btn:hover {
+  background: color-mix(in srgb, var(--term-cursor) 22%, transparent);
+  border-color: var(--term-cursor);
+  color: var(--term-cursor);
+}
+
+.term-preloader__enter-btn:focus-visible {
+  outline: 1px dashed var(--term-cursor);
+  outline-offset: 3px;
+}
+
+.landing-nav-right-cluster .landing-nav-trigger:focus,
+.landing-nav-right-cluster .landing-nav-trigger:focus-visible,
+.landing-nav-right-cluster .landing-nav-burger:focus,
+.landing-nav-right-cluster .landing-nav-burger:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .term-preloader__cursor {

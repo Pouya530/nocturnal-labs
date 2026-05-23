@@ -5,8 +5,7 @@ const loadingFallback = (
 );
 
 /**
- * Home `/` — same stack as localhost dev (`npm run dev` on port 3001):
- * {@link LocalHomeWormhole5Route} (wormhole5 tunnel, marquee footer, no lab HUD).
+ * Home `/` — {@link LocalHomeWormhole5Route}: wormhole5 tunnel, marquee footer, ambient audio + ENTER preloader.
  */
 const HomeExperience = dynamic(
   () =>

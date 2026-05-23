@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import Link from 'next/link';
 
 import { MobileBurgerNav } from '@/components/landing/MobileBurgerNav';
@@ -11,13 +11,13 @@ const linkClass = LANDING_NAV_LABEL_CLASS;
 
 /** Matches fixed burger row height so “Nocturnal Labs” and MENU/CLOSE share one vertical rhythm. */
 const NAV_CHROME_ROW_MIN_H = 'min-h-11';
-/** Reserve space for the portaled trigger so `justify-between` clears the right inset (bars + gap + label). */
-const BURGER_SLOT_MIN_W = 'min-w-[8rem]';
+/** Reserve space for the portaled cluster (audio + menu) so `justify-between` clears the right inset. */
+const NAV_RIGHT_CLUSTER_MIN_W = 'min-w-[19rem]';
 
 /**
  * Fixed top bar: brand (left); universal menu trigger (right).
  */
-export function LandingTopNav(): ReactElement {
+export function LandingTopNav({ menuPrepend }: { menuPrepend?: ReactNode }): ReactElement {
   return (
     <header
       className={[
@@ -37,9 +37,9 @@ export function LandingTopNav(): ReactElement {
         Nocturnal Labs
       </Link>
       <div
-        className={`pointer-events-auto flex ${NAV_CHROME_ROW_MIN_H} ${BURGER_SLOT_MIN_W} shrink-0 items-center justify-end`}
+        className={`pointer-events-auto flex ${NAV_CHROME_ROW_MIN_H} ${NAV_RIGHT_CLUSTER_MIN_W} shrink-0 items-center justify-end`}
       >
-        <MobileBurgerNav />
+        <MobileBurgerNav prepend={menuPrepend} />
       </div>
     </header>
   );

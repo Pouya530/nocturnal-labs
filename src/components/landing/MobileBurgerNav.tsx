@@ -1,6 +1,6 @@
 'use client';
 
-import type { MouseEvent, ReactElement } from 'react';
+import type { MouseEvent, ReactElement, ReactNode } from 'react';
 import Link from 'next/link';
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
@@ -9,6 +9,8 @@ import {
   LANDING_NAV_MENU_MAIN_LINK_CLASS,
   LANDING_NAV_MENU_SECOND_LINK_CLASS,
   LANDING_NAV_MENU_TRIGGER_LABEL_CLASS,
+  LANDING_NAV_RIGHT_CLUSTER_CLASS,
+  LANDING_NAV_TRIGGER_BTN_CLASS,
 } from '@/components/landing/landingNavChrome';
 import {
   CONTACT_HREF,
@@ -24,17 +26,13 @@ import styles from '@/components/landing/MobileBurgerNav.module.css';
 
 const burgerBtnClass = [
   'landing-nav-burger',
-  'fixed z-[9988] pointer-events-auto flex min-h-11 items-center',
-  'border-0 bg-transparent p-0 cursor-pointer outline-none focus:outline-none focus-visible:outline-none',
-  /* Match `LandingTopNav` inset — burger is portaled so it cannot use header flex alignment */
-  'gap-3 min-[800px]:gap-[14px] min-[1200px]:gap-4',
-  'right-[max(1.25rem,env(safe-area-inset-right))] top-1',
+  LANDING_NAV_TRIGGER_BTN_CLASS,
 ].join(' ');
 
 /**
  * Fullscreen universal nav (all viewports) — UNIVERSAL_MENU.md timing + stagger; trigger matches brand chrome.
  */
-export function MobileBurgerNav(): ReactElement | null {
+export function MobileBurgerNav({ prepend }: { prepend?: ReactNode }): ReactElement | null {
   const menuId = useId();
   const burgerRef = useRef<HTMLButtonElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -97,20 +95,23 @@ export function MobileBurgerNav(): ReactElement | null {
 
   const portal = (
     <>
-      <button
-        ref={burgerRef}
-        type="button"
-        className={[burgerBtnClass, dmSans.className].join(' ')}
-        aria-expanded={open}
-        aria-controls={menuId}
-        onClick={onBurgerClick}
-      >
-        <span className="landing-nav-burger-lines" aria-hidden>
-          <span className="landing-nav-burger-line" />
-          <span className="landing-nav-burger-line" />
-        </span>
-        <span className={LANDING_NAV_MENU_TRIGGER_LABEL_CLASS}>{open ? 'CLOSE' : 'MENU'}</span>
-      </button>
+      <div className={[LANDING_NAV_RIGHT_CLUSTER_CLASS, dmSans.className].join(' ')}>
+        {prepend ? <div className="landing-nav-right-cluster__prepend shrink-0">{prepend}</div> : null}
+        <button
+          ref={burgerRef}
+          type="button"
+          className={[burgerBtnClass, 'shrink-0', dmSans.className].join(' ')}
+          aria-expanded={open}
+          aria-controls={menuId}
+          onClick={onBurgerClick}
+        >
+          <span className="landing-nav-burger-lines" aria-hidden>
+            <span className="landing-nav-burger-line" />
+            <span className="landing-nav-burger-line" />
+          </span>
+          <span className={LANDING_NAV_MENU_TRIGGER_LABEL_CLASS}>{open ? 'CLOSE' : 'MENU'}</span>
+        </button>
+      </div>
 
       <nav
         id={menuId}

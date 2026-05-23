@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode, ReactElement } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 
 import { motionPrefs } from '@/core/motion';
 import { LandingTopNav } from '@/components/landing/LandingTopNav';
@@ -15,10 +15,13 @@ import {
   getActiveLandingBackdropMode,
   setActiveLandingBackdropMode,
 } from '@/lib/landingBackdropMode';
+import { isLocalhostHostname } from '@/lib/isLocalhost';
 import {
   WORMHOLE2_HELIX_LAB_POSTFX,
   WORMHOLE4_SENSITIVITY,
   WORMHOLE5_DEBUG_START,
+  WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT,
+  WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_MAX,
   WORMHOLE_HOME_DESKTOP_PROD_TUNNEL,
   WORMHOLE_HOME_TUNNEL_VISUAL,
   WORMHOLE5_INTRO_LOGO_START_TZ_PX,
@@ -31,8 +34,15 @@ import { clearAllIntros, getActiveIntro, getIntroDurationMs, initActiveIntro, ru
 import { clearStageReveal, initStageReveal } from '@/lib/stageReveal';
 import { wormholeHomeIntroFreezeTranslateZOnProduction } from '@/lib/wormholeHomeIntroEasing';
 import { wormholeDesktopProductionHighQuality } from '@/lib/wormholeProductionQuality';
-import { runWormholeHeroStageReveal } from '@/lib/wormholeHeroStageReveal';
+import { runWormholeHeroStageReveal, wormholeHeroStageRevealAmbientFadeOpts } from '@/lib/wormholeHeroStageReveal';
 import { runWormhole5ParallelCamIntro } from '@/lib/wormhole5ParallelCamIntro';
+import { Wormhole5AmbientNavToggle } from '@/components/landing/Wormhole5AmbientNavToggle';
+import {
+  isWormhole5AmbientAudioRoute,
+  startWormhole5AmbientImmediate,
+  startWormhole5AmbientSyncedFade,
+  subscribeWormhole5AmbientAudio,
+} from '@/audio/wormhole5AmbientAudio';
 import { WormholeLabIntroProvider } from '@/components/wormhole/WormholeLabIntroContext';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
@@ -40,6 +50,20 @@ import { tunnelStore } from '@/tunnel/tunnelStore';
 function easeOutCubic(t: number): number {
   const x = Math.min(1, Math.max(0, t));
   return 1 - Math.pow(1 - x, 3);
+}
+
+const RANDOM_CAM_TILT_AMOUNT_STORAGE_KEY = 'nl-wormhole-random-cam-tilt-amount';
+
+function devRandomCamTiltAmount(): number {
+  if (typeof window === 'undefined') return WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT;
+  if (!isLocalhostHostname(window.location.hostname)) {
+    return WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT;
+  }
+  const raw = localStorage.getItem(RANDOM_CAM_TILT_AMOUNT_STORAGE_KEY);
+  if (raw == null) return WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT;
+  const v = Number(raw);
+  if (!Number.isFinite(v)) return WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT;
+  return Math.min(WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_MAX, Math.max(0, v));
 }
 
 /**
@@ -58,6 +82,12 @@ export function Wormhole5ClientShell({
   children: ReactNode;
   localHomePresentation?: boolean;
 }): ReactElement {
+  const ambientAudio = useSyncExternalStore(
+    subscribeWormhole5AmbientAudio,
+    isWormhole5AmbientAudioRoute,
+    () => false,
+  );
+  const ambientFadeCancel = useRef<(() => void) | null>(null);
   const depthPullRaf = useRef(0);
   const stageRevealCancel = useRef({ cancel: () => {} });
   const introStarted = useRef(false);
@@ -113,18 +143,26 @@ export function Wormhole5ClientShell({
       if (typeof document !== 'undefined') {
         document.documentElement.style.setProperty('--nl-logo-tz', '0px');
       }
+      if (ambientAudio) {
+        startWormhole5AmbientImmediate();
+      }
       return;
     }
     if (introStarted.current) return;
     introStarted.current = true;
 
     runDepthPullback();
+    if (ambientAudio) {
+      ambientFadeCancel.current = startWormhole5AmbientSyncedFade(
+        wormholeHeroStageRevealAmbientFadeOpts(),
+      );
+    }
     if (localHomePresentation) {
       stageRevealCancel.current = runWormholeHeroStageReveal({ introTranslateZ: true });
     } else {
       stageRevealCancel.current = runLabIntroSequence();
     }
-  }, [runDepthPullback, localHomePresentation, runLabIntroSequence]);
+  }, [runDepthPullback, localHomePresentation, runLabIntroSequence, ambientAudio]);
 
   useLayoutEffect(() => {
     introStarted.current = false;
@@ -171,6 +209,7 @@ export function Wormhole5ClientShell({
     const prevWormhole3d = s.wormhole3dBackgroundEnabled;
     const prevHelices3d = s.wormholeHelices3dEnabled;
     const prevRandomCamTilt = s.wormholeDebugRandomCamTilt;
+    const prevRandomCamTiltAmount = s.wormholeDebugRandomCamTiltAmount;
     const prevCircularCamTilt = s.wormholeDebugCircularCamTilt;
     const prevCoinVisible = s.wormholeCoinVisible;
     const prevCoinClickTunnelBoost = s.wormholeCoinClickTunnelBoost;
@@ -220,6 +259,7 @@ export function Wormhole5ClientShell({
       /** Lab screenshot — ribbon boost off, mouse parallax off, bloom/fog as tuned in debug panel. */
       wormhole8HelixBoostEnabled: false,
       wormholeDebugRandomCamTilt: false,
+      wormholeDebugRandomCamTiltAmount: devRandomCamTiltAmount(),
       wormholeDebugCircularCamTilt: false,
       wormholeJourneyMouseParallax: 'off',
       bloomStrength: 0.3,
@@ -249,6 +289,8 @@ export function Wormhole5ClientShell({
 
     return () => {
       cancelAnimationFrame(depthPullRaf.current);
+      ambientFadeCancel.current?.();
+      ambientFadeCancel.current = null;
       stageRevealCancel.current.cancel();
       if (!localHomePresentation) {
         clearAllIntros();
@@ -278,6 +320,7 @@ export function Wormhole5ClientShell({
         wormhole3dBackgroundEnabled: prevWormhole3d,
         wormholeHelices3dEnabled: prevHelices3d,
         wormholeDebugRandomCamTilt: prevRandomCamTilt,
+        wormholeDebugRandomCamTiltAmount: prevRandomCamTiltAmount,
         wormholeDebugCircularCamTilt: prevCircularCamTilt,
         wormholeCoinVisible: prevCoinVisible,
         wormholeCoinClickTunnelBoost: prevCoinClickTunnelBoost,
@@ -340,7 +383,9 @@ export function Wormhole5ClientShell({
         showDebugPanel={!localHomePresentation}
         showIntroSequence={!localHomePresentation}
       />
-      <LandingTopNav />
+      <LandingTopNav
+        menuPrepend={ambientAudio ? <Wormhole5AmbientNavToggle /> : undefined}
+      />
       {!localHomePresentation ? (
         <WormholeLabIntroProvider>
           <div className="gravity-vignette pointer-events-none fixed inset-0 z-[8]" aria-hidden />
@@ -358,7 +403,10 @@ export function Wormhole5ClientShell({
         </div>
       )}
       {localHomePresentation ? <WormholeCoinSyncedMarqueeFooter /> : null}
-      <SitePreloader onFadeComplete={onPreloaderGone} />
+      <SitePreloader
+        wormhole5AmbientAudio={ambientAudio}
+        onFadeComplete={onPreloaderGone}
+      />
     </div>
   );
 }

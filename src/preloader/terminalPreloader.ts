@@ -15,6 +15,10 @@ export type TerminalPreloaderOpts = {
   timeScale?: number;
   /** `prefers-reduced-motion` — compresses boot timing. */
   reduced?: boolean;
+  /** Dev wormhole5: visible ENTER control; dismiss via Enter key or button (no auto-advance). */
+  enterToProceed?: boolean;
+  /** Fires when user presses Enter / ENTER (arm ambient audio, etc.). */
+  onEnterProceed?: () => void;
 };
 
 let activeTeardown: (() => void) | null = null;
@@ -79,7 +83,16 @@ export function mountTerminalPreloader(opts: TerminalPreloaderOpts): () => void 
         </div>
         <div class="term-preloader__prompt" id="term-prompt" aria-hidden="true">
           <span class="term-preloader__cursor" aria-hidden="true">▊</span>
-          <span class="term-preloader__prompt-text">press any key to enter the labs…</span>
+          <span class="term-preloader__prompt-text">${
+            opts.enterToProceed
+              ? 'press enter to enter the labs'
+              : 'press any key to enter the labs…'
+          }</span>
+          ${
+            opts.enterToProceed
+              ? `<button type="button" class="term-preloader__enter-btn" id="term-enter-btn" aria-label="Enter the labs">ENTER</button>`
+              : ''
+          }
         </div>
       </div>
     `;
@@ -89,6 +102,22 @@ export function mountTerminalPreloader(opts: TerminalPreloaderOpts): () => void 
   const progressBar = root.querySelector('#term-progress-bar') as HTMLSpanElement;
   const progressPct = root.querySelector('#term-progress-pct') as HTMLSpanElement;
   const prompt = root.querySelector('#term-prompt') as HTMLDivElement;
+  const enterBtn = root.querySelector('#term-enter-btn') as HTMLButtonElement | null;
+  const enterOnly = opts.enterToProceed === true;
+
+  const canProceedEnter = () => prompt.getAttribute('data-visible') === 'true';
+
+  const proceedEnter = () => {
+    if (!canProceedEnter()) return;
+    opts.onEnterProceed?.();
+    dismiss();
+  };
+
+  const onEnterBtnClick = (e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    proceedEnter();
+  };
 
   const totalLines = BOOT_SCRIPT.length;
   const totalDuration = BOOT_SCRIPT.reduce((sum, l) => sum + l.delayMs, 0) * timeScale;
@@ -111,6 +140,7 @@ export function mountTerminalPreloader(opts: TerminalPreloaderOpts): () => void 
     document.removeEventListener('keydown', onUserAdvance, true);
     root.removeEventListener('click', onClick);
     root.removeEventListener('touchstart', onTouch);
+    enterBtn?.removeEventListener('click', onEnterBtnClick);
   };
 
   const finishFadeOut = () => {
@@ -155,6 +185,13 @@ export function mountTerminalPreloader(opts: TerminalPreloaderOpts): () => void 
 
   function onUserAdvance(e: KeyboardEvent) {
     if (fadeOutStarted) return;
+    if (enterOnly) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        proceedEnter();
+      }
+      return;
+    }
     const allowEarly = e.key === 'Escape';
     const minProgress = 0.5;
     if (!allowEarly && elapsedRatio() < minProgress) return;
@@ -163,13 +200,13 @@ export function mountTerminalPreloader(opts: TerminalPreloaderOpts): () => void 
   }
 
   function onClick() {
-    if (fadeOutStarted) return;
+    if (fadeOutStarted || enterOnly) return;
     if (elapsedRatio() < 0.5) return;
     dismiss();
   }
 
   function onTouch() {
-    if (fadeOutStarted) return;
+    if (fadeOutStarted || enterOnly) return;
     if (elapsedRatio() < 0.5) return;
     dismiss();
   }
@@ -229,8 +266,11 @@ export function mountTerminalPreloader(opts: TerminalPreloaderOpts): () => void 
   else window.addEventListener('load', onWindowLoad, { once: true });
 
   document.addEventListener('keydown', onUserAdvance, true);
-  root.addEventListener('click', onClick);
-  root.addEventListener('touchstart', onTouch, { passive: true });
+  if (!enterOnly) {
+    root.addEventListener('click', onClick);
+    root.addEventListener('touchstart', onTouch, { passive: true });
+  }
+  enterBtn?.addEventListener('click', onEnterBtnClick);
 
   const teardown = () => {
     window.removeEventListener('load', onWindowLoad);

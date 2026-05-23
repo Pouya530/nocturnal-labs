@@ -6,7 +6,7 @@ import { WormholePlanContent } from '@/components/wormhole/WormholePlanContent';
 import { Wormhole5ClientShell } from '@/components/wormhole/Wormhole5ClientShell';
 
 /**
- * Production `/` and localhost dev — same tunnel stack as `/wormhole5` with marquee footer and no lab HUD.
+ * Production `/` and localhost dev — wormhole5 tunnel, marquee footer, ambient audio + ENTER preloader (no lab HUD).
  */
 export function LocalHomeWormhole5Route(): ReactElement {
   return (

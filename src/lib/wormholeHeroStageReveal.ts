@@ -1,3 +1,7 @@
+import {
+  WORMHOLE5_AMBIENT_QUICK_FADE_MS,
+  wormhole5AmbientStartOffsetSec,
+} from '@/audio/wormhole5AmbientAudio';
 import { runStageReveal } from '@/lib/stageReveal';
 import {
   wormholeHomeIntroFreezeTranslateZOnProduction,
@@ -103,5 +107,20 @@ export function runWormholeHeroStageReveal(
         setIntroTranslateZMode(false);
       }
     },
+  };
+}
+
+/** Ambient fade-in — same delay as coin reveal; quick volume ramp; track starts ~4s in. */
+export function wormholeHeroStageRevealAmbientFadeOpts(): {
+  delayMs: number;
+  durationMs: number;
+  ease: (linear: number) => number;
+  startOffsetSec: number;
+} {
+  return {
+    delayMs: wormholeHomeMicroIntroDelayMs(),
+    durationMs: WORMHOLE5_AMBIENT_QUICK_FADE_MS,
+    ease: wormholeHomeIntroLogoEased,
+    startOffsetSec: wormhole5AmbientStartOffsetSec(),
   };
 }

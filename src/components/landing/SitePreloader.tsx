@@ -7,19 +7,30 @@ import { motionPrefs } from '@/core/motion';
 import { NL_BOOT_CHROME_HIDE_STYLE_ID } from '@/lib/nlBootChromeCover';
 import { mountDevPostPreloaderBlackCover } from '@/preloader/devPostPreloaderFade';
 import { mountTerminalPreloader, unmountTerminalPreloader } from '@/preloader/terminalPreloader';
+import {
+  armWormhole5AmbientFromEnter,
+  isWormhole5AmbientAudioRoute,
+  teardownWormhole5Ambient,
+} from '@/audio/wormhole5AmbientAudio';
 
 export type SitePreloaderProps = {
   /** Fires when dismissal fade begins (parallel with cinematic backdrops). */
   onGone?: () => void;
   /** Fires when the overlay is fully gone — use for hero stage reveal. */
   onFadeComplete?: () => void;
+  /** Home `/` + `/wormhole5`: ENTER button + post-fade ambient playback. */
+  wormhole5AmbientAudio?: boolean;
 };
 
 /**
  * Linux-style terminal boot sequence (TERMINAL_BOOT_PRELOADER.md), then fade out.
  * Mounts to `document.body`; keeps the same `onGone` / `onFadeComplete` contract as the legacy preloader.
  */
-export function SitePreloader({ onGone, onFadeComplete }: SitePreloaderProps = {}): ReactElement | null {
+export function SitePreloader({
+  onGone,
+  onFadeComplete,
+  wormhole5AmbientAudio = false,
+}: SitePreloaderProps = {}): ReactElement | null {
   const onGoneRef = useRef(onGone);
   onGoneRef.current = onGone;
   const onFadeCompleteRef = useRef(onFadeComplete);
@@ -32,6 +43,9 @@ export function SitePreloader({ onGone, onFadeComplete }: SitePreloaderProps = {
 
     const reduced = motionPrefs.reduced;
     const isDev = process.env.NODE_ENV === 'development';
+
+    const ambient =
+      wormhole5AmbientAudio && !reduced && isWormhole5AmbientAudioRoute();
 
     mountTerminalPreloader({
       onGone: () => {
@@ -50,9 +64,11 @@ export function SitePreloader({ onGone, onFadeComplete }: SitePreloaderProps = {
         onFadeCompleteRef.current?.();
       },
       reduced,
-      autoAdvance: true,
+      autoAdvance: !ambient,
       autoAdvanceMs: 1800,
       timeScale: 1,
+      enterToProceed: ambient,
+      onEnterProceed: ambient ? armWormhole5AmbientFromEnter : undefined,
     });
 
     document.getElementById(NL_BOOT_CHROME_HIDE_STYLE_ID)?.remove();
@@ -61,9 +77,12 @@ export function SitePreloader({ onGone, onFadeComplete }: SitePreloaderProps = {
       document.body.style.overflow = '';
       devBlackCoverRef.current?.teardown();
       devBlackCoverRef.current = null;
+      if (wormhole5AmbientAudio) {
+        teardownWormhole5Ambient();
+      }
       unmountTerminalPreloader();
     };
-  }, []);
+  }, [wormhole5AmbientAudio]);
 
   return null;
 }
