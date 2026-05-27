@@ -149,13 +149,19 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 }
 
 /*
- * Wormhole5 home/lab: clamp logo by viewport height so the depth slot (~1.84×) + halos fit while the
- * shell flex-centres the hero (avoids low/off-centre coin on odd aspect ratios).
+ * Wormhole5 home/lab: clamp logo by viewport height (100dvh matches shell min-height) so halos fit.
+ * Home reserves extra fixed chrome: top nav + bottom marquee are position:fixed and do not shrink flex,
+ * so without insets the coin reads low / off-centre on landscape phones and Fold inner landscape.
  */
-.wormhole5-home-route .wormhole-hero-perspective-root,
 .wormhole5-route .wormhole-hero-perspective-root {
   --hero-logo-vh-cap: calc(
-    (100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 9rem) / 2.16
+    (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 9.25rem) / 2.16
+  );
+}
+
+.wormhole5-home-route .wormhole-hero-perspective-root {
+  --hero-logo-vh-cap: calc(
+    (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12.25rem) / 2.2
   );
 }
 
@@ -164,18 +170,32 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   --hero-logo-size: min(var(--hero-logo-size), var(--hero-logo-vh-cap));
 }
 
-/* Short portrait phones (not fold-inner width): slightly tighter vh cap + less vertical padding drift. */
+/*
+ * Main reserves fixed top nav + (home) bottom marquee so justify-centre matches the visible band.
+ * `.wormhole-plan-main` is on {@link WormholePlanContent} <main>.
+ */
+.wormhole5-route main.wormhole-plan-main {
+  padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 2.75rem));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.wormhole5-home-route main.wormhole-plan-main {
+  padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 2.75rem));
+  padding-bottom: max(4.85rem, calc(env(safe-area-inset-bottom, 0px) + 3.4rem));
+}
+
+/* Short portrait phones (not fold-inner width): slightly tighter vh cap. */
 @media (orientation: portrait) and (pointer: coarse) and (max-height: 720px) and (max-width: 839px) {
-  .wormhole5-home-route .wormhole-hero-perspective-root,
   .wormhole5-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
-      (100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 10rem) / 2.16
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 10.25rem) / 2.16
     );
   }
 
-  main[aria-label='Wormhole'] {
-    padding-top: max(0.75rem, env(safe-area-inset-top, 0px)) !important;
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
+  .wormhole5-home-route .wormhole-hero-perspective-root {
+    --hero-logo-vh-cap: calc(
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12.75rem) / 2.2
+    );
   }
 }
 
@@ -1130,10 +1150,15 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
  * ───────────────────────────────────────────────────────────────────────────── */
 
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 900px) {
-  .wormhole5-home-route .wormhole-hero-perspective-root,
+  .wormhole5-home-route .wormhole-hero-perspective-root {
+    --hero-logo-vh-cap: calc(
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 8.35rem) / 2.06
+    );
+  }
+
   .wormhole5-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
-      (100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 5.75rem) / 2.14
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 5.85rem) / 2.12
     );
   }
 
@@ -1158,11 +1183,16 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
     min-height: 0;
   }
 
-  .wormhole-lab-micro-intro-logo {
+  .wormhole5-home-route .wormhole-lab-micro-intro-logo {
+    transform: translateY(clamp(-0.5rem, -1.5dvh, 0px)) translateZ(0)
+      scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
+  }
+
+  .wormhole5-route .wormhole-lab-micro-intro-logo {
     transform: translateZ(0) scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
   }
 
-  main[aria-label='Wormhole'] {
+  main.wormhole-plan-main {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -1173,10 +1203,14 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
     margin-inline: auto;
     width: 100%;
     max-width: 100%;
-    padding-top: max(0.5rem, env(safe-area-inset-top, 0px)) !important;
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important;
+    padding-top: max(0.45rem, calc(env(safe-area-inset-top, 0px) + 2.65rem)) !important;
+    padding-bottom: max(0.55rem, env(safe-area-inset-bottom, 0px)) !important;
     padding-left: max(1rem, env(safe-area-inset-left, 0px));
     padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  .wormhole5-home-route main.wormhole-plan-main {
+    padding-bottom: max(4.45rem, calc(env(safe-area-inset-bottom, 0px) + 3.25rem)) !important;
   }
 
   .hero-logo-size-var.mx-auto.flex {
@@ -1239,7 +1273,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
     transform-origin: center center;
   }
 
-  main[aria-label='Wormhole'] {
+  main.wormhole-plan-main {
     align-items: center;
     justify-content: center;
     margin-inline: auto;
@@ -1247,7 +1281,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
     max-width: 100%;
     flex: 1 1 auto;
     min-height: min(100%, calc(100dvh - 8.5rem));
-    /* Override Tailwind `py-24` on wormhole hero — was pushing the coin too low on fold inner portrait. */
+    /* Override Tailwind wormhole hero padding — fold inner portrait + home marquee. */
     padding-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 2.75rem)) !important;
     padding-bottom: max(4.75rem, calc(env(safe-area-inset-bottom, 0px) + 3.25rem)) !important;
     padding-left: max(1rem, env(safe-area-inset-left, 0px));
