@@ -1150,9 +1150,16 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
  * ───────────────────────────────────────────────────────────────────────────── */
 
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 900px) {
+  /*
+   * Home landscape (e.g. iPhone tilt): reserve *more* bottom band than portrait base — the previous
+   * landscape override used smaller padding-bottom than default home, which pulled the flex centre
+   * downward vs the fixed marquee. Also subtract more chrome in the vh cap than the old landscape
+   * rule (that rule used a smaller subtract than portrait, yielding a relatively large cap on wide
+   * short viewports once vw clamps interact with the depth slot + halos).
+   */
   .wormhole5-home-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
-      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 8.35rem) / 2.06
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 11.25rem) / 2.34
     );
   }
 
@@ -1184,7 +1191,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole5-home-route .wormhole-lab-micro-intro-logo {
-    transform: translateY(clamp(-0.5rem, -1.5dvh, 0px)) translateZ(0)
+    transform: translateY(clamp(-2.5rem, -5dvh, -0.65rem)) translateZ(0)
       scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
   }
 
@@ -1210,7 +1217,8 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole5-home-route main.wormhole-plan-main {
-    padding-bottom: max(4.45rem, calc(env(safe-area-inset-bottom, 0px) + 3.25rem)) !important;
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 3.05rem)) !important;
+    padding-bottom: max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem)) !important;
   }
 
   .hero-logo-size-var.mx-auto.flex {
@@ -1237,6 +1245,25 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
     body {
       overflow-clip-margin: 0;
     }
+  }
+}
+
+/* Very short landscape phones (~≤430px tall): extra bottom reserve + smaller vh cap + stronger nudge. */
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 460px) {
+  .wormhole5-home-route .wormhole-hero-perspective-root {
+    --hero-logo-vh-cap: calc(
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 11.85rem) / 2.48
+    );
+  }
+
+  .wormhole5-home-route main.wormhole-plan-main {
+    padding-top: max(0.4rem, calc(env(safe-area-inset-top, 0px) + 2.95rem)) !important;
+    padding-bottom: max(6.65rem, calc(env(safe-area-inset-bottom, 0px) + 4.85rem)) !important;
+  }
+
+  .wormhole5-home-route .wormhole-lab-micro-intro-logo {
+    transform: translateY(clamp(-2.85rem, -5.75dvh, -0.75rem)) translateZ(0)
+      scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
   }
 }
 
