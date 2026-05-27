@@ -224,6 +224,39 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   );
 }
 
+/*
+ * Home `/` — `position:fixed` on the coin must not sit under an ancestor with transform/perspective
+ * (otherwise the containing block collapses and the coin pins to the top). Intro Z + stage scale
+ * live on `.cinematic-hero-stage-subject` only.
+ */
+.wormhole5-home-route .wormhole-hero-perspective-root {
+  perspective: none !important;
+}
+
+.wormhole5-home-route .wormhole-lab-micro-intro-logo {
+  transform: none !important;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.wormhole5-home-route .cinematic-hero-perspective {
+  perspective: none !important;
+}
+
+.wormhole5-home-route .cinematic-hero-stage-subject {
+  transform: scale(var(--stage-reveal-scale, 1)) translateZ(var(--nl-logo-tz, 0px));
+  transform-origin: center center;
+}
+
+html[data-nl-intro-tz='progress'] .wormhole5-home-route .cinematic-hero-stage-subject {
+  transform: scale(var(--stage-reveal-scale, 1))
+    translateZ(
+      calc(var(--nl-logo-tz-start, -132px) * (1 - min(1, var(--stage-reveal-progress, 0))))
+    );
+  transform-origin: center center;
+}
+
 /* Explicit lab sizes — avoids broken self-ref in `--hero-logo-size` (was inflating desktop). */
 .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
   --hero-logo-size: min(292px, calc(100vw - 2.75rem), var(--hero-logo-vh-cap));
@@ -1268,8 +1301,13 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole5-home-route .wormhole-lab-micro-intro-logo {
+    transform: none !important;
+  }
+
+  .wormhole5-home-route .cinematic-hero-stage-subject {
     transform: translateZ(var(--nl-logo-tz, 0px))
       scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
+    transform-origin: center center;
   }
 
   .wormhole5-route main.wormhole-plan-main {
@@ -1338,6 +1376,16 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole-lab-micro-intro-logo {
+    transform: translateY(clamp(-2.75rem, -4.5dvh, -1.5rem)) translateZ(0)
+      scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
+    transform-origin: center center;
+  }
+
+  .wormhole5-home-route .wormhole-lab-micro-intro-logo {
+    transform: none !important;
+  }
+
+  .wormhole5-home-route .cinematic-hero-stage-subject {
     transform: translateY(clamp(-2.75rem, -4.5dvh, -1.5rem)) translateZ(0)
       scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
     transform-origin: center center;
