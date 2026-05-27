@@ -1,6 +1,6 @@
 /** Full-screen black → transparent after the terminal preloader dismisses (all environments; skipped when reduced motion). */
 
-export const DEV_POST_PRELOADER_FADE_MS = 480;
+export const DEV_POST_PRELOADER_FADE_MS = 800;
 
 export type DevPostPreloaderFadeHandle = {
   fadeOut: (onComplete: () => void) => void;
