@@ -40,15 +40,20 @@ function AmbientPlayIcon(): ReactElement {
   );
 }
 
-function useAmbientBassGlow(): number {
+function useAmbientBassGlow(playing: boolean): number {
   return useSyncExternalStore(
-    subscribeWormholeAmbientEqualizer,
+    playing ? subscribeWormholeAmbientEqualizer : emptySubscribe,
     () => {
+      if (!playing) return 0;
       const { bass, rms } = getWormholeAmbientEqualizerBands();
       return Math.min(1, bass * 0.85 + rms * 0.15);
     },
     () => 0,
   );
+}
+
+function emptySubscribe(): () => void {
+  return () => {};
 }
 
 /** Home `/` + `/wormhole5` — pause/play ambient loop beside MENU. */
@@ -63,7 +68,7 @@ export function Wormhole5AmbientNavToggle(): ReactElement | null {
     () => isWormhole5AmbientPlaying(),
     () => false,
   );
-  const bassGlow = useAmbientBassGlow();
+  const bassGlow = useAmbientBassGlow(playing);
 
   if (!enabled) return null;
 

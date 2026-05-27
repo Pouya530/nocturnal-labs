@@ -22,15 +22,22 @@ const DESKTOP_LARGE_MIN_W = 1440;
 const MOBILE_PORTRAIT_MAX_W = 480;
 const SHORT_LANDSCAPE_MAX_H = 500;
 
-export function resolveHeroFocalCssVars(): HeroFocalCssVars {
-  if (typeof window === 'undefined') {
-    return {
-      '--hero-focal-x-frac': String(HERO_FOCAL_POINT.portrait.x),
-      '--hero-focal-y-frac': String(HERO_FOCAL_POINT.portrait.y),
-      '--hero-coin-diameter': HERO_COIN_DIAMETER.default,
-    };
-  }
+const SSR_SNAPSHOT: HeroFocalCssVars = {
+  '--hero-focal-x-frac': String(HERO_FOCAL_POINT.portrait.x),
+  '--hero-focal-y-frac': String(HERO_FOCAL_POINT.portrait.y),
+  '--hero-coin-diameter': HERO_COIN_DIAMETER.default,
+};
 
+let cachedKey = '';
+let cachedSnapshot: HeroFocalCssVars = SSR_SNAPSHOT;
+
+function viewportCacheKey(): string {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  return `${w}|${h}|${getGalaxyFoldViewportClass()}|${w > h ? 'L' : 'P'}`;
+}
+
+function buildHeroFocalCssVars(): HeroFocalCssVars {
   const w = window.innerWidth;
   const h = window.innerHeight;
   const landscape = w > h;
@@ -60,10 +67,34 @@ export function resolveHeroFocalCssVars(): HeroFocalCssVars {
   };
 }
 
+/** Stable snapshot for `useSyncExternalStore` — must not return a new object every read. */
+export function getHeroFocalCssVarsSnapshot(): HeroFocalCssVars {
+  if (typeof window === 'undefined') return SSR_SNAPSHOT;
+
+  const key = viewportCacheKey();
+  if (key === cachedKey) return cachedSnapshot;
+
+  cachedKey = key;
+  cachedSnapshot = buildHeroFocalCssVars();
+  return cachedSnapshot;
+}
+
+export function getHeroFocalCssVarsServerSnapshot(): HeroFocalCssVars {
+  return SSR_SNAPSHOT;
+}
+
+/** @deprecated Use {@link getHeroFocalCssVarsSnapshot} */
+export function resolveHeroFocalCssVars(): HeroFocalCssVars {
+  return getHeroFocalCssVarsSnapshot();
+}
+
 export function subscribeHeroFocalCssVars(listener: () => void): () => void {
   if (typeof window === 'undefined') return () => {};
 
-  const onChange = () => listener();
+  const onChange = () => {
+    cachedKey = '';
+    listener();
+  };
   const orientationMq = window.matchMedia('(orientation: landscape)');
   const unsubFold = subscribeGalaxyFoldViewportClass(onChange);
 
