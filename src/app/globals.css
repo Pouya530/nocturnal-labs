@@ -553,7 +553,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 
 @media (min-width: 1200px) {
   .landing-nav-trigger-icon {
-    width: 28px;
+    width: 30px;
   }
 }
 
@@ -561,8 +561,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   flex-shrink: 0;
 }
 
-/* Ambient AUDIO / PAUSE — same 22/26/28 icon slot as burger; pill bars + play triangle. */
-/* Phone-first: larger ▶ / bars than legacy 10px so iOS Safari stays legible next to AUDIO. */
+/* Ambient AUDIO / PAUSE — icon slot tracks burger tiers; SVG play + pill pause share `--ambient-glyph-h`. */
 .landing-nav-trigger-icon--ambient {
   --ambient-glyph-h: 14px;
   --ambient-pause-bar-w: 5px;
@@ -577,8 +576,8 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 
 @media (min-width: 800px) and (max-width: 1199px) {
   .landing-nav-trigger-icon--ambient {
-    --ambient-glyph-h: 12px;
-    --ambient-pause-bar-w: 4.75px;
+    --ambient-glyph-h: 16px;
+    --ambient-pause-bar-w: 5.25px;
     width: 26px;
     min-width: 26px;
   }
@@ -586,10 +585,10 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 
 @media (min-width: 1200px) {
   .landing-nav-trigger-icon--ambient {
-    --ambient-glyph-h: 13px;
-    --ambient-pause-bar-w: 5px;
-    width: 28px;
-    min-width: 28px;
+    --ambient-glyph-h: 17px;
+    --ambient-pause-bar-w: 5.5px;
+    width: 30px;
+    min-width: 30px;
   }
 }
 
@@ -599,8 +598,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 }
 
 /*
- * Play slot: flexbox centers the ▶ in the icon column (same box as pause + burger width).
- * Gradient text stays on the inner glyph (`inline-block` + clip) so WebKit still paints it.
+ * Play slot: flexbox centers the play icon in the column (same box as pause + burger width).
  */
 .landing-nav-trigger-icon--ambient.landing-nav-trigger-icon--play {
   display: inline-flex;
@@ -616,29 +614,23 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 }
 
 /*
- * ▶ — colour comes from shared nav utilities (same stack as AUDIO label).
- * WebKit often skips gradient text inside `display:flex`; keep glyph `inline-block`.
+ * Ambient play — SVG + linearGradient (see Wormhole5AmbientNavToggle). Avoids iOS `background-clip:text` on ▶.
  */
-.landing-nav-ambient-play-glyph {
-  display: inline-block;
-  flex-shrink: 0;
-  text-align: center;
-  vertical-align: middle;
-  width: calc(var(--ambient-glyph-h) * 1.25);
-  min-width: calc(var(--ambient-glyph-h) * 1.25);
+.landing-nav-ambient-play-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--ambient-glyph-h) * 1.22);
   height: var(--ambient-glyph-h);
-  font-size: calc(var(--ambient-glyph-h) * 0.78);
-  font-weight: 700;
-  line-height: 1;
-  -webkit-font-smoothing: antialiased;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.92)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 10px rgba(139, 92, 246, 0.38)) drop-shadow(0 0 20px rgba(236, 72, 153, 0.2));
 }
 
-/* Override body-text iridescent padding — play glyph vertical inset in the ambient icon slot. */
-.landing-nav-ambient-play-glyph.coming-soon-text-iridescent {
-  padding-top: 0px;
-  padding-bottom: 0px;
-  padding-left: 0;
-  padding-right: 0;
+.landing-nav-ambient-play-svg__inner {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .landing-nav-ambient-audio {

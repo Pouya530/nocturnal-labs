@@ -11,8 +11,12 @@ const linkClass = LANDING_NAV_LABEL_CLASS;
 
 /** Matches fixed burger row height so “Nocturnal Labs” and MENU/CLOSE share one vertical rhythm. */
 const NAV_CHROME_ROW_MIN_H = 'min-h-11';
-/** Reserve space for the portaled cluster (audio + menu) so `justify-between` clears the right inset. */
-const NAV_RIGHT_CLUSTER_MIN_W = 'min-w-[19rem]';
+/**
+ * Reserve space for AUDIO + MENU on larger viewports.
+ * On phones a fixed ~19rem min-width squeezed the brand into two lines — scale with breakpoint.
+ */
+const NAV_RIGHT_CLUSTER_MIN_W =
+  'min-w-0 shrink-0 sm:min-w-[11.5rem] md:min-w-[15rem] lg:min-w-[19rem]';
 
 /**
  * Fixed top bar: brand (left); universal menu trigger (right).
@@ -30,7 +34,7 @@ export function LandingTopNav({ menuPrepend }: { menuPrepend?: ReactNode }): Rea
       aria-label="Site"
     >
       <Link
-        className={`pointer-events-auto inline-flex ${NAV_CHROME_ROW_MIN_H} items-center ${linkClass}`}
+        className={`pointer-events-auto inline-flex ${NAV_CHROME_ROW_MIN_H} items-center whitespace-nowrap ${linkClass} max-sm:text-[11px] max-sm:tracking-[0.15em]`}
         href={NOCTURNAL_LABS_HREF}
         aria-label="Nocturnal Labs — home"
       >

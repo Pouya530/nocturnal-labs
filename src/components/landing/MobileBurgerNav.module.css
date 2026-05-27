@@ -352,6 +352,8 @@
 
 .menuFooterLink {
   display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.24em;

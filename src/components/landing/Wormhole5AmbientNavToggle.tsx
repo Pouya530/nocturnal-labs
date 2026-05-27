@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactElement } from 'react';
-import { useSyncExternalStore } from 'react';
+import { useId, useSyncExternalStore } from 'react';
 
 import {
   LANDING_NAV_MENU_TRIGGER_LABEL_CLASS,
@@ -28,18 +28,33 @@ function AmbientPauseIcon(): ReactElement {
 }
 
 /**
- * Play glyph — same iridescent stack as the AUDIO label (`background-clip: text`).
- * WebKit often omits clip-path + SVG gradient shapes in the nav cluster; text clip is reliable.
+ * Play control — SVG triangle + `linearGradient` (iOS Safari often paints `background-clip: text`
+ * on ▶ as a solid square; SVG fill stays sharp at any DPR).
  */
 function AmbientPlayIcon(): ReactElement {
+  const uid = useId().replace(/:/g, '');
+  const gradId = `nl-ambient-play-grad-${uid}`;
   return (
     <span className={`${AMBIENT_ICON_CLASS} landing-nav-trigger-icon--play`} aria-hidden>
-      <span
-        className="landing-nav-ambient-play-glyph coming-soon-text-iridescent landing-nav-glow landing-nav-text-stroke"
-        style={{ paddingTop: 0, paddingBottom: 0 }}
-        aria-hidden
-      >
-        ▶
+      <span className="landing-nav-ambient-play-svg" aria-hidden>
+        <svg
+          className="landing-nav-ambient-play-svg__inner"
+          viewBox="0 0 24 24"
+          width="100%"
+          height="100%"
+          focusable="false"
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0%" y1="50%" x2="100%" y2="50%">
+              <stop offset="0%" stopColor="#ff0080" />
+              <stop offset="22%" stopColor="#7c3aed" />
+              <stop offset="48%" stopColor="#0ea5e9" />
+              <stop offset="72%" stopColor="#22c55e" />
+              <stop offset="100%" stopColor="#ff0080" />
+            </linearGradient>
+          </defs>
+          <path d="M8 5.5v13L19 12 8 5.5Z" fill={`url(#${gradId})`} />
+        </svg>
       </span>
     </span>
   );
