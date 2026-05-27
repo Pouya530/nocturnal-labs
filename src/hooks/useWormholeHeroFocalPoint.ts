@@ -3,23 +3,22 @@
 import { useSyncExternalStore } from 'react';
 
 import {
-  resolveHeroFocalCssVars,
+  getHeroFocalCssVarsServerSnapshot,
+  getHeroFocalCssVarsSnapshot,
   subscribeHeroFocalCssVars,
   type HeroFocalCssVars,
 } from '@/lib/wormholeHeroFocalPoint';
 import { getGalaxyFoldViewportClass, subscribeGalaxyFoldViewportClass } from '@/lib/galaxyFoldViewport';
 
-const EMPTY: HeroFocalCssVars = {
-  '--hero-focal-x-frac': '0.5',
-  '--hero-focal-y-frac': '0.48',
-  '--hero-coin-diameter': 'clamp(180px, 38vmin, 520px)',
-};
+function subscribeHeroFocal(onStoreChange: () => void): () => void {
+  return subscribeHeroFocalCssVars(onStoreChange);
+}
 
 export function useWormholeHeroFocalPoint(enabled: boolean): HeroFocalCssVars {
   return useSyncExternalStore(
-    (onStoreChange) => (enabled ? subscribeHeroFocalCssVars(onStoreChange) : () => {}),
-    () => (enabled ? resolveHeroFocalCssVars() : EMPTY),
-    () => EMPTY,
+    subscribeHeroFocal,
+    () => (enabled ? getHeroFocalCssVarsSnapshot() : getHeroFocalCssVarsServerSnapshot()),
+    getHeroFocalCssVarsServerSnapshot,
   );
 }
 
