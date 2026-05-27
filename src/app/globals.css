@@ -238,7 +238,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 @media (orientation: portrait) and (pointer: coarse) and (max-width: 839px) {
   .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
     --hero-logo-size: min(
-      var(--hero-coin-diameter, min(268px, calc(100vw - 2.75rem))),
+      var(--hero-coin-diameter, min(402px, calc(100vw - 2.75rem))),
       var(--hero-logo-vh-cap)
     );
   }

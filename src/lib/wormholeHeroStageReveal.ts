@@ -10,9 +10,11 @@ import {
 import {
   WORMHOLE5_INTRO_LOGO_START_TZ_PX,
   WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE,
+  WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE_MOBILE_PORTRAIT,
   wormholeHomeMicroIntroDelayMs,
   wormholeHomeMicroIntroMs,
 } from '@/lib/wormholePageConfig';
+import { isWormholeMobilePortrait } from '@/lib/wormholeScrollMobile';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 
 export type WormholeHeroStageRevealOpts = {
@@ -68,9 +70,12 @@ export function runWormholeHeroStageReveal(
   let delayTimer: ReturnType<typeof setTimeout> | undefined;
 
   const startReveal = () => {
+    const scaleFrom = isWormholeMobilePortrait()
+      ? WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE_MOBILE_PORTRAIT
+      : WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE;
     inner = runStageReveal({
       durationMs: wormholeHomeMicroIntroMs(),
-      scaleFrom: WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE,
+      scaleFrom,
       ease: wormholeHomeIntroLogoEased,
       onFrame(_linear, eased) {
         if (driveIntroCam) {

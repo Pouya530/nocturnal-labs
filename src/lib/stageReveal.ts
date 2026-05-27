@@ -93,7 +93,7 @@ export function runStageReveal(opts: StageRevealOpts = {}): { cancel: () => void
   };
 }
 
-export function initStageReveal(target?: HTMLElement): void {
+export function initStageReveal(target?: HTMLElement, scaleFrom = DEFAULTS.scaleFrom): void {
   const el = target ?? (typeof document !== 'undefined' ? document.documentElement : null);
   if (!el) return;
 
@@ -106,7 +106,7 @@ export function initStageReveal(target?: HTMLElement): void {
     el.style.setProperty('--stage-reveal-opacity', '1');
   } else {
     el.style.setProperty('--stage-reveal-progress', '0');
-    el.style.setProperty('--stage-reveal-scale', String(DEFAULTS.scaleFrom));
+    el.style.setProperty('--stage-reveal-scale', String(scaleFrom));
     el.style.setProperty('--stage-reveal-opacity', '0');
   }
 }

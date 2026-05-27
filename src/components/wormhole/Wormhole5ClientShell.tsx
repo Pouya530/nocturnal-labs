@@ -31,7 +31,10 @@ import {
   WORMHOLE5_TUNNEL_LAB_DEFAULTS,
   WORMHOLE20_TUNNEL_LAB_DEFAULTS,
   WORMHOLE_CLASSIC_TUNNEL,
+  WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE,
+  WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE_MOBILE_PORTRAIT,
 } from '@/lib/wormholePageConfig';
+import { isWormholeMobilePortrait } from '@/lib/wormholeScrollMobile';
 import {
   disableWormholeAmbientEqualizer,
   enableWormholeAmbientEqualizer,
@@ -190,7 +193,12 @@ export function Wormhole5ClientShell({
       initActiveIntro();
     } else {
       clearAllIntros();
-      initStageReveal();
+      initStageReveal(
+        undefined,
+        isWormholeMobilePortrait()
+          ? WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE_MOBILE_PORTRAIT
+          : WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE,
+      );
     }
     if (typeof document !== 'undefined') {
       const root = document.documentElement;

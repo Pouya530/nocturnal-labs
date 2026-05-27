@@ -122,6 +122,9 @@ export const WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY = 0.14;
 /** Opening hero scale multiplier before the intro grows to 1 (smaller = more dramatic arrival). */
 export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE = 0.48;
 
+/** Mobile portrait — 50% larger opening coin than {@link WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE}. */
+export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE_MOBILE_PORTRAIT = 0.72;
+
 /**
  * `/wormhole5` — opening journey zoom + logo timeline (much longer than {@link WORMHOLE_HOME_MICRO_INTRO_MS}).
  */
@@ -177,8 +180,8 @@ export const HERO_FOCAL_POINT = {
 /** Default desktop / tablet coin diameter on wormhole5 + home (matches lab). */
 export const HERO_COIN_SIZE_DESKTOP = 'min(182px, calc(100vw - 3rem))';
 
-/** Default touch-portrait coin diameter (below legacy 292px cap). */
-export const HERO_COIN_SIZE_MOBILE_PORTRAIT = 'min(268px, calc(100vw - 2.75rem))';
+/** Default touch-portrait coin diameter (+50% vs prior 268px cap). */
+export const HERO_COIN_SIZE_MOBILE_PORTRAIT = 'min(402px, calc(100vw - 2.75rem))';
 
 /**
  * Optional diameter overrides (fold / short landscape). Default sizing follows `.hero-logo-size-var`

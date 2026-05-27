@@ -18,28 +18,42 @@ export function isWormholeTouchScrollPrimary(): boolean {
   return isCoarseOrTouchPrimaryViewport();
 }
 
+/** Phones in portrait (excludes tablet-wide portrait; matches hero coin CSS). */
+export function isWormholeMobilePortrait(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (!isCoarseOrTouchPrimaryViewport()) return false;
+  return window.matchMedia('(orientation: portrait) and (max-width: 839px)').matches;
+}
+
 /**
  * Extra finger-pan / touch scroll gain on phones and touch-primary tablets only.
  * Applied in {@link useScrollDepth} (`/` index + wormhole routes); desktop wheel unchanged.
  */
 export const WORMHOLE_MOBILE_TOUCH_SCROLL_SENS_MUL = 1.36;
 
+/** Portrait phones — ~50% stronger pan response than {@link WORMHOLE_MOBILE_TOUCH_SCROLL_SENS_MUL}. */
+export const WORMHOLE_MOBILE_PORTRAIT_TOUCH_SCROLL_SENS_MUL = 2.04;
+
 export function wormholeMobileTouchScrollSensMul(): number {
+  if (isWormholeMobilePortrait()) return WORMHOLE_MOBILE_PORTRAIT_TOUCH_SCROLL_SENS_MUL;
   return isWormholeTouchScrollPrimary() ? WORMHOLE_MOBILE_TOUCH_SCROLL_SENS_MUL : 1;
 }
 
 /** Coast e-folding time (seconds) — locked/free velocity decay from prior impulse. */
 export function wormholeScrollCoastTauSec(): number {
+  if (isWormholeMobilePortrait()) return 22;
   return isWormholeTouchScrollPrimary() ? 14 : 72;
 }
 
 /** Extra settle toward v=0 when hands are off (1/s). */
 export function wormholeScrollVelSettlePerSec(): number {
+  if (isWormholeMobilePortrait()) return 2.2;
   return isWormholeTouchScrollPrimary() ? 3.8 : 2.15;
 }
 
 /** Locked-mode reversal brake when finger pan opposes current velocity (1/s). */
 export function wormholeScrollReversalBrakePerSec(): number {
+  if (isWormholeMobilePortrait()) return 18;
   return isWormholeTouchScrollPrimary() ? 34 : 11;
 }
 
@@ -51,6 +65,9 @@ export function wormholeScrollReversalImpulseMul(): number {
  * Effective friction coeff for `Math.pow(friction, dt*8)`. Mobile: do not add +0.06 (that slowed decay).
  */
 export function wormholeScrollFrictionEffective(storeFriction: number): number {
+  if (isWormholeMobilePortrait()) {
+    return Math.max(0.76, storeFriction - 0.14);
+  }
   if (isWormholeTouchScrollPrimary()) {
     return Math.max(0.84, storeFriction - 0.03);
   }
