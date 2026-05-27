@@ -76,6 +76,11 @@ export type TunnelState = {
   /** Tunnel debug — slow circular pitch/yaw drift on the tunnel camera (idle “orbit” feel). */
   wormholeDebugCircularCamTilt: boolean;
   /**
+   * When true, {@link JuliaWormholeBackdrop} offsets `camera.lookAt` from {@link HERO_FOCAL_POINT} so the
+   * tube mouth aligns with the hero coin anchor (same source as CSS `--hero-focal-*-frac`).
+   */
+  wormholeDebugHeroFocalSync: boolean;
+  /**
    * Journey / throat: pointer nudges `camera.lookAt` slightly (parallax). Does not change scroll.
    */
   wormholeJourneyMouseParallax: WormholeJourneyMouseParallaxMode;
@@ -299,6 +304,7 @@ const initial: TunnelState = {
   wormholeDebugRandomCamTilt: false,
   wormholeDebugRandomCamTiltAmount: 1,
   wormholeDebugCircularCamTilt: false,
+  wormholeDebugHeroFocalSync: true,
   wormholeJourneyMouseParallax: 'off',
   wormholeBlackHoleOverlayEnabled: false,
   wormholeCoinClickTunnelBoost: false,

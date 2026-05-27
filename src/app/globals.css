@@ -149,9 +149,17 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 }
 
 /*
- * Wormhole5 lab: clamp logo by viewport height so halos fit in flex-centred hero.
+ * Wormhole5 + home `/` — focal centring + lab coin sizing (`NOCTURNAL_LABS_COIN_CENTRING_UX_UI.md`).
+ * Vars `--hero-focal-*-frac` (+ optional `--hero-coin-diameter`) from {@link useWormholeHeroFocalPoint}.
  */
+.wormhole5-home-route {
+  min-height: min(100dvh, 100svh);
+}
+
 .wormhole5-route .wormhole-hero-perspective-root {
+  container-type: size;
+  container-name: hero;
+  position: relative;
   --hero-logo-vh-cap: calc(
     (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 9.25rem) / 2.16
   );
@@ -161,41 +169,26 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   --hero-logo-size: min(var(--hero-logo-size), var(--hero-logo-vh-cap));
 }
 
+.wormhole5-route .wormhole-lab-micro-intro-logo {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+/* Fill hero stack — absolute coin anchor needs a sized containing block (main otherwise collapses). */
 .wormhole5-route main.wormhole-plan-main {
-  padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 2.75rem));
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
-}
-
-/*
- * Home `/` — focal centring (`NOCTURNAL_LABS_COIN_CENTRING_UX_UI.md`).
- * Vars `--hero-focal-*-frac` + `--hero-coin-diameter` from {@link useWormholeHeroFocalPoint}.
- */
-.wormhole5-home-route {
-  min-height: min(100dvh, 100svh);
-}
-
-.wormhole5-home-route .wormhole-hero-perspective-root {
-  container-type: size;
-  container-name: hero;
-  position: relative;
-}
-
-.wormhole5-home-route .wormhole-lab-micro-intro-logo {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.wormhole5-home-route main.wormhole-plan-main {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
+  position: absolute;
+  inset: 0;
   display: block;
   overflow: visible;
   padding: 0;
+  margin: 0;
+  width: auto;
+  min-height: 0;
 }
 
-.wormhole5-home-route .wormhole-hero-coin-anchor {
+.wormhole5-route .wormhole-hero-coin-anchor {
   position: absolute;
   left: calc(
     env(safe-area-inset-left, 0px) + (100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) *
@@ -203,34 +196,61 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   );
   top: calc(
     env(safe-area-inset-top, 0px) + (100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) *
-      var(--hero-focal-y-frac, 0.48)
+      var(--hero-focal-y-frac, 0.52)
   );
   transform: translate(-50%, -50%);
   width: max-content;
   max-width: min(100%, calc(100vw - 2rem));
   margin: 0;
+  z-index: 12;
   transition:
     top 300ms ease-out,
     left 300ms ease-out;
 }
 
-.wormhole5-home-route .wormhole-hero-perspective-root .hero-logo-size-var {
-  --hero-logo-size: min(var(--hero-coin-diameter, clamp(180px, 38vmin, 520px)), calc(100vw - 2.75rem));
+/*
+ * Production home — center vs full viewport (tunnel backdrop), not the flex hero column above the
+ * fixed marquee footer.
+ */
+.wormhole5-home-route .wormhole-hero-coin-anchor {
+  position: fixed;
+  left: calc(
+    env(safe-area-inset-left, 0px) + (100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) *
+      var(--hero-focal-x-frac, 0.5)
+  );
+  top: calc(
+    env(safe-area-inset-top, 0px) + (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) *
+      var(--hero-focal-y-frac, 0.52)
+  );
 }
 
-@container hero (max-height: 500px) {
-  .wormhole5-home-route .wormhole-hero-perspective-root .hero-logo-size-var {
-    --hero-logo-size: min(var(--hero-coin-diameter, clamp(140px, 34vmin, 320px)), calc(100vw - 2rem));
+/* Explicit lab sizes — avoids broken self-ref in `--hero-logo-size` (was inflating desktop). */
+.wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
+  --hero-logo-size: min(292px, calc(100vw - 2.75rem), var(--hero-logo-vh-cap));
+}
+
+@media (min-width: 1024px) {
+  .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
+    --hero-logo-size: min(182px, calc(100vw - 3rem), var(--hero-logo-vh-cap));
+  }
+}
+
+@media (orientation: portrait) and (pointer: coarse) and (max-width: 839px) {
+  .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
+    --hero-logo-size: min(
+      var(--hero-coin-diameter, min(268px, calc(100vw - 2.75rem))),
+      var(--hero-logo-vh-cap)
+    );
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wormhole5-home-route .wormhole-hero-coin-anchor {
+  .wormhole5-route .wormhole-hero-coin-anchor {
     transition: none;
   }
 }
 
-/* Short portrait phones (not fold-inner width): slightly tighter vh cap (lab only). */
+/* Short portrait phones (not fold-inner width): slightly tighter vh cap. */
 @media (orientation: portrait) and (pointer: coarse) and (max-height: 720px) and (max-width: 839px) {
   .wormhole5-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
@@ -1248,24 +1268,13 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole5-route main.wormhole-plan-main {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    min-height: 0 !important;
-    margin-inline: auto;
-    width: 100%;
-    max-width: 100%;
-    padding-top: max(0.45rem, calc(env(safe-area-inset-top, 0px) + 2.65rem)) !important;
-    padding-bottom: max(0.55rem, env(safe-area-inset-bottom, 0px)) !important;
-    padding-left: max(1rem, env(safe-area-inset-left, 0px));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
-  }
-
-  .wormhole5-home-route main.wormhole-plan-main {
+    position: absolute !important;
+    inset: 0 !important;
     display: block !important;
+    box-sizing: border-box;
+    margin: 0;
+    width: auto;
+    max-width: none;
     padding: 0 !important;
   }
 

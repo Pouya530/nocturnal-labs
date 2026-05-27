@@ -15,6 +15,8 @@ import {
   wormholeNarrowViewport,
 } from '@/lib/webglMobilePrefs';
 import { computeWormholeCoinFollowCam } from '@/lib/wormholeCoinFollowCam';
+import { computeHeroFocalLookAtOffset } from '@/lib/wormholeHeroFocalCamera';
+import { getHeroFocalPointSnapshot } from '@/lib/wormholeHeroFocalPoint';
 import { resolveWormholeHelixQuality } from '@/tunnel/wormholeHelixQuality';
 import { resolveWormholeTunnelQuality } from '@/tunnel/wormholeTunnelQuality';
 import { WORMHOLE_DESKTOP_PROD_TONE_EXPOSURE } from '@/lib/wormholePageConfig';
@@ -1422,7 +1424,14 @@ export function JuliaWormholeBackdrop({
 
         // Re-aim camera down the tube (shake displaced position, but lookAt restores aim).
         // Roll is applied after lookAt so banking is not cleared.
-        camera.lookAt(aimX, aimY, -10);
+        let mouthAimX = aimX;
+        let mouthAimY = aimY;
+        if (s.wormholeDebugHeroFocalSync) {
+          const focalOff = computeHeroFocalLookAtOffset(getHeroFocalPointSnapshot().focal);
+          mouthAimX += focalOff.x;
+          mouthAimY += focalOff.y;
+        }
+        camera.lookAt(mouthAimX, mouthAimY, -10);
         camera.rotateZ(smoothedBank);
 
         applyRandomCamTiltAfterLookAt(
@@ -1462,7 +1471,14 @@ export function JuliaWormholeBackdrop({
           camera.updateProjectionMatrix();
           camera.position.set(0, 0, 0);
         }
-        camera.lookAt(aimX, aimY, -10);
+        let mouthAimX = aimX;
+        let mouthAimY = aimY;
+        if (s.wormholeDebugHeroFocalSync) {
+          const focalOff = computeHeroFocalLookAtOffset(getHeroFocalPointSnapshot().focal);
+          mouthAimX += focalOff.x;
+          mouthAimY += focalOff.y;
+        }
+        camera.lookAt(mouthAimX, mouthAimY, -10);
       }
 
       composer.render(dt);

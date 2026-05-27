@@ -332,6 +332,21 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
           />
         </label>
       </div>
+      <label className="mb-3 flex cursor-pointer items-center gap-2 rounded border border-emerald-700/40 bg-emerald-950/25 px-2 py-1.5">
+        <input
+          type="checkbox"
+          checked={s.wormholeDebugHeroFocalSync}
+          disabled={!s.wormhole3dBackgroundEnabled}
+          onChange={(e) =>
+            tunnelStore.setState({ wormholeDebugHeroFocalSync: e.target.checked })
+          }
+          className="rounded border-zinc-600 disabled:opacity-40"
+        />
+        <span className={!s.wormhole3dBackgroundEnabled ? 'text-zinc-500' : 'leading-snug'}>
+          Hero focal ↔ tunnel mouth{' '}
+          <span className="text-zinc-500">(coin + camera, HERO_FOCAL_POINT)</span>
+        </span>
+      </label>
       <label className="mb-1 block">
         iters baseline {s.iters}
         <span className="block font-normal text-zinc-500">Scroll still boosts iterations above this baseline.</span>

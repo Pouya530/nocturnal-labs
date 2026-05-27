@@ -120,7 +120,7 @@ export function wormholeHomeMicroIntroDelayMs(): number {
 export const WORMHOLE_HOME_MICRO_INTRO_LOGO_DELAY = 0.14;
 
 /** Opening hero scale multiplier before the intro grows to 1 (smaller = more dramatic arrival). */
-export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE = 0.58;
+export const WORMHOLE_HOME_MICRO_INTRO_LOGO_START_SCALE = 0.48;
 
 /**
  * `/wormhole5` — opening journey zoom + logo timeline (much longer than {@link WORMHOLE_HOME_MICRO_INTRO_MS}).
@@ -166,18 +166,25 @@ export const WORMHOLE_LAB_COIN_CANVAS_PERCENT = 222;
  */
 export const WORMHOLE_COIN_DEPTH_SLOT_MUL = 1.84;
 
-/** Hero coin + fractal vortex optical centre (fractions 0–1). See `NOCTURNAL_LABS_COIN_CENTRING_UX_UI.md`. */
+/** Hero coin + tunnel mouth optical centre (fractions 0–1). See `NOCTURNAL_LABS_COIN_CENTRING_UX_UI.md`. */
 export const HERO_FOCAL_POINT = {
-  portrait: { x: 0.5, y: 0.48 },
-  landscape: { x: 0.5, y: 0.5 },
-  foldUnfolded: { x: 0.5, y: 0.5 },
-  desktopLarge: { x: 0.5, y: 0.46 },
+  portrait: { x: 0.5, y: 0.52 },
+  landscape: { x: 0.5, y: 0.52 },
+  foldUnfolded: { x: 0.5, y: 0.51 },
+  desktopLarge: { x: 0.5, y: 0.51 },
 } as const;
 
-/** Responsive coin diameter (`vmin` + clamp). Applied as `--hero-coin-diameter` on home. */
+/** Default desktop / tablet coin diameter on wormhole5 + home (matches lab). */
+export const HERO_COIN_SIZE_DESKTOP = 'min(182px, calc(100vw - 3rem))';
+
+/** Default touch-portrait coin diameter (below legacy 292px cap). */
+export const HERO_COIN_SIZE_MOBILE_PORTRAIT = 'min(268px, calc(100vw - 2.75rem))';
+
+/**
+ * Optional diameter overrides (fold / short landscape). Default sizing follows `.hero-logo-size-var`
+ * + `.wormhole5-hero-logo` + `--hero-logo-vh-cap` (same as `/wormhole5` lab).
+ */
 export const HERO_COIN_DIAMETER = {
-  default: 'clamp(180px, 38vmin, 520px)',
-  mobilePortrait: 'clamp(160px, 42vmin, 280px)',
   landscapeShort: 'clamp(140px, 34vmin, 320px)',
   foldFolded: 'clamp(120px, 46vmin, 200px)',
   foldUnfolded: 'clamp(220px, 40vmin, 360px)',
@@ -254,6 +261,8 @@ export const WORMHOLE5_TUNNEL_LAB_DEFAULTS = {
   wormholeCoinFollowCamStrength: 1,
   /** Idle drift-mote XY buzz when scroll is fully idle (wormhole5 locked mouth). */
   wormholeDebugDriftMotesIdleBuzz: true,
+  /** Hero coin anchor ↔ tunnel mouth (`HERO_FOCAL_POINT` + camera lookAt). */
+  wormholeDebugHeroFocalSync: true,
 } as const;
 
 /** `/wormhole20` — wormhole5 ambient sync + Web Audio equalizer (dev preview). */

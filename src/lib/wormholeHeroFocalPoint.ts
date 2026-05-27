@@ -1,6 +1,6 @@
 /**
- * Shared hero focal point + coin diameter — see `NOCTURNAL_LABS_COIN_CENTRING_UX_UI.md`.
- * CSS on `.wormhole5-home-route` reads `--hero-focal-*-frac` and `--hero-coin-diameter`.
+ * Shared hero focal point + optional coin diameter — see `NOCTURNAL_LABS_COIN_CENTRING_UX_UI.md`.
+ * CSS on `.wormhole5-route` reads `--hero-focal-*-frac` (and optional `--hero-coin-diameter`).
  */
 
 import {
@@ -11,24 +11,38 @@ import {
   HERO_COIN_DIAMETER,
   HERO_FOCAL_POINT,
 } from '@/lib/wormholePageConfig';
+import type { HeroFocalPoint } from '@/lib/wormholeHeroFocalCamera';
+
+export type { HeroFocalPoint };
 
 export type HeroFocalCssVars = {
   '--hero-focal-x-frac': string;
   '--hero-focal-y-frac': string;
-  '--hero-coin-diameter': string;
+  '--hero-coin-diameter'?: string;
+};
+
+export type HeroFocalResolved = {
+  focal: HeroFocalPoint;
+  /** When set, overrides default lab logo sizing for edge viewports. */
+  diameter: string | null;
 };
 
 const DESKTOP_LARGE_MIN_W = 1440;
 const MOBILE_PORTRAIT_MAX_W = 480;
 const SHORT_LANDSCAPE_MAX_H = 500;
 
+const SSR_RESOLVED: HeroFocalResolved = {
+  focal: HERO_FOCAL_POINT.portrait,
+  diameter: null,
+};
+
 const SSR_SNAPSHOT: HeroFocalCssVars = {
-  '--hero-focal-x-frac': String(HERO_FOCAL_POINT.portrait.x),
-  '--hero-focal-y-frac': String(HERO_FOCAL_POINT.portrait.y),
-  '--hero-coin-diameter': HERO_COIN_DIAMETER.default,
+  '--hero-focal-x-frac': '0.5',
+  '--hero-focal-y-frac': '0.52',
 };
 
 let cachedKey = '';
+let cachedResolved: HeroFocalResolved = SSR_RESOLVED;
 let cachedSnapshot: HeroFocalCssVars = SSR_SNAPSHOT;
 
 function viewportCacheKey(): string {
@@ -37,14 +51,14 @@ function viewportCacheKey(): string {
   return `${w}|${h}|${getGalaxyFoldViewportClass()}|${w > h ? 'L' : 'P'}`;
 }
 
-function buildHeroFocalCssVars(): HeroFocalCssVars {
+export function resolveHeroFocalForViewport(): HeroFocalResolved {
   const w = window.innerWidth;
   const h = window.innerHeight;
   const landscape = w > h;
   const foldClass = getGalaxyFoldViewportClass();
 
-  let focal: { x: number; y: number } = HERO_FOCAL_POINT.portrait;
-  let diameter: string = HERO_COIN_DIAMETER.default;
+  let focal: HeroFocalPoint = HERO_FOCAL_POINT.portrait;
+  let diameter: string | null = null;
 
   if (w >= DESKTOP_LARGE_MIN_W) {
     focal = HERO_FOCAL_POINT.desktopLarge;
@@ -56,26 +70,38 @@ function buildHeroFocalCssVars(): HeroFocalCssVars {
   } else if (landscape && h < SHORT_LANDSCAPE_MAX_H) {
     focal = HERO_FOCAL_POINT.landscape;
     diameter = HERO_COIN_DIAMETER.landscapeShort;
-  } else if (!landscape && w < MOBILE_PORTRAIT_MAX_W) {
-    diameter = HERO_COIN_DIAMETER.mobilePortrait;
   }
 
-  return {
-    '--hero-focal-x-frac': String(focal.x),
-    '--hero-focal-y-frac': String(focal.y),
-    '--hero-coin-diameter': diameter,
+  return { focal, diameter };
+}
+
+function toCssVars(resolved: HeroFocalResolved): HeroFocalCssVars {
+  const vars: HeroFocalCssVars = {
+    '--hero-focal-x-frac': String(resolved.focal.x),
+    '--hero-focal-y-frac': String(resolved.focal.y),
   };
+  if (resolved.diameter) {
+    vars['--hero-coin-diameter'] = resolved.diameter;
+  }
+  return vars;
 }
 
 /** Stable snapshot for `useSyncExternalStore` — must not return a new object every read. */
-export function getHeroFocalCssVarsSnapshot(): HeroFocalCssVars {
-  if (typeof window === 'undefined') return SSR_SNAPSHOT;
+export function getHeroFocalPointSnapshot(): HeroFocalResolved {
+  if (typeof window === 'undefined') return SSR_RESOLVED;
 
   const key = viewportCacheKey();
-  if (key === cachedKey) return cachedSnapshot;
+  if (key === cachedKey) return cachedResolved;
 
   cachedKey = key;
-  cachedSnapshot = buildHeroFocalCssVars();
+  cachedResolved = resolveHeroFocalForViewport();
+  cachedSnapshot = toCssVars(cachedResolved);
+  return cachedResolved;
+}
+
+export function getHeroFocalCssVarsSnapshot(): HeroFocalCssVars {
+  if (typeof window === 'undefined') return SSR_SNAPSHOT;
+  getHeroFocalPointSnapshot();
   return cachedSnapshot;
 }
 

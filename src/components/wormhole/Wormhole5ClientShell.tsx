@@ -261,6 +261,7 @@ export function Wormhole5ClientShell({
     const prevJuliaEq = s.wormholeDebugJuliaAmbientEqualizer;
     const prevJuliaEqStrength = s.wormholeDebugJuliaAmbientEqualizerStrength;
     const prevDriftMotesIdleBuzz = s.wormholeDebugDriftMotesIdleBuzz;
+    const prevHeroFocalSync = s.wormholeDebugHeroFocalSync;
     const prevCoinFollowCam = s.wormholeCoinFollowCamEnabled;
     const prevCoinFollowCamStrength = s.wormholeCoinFollowCamStrength;
     const tunnelLabDefaults = juliaEqualizerLab
@@ -380,6 +381,7 @@ export function Wormhole5ClientShell({
         wormholeCoinFollowCamEnabled: prevCoinFollowCam,
         wormholeCoinFollowCamStrength: prevCoinFollowCamStrength,
         wormholeDebugDriftMotesIdleBuzz: prevDriftMotesIdleBuzz,
+        wormholeDebugHeroFocalSync: prevHeroFocalSync,
         ...(juliaEqualizerLab
           ? {
               wormholeDebugJuliaAmbientSync: prevJuliaSync,
@@ -410,16 +412,16 @@ export function Wormhole5ClientShell({
     return () => window.removeEventListener('nl-replay-lab-intro', onReplay);
   }, [localHomePresentation, runLabIntroSequence]);
 
-  const heroFocalVars = useWormholeHeroFocalPoint(localHomePresentation);
+  const heroFocalVars = useWormholeHeroFocalPoint(true);
   const foldViewportClass = useGalaxyFoldViewportClass();
 
   return (
     <div
       className={[
         'relative flex min-h-[100dvh] w-full flex-col bg-[#030208]',
-        localHomePresentation ? 'wormhole5-home-route' : 'wormhole5-route',
+        localHomePresentation ? 'wormhole5-home-route wormhole5-route' : 'wormhole5-route',
       ].join(' ')}
-      style={localHomePresentation ? (heroFocalVars as CSSProperties) : undefined}
+      style={heroFocalVars as CSSProperties}
       data-fold-viewport={localHomePresentation ? foldViewportClass : undefined}
     >
       {juliaEqualizerLab ? (
