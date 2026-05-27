@@ -108,7 +108,7 @@ export function WormholePlanContent({
     >
       {coinVisible ? (
         <div
-          className="hero-logo-size-var mx-auto flex w-full max-w-full justify-center"
+          className="hero-logo-size-var wormhole-hero-coin-anchor mx-auto flex w-full max-w-full justify-center"
           style={{ opacity: coinScrollForwardOpacity }}
         >
           {heroStage}

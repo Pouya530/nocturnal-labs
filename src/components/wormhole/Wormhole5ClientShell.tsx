@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode, ReactElement } from 'react';
+import type { CSSProperties, ReactNode, ReactElement } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 
 import { motionPrefs } from '@/core/motion';
@@ -42,6 +42,7 @@ import { wormholeHomeIntroFreezeTranslateZOnProduction } from '@/lib/wormholeHom
 import { runWormholeHeroStageReveal, wormholeHeroStageRevealAmbientFadeOpts } from '@/lib/wormholeHeroStageReveal';
 import { runWormhole5ParallelCamIntro } from '@/lib/wormhole5ParallelCamIntro';
 import { Wormhole5AmbientNavToggle } from '@/components/landing/Wormhole5AmbientNavToggle';
+import { useGalaxyFoldViewportClass, useWormholeHeroFocalPoint } from '@/hooks/useWormholeHeroFocalPoint';
 import {
   isWormhole5AmbientAudioRoute,
   startWormhole5AmbientImmediate,
@@ -408,12 +409,17 @@ export function Wormhole5ClientShell({
     return () => window.removeEventListener('nl-replay-lab-intro', onReplay);
   }, [localHomePresentation, runLabIntroSequence]);
 
+  const heroFocalVars = useWormholeHeroFocalPoint(localHomePresentation);
+  const foldViewportClass = useGalaxyFoldViewportClass();
+
   return (
     <div
       className={[
         'relative flex min-h-[100dvh] w-full flex-col bg-[#030208]',
         localHomePresentation ? 'wormhole5-home-route' : 'wormhole5-route',
       ].join(' ')}
+      style={localHomePresentation ? (heroFocalVars as CSSProperties) : undefined}
+      data-fold-viewport={localHomePresentation ? foldViewportClass : undefined}
     >
       {juliaEqualizerLab ? (
         <p

@@ -166,6 +166,23 @@ export const WORMHOLE_LAB_COIN_CANVAS_PERCENT = 222;
  */
 export const WORMHOLE_COIN_DEPTH_SLOT_MUL = 1.84;
 
+/** Hero coin + fractal vortex optical centre (fractions 0–1). See `NOCTURNAL_LABS_COIN_CENTRING_UX_UI.md`. */
+export const HERO_FOCAL_POINT = {
+  portrait: { x: 0.5, y: 0.48 },
+  landscape: { x: 0.5, y: 0.5 },
+  foldUnfolded: { x: 0.5, y: 0.5 },
+  desktopLarge: { x: 0.5, y: 0.46 },
+} as const;
+
+/** Responsive coin diameter (`vmin` + clamp). Applied as `--hero-coin-diameter` on home. */
+export const HERO_COIN_DIAMETER = {
+  default: 'clamp(180px, 38vmin, 520px)',
+  mobilePortrait: 'clamp(160px, 42vmin, 280px)',
+  landscapeShort: 'clamp(140px, 34vmin, 320px)',
+  foldFolded: 'clamp(120px, 46vmin, 200px)',
+  foldUnfolded: 'clamp(220px, 40vmin, 360px)',
+} as const;
+
 /**
  * `/wormhole4` — Wormhole (3D) debug panel defaults on first paint (restored when leaving the route).
  * Matches lab snapshot: 3D on, helices off, bloom 0.35 / radius 1.5 / threshold 0.02, fog 0.018.
