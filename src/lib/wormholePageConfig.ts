@@ -172,7 +172,8 @@ export const WORMHOLE_COIN_DEPTH_SLOT_MUL = 1.84;
 /** Hero coin + tunnel mouth optical centre (fractions 0–1). See `NOCTURNAL_LABS_COIN_CENTRING_UX_UI.md`. */
 export const HERO_FOCAL_POINT = {
   portrait: { x: 0.5, y: 0.5 },
-  landscape: { x: 0.5, y: 0.51 },
+  /** Short landscape phones (h < 500px) — slightly below center vs tunnel mouth. */
+  landscape: { x: 0.5, y: 0.54 },
   foldUnfolded: { x: 0.5, y: 0.51 },
   desktopLarge: { x: 0.5, y: 0.51 },
 } as const;
