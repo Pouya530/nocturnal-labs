@@ -38,7 +38,7 @@ const SSR_RESOLVED: HeroFocalResolved = {
 
 const SSR_SNAPSHOT: HeroFocalCssVars = {
   '--hero-focal-x-frac': '0.5',
-  '--hero-focal-y-frac': '0.52',
+  '--hero-focal-y-frac': '0.5',
 };
 
 let cachedKey = '';

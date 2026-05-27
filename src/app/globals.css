@@ -196,7 +196,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   );
   top: calc(
     env(safe-area-inset-top, 0px) + (100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) *
-      var(--hero-focal-y-frac, 0.52)
+      var(--hero-focal-y-frac, 0.5)
   );
   transform: translate(-50%, -50%);
   width: max-content;
@@ -220,7 +220,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   );
   top: calc(
     env(safe-area-inset-top, 0px) + (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) *
-      var(--hero-focal-y-frac, 0.52)
+      var(--hero-focal-y-frac, 0.5)
   );
 }
 
