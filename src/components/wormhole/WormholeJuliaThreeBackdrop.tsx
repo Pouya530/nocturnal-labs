@@ -56,13 +56,13 @@ export function WormholeJuliaThreeBackdrop({
   helixWallInsetMul,
   helixWormhole2RibbonStyle = false,
 }: WormholeJuliaThreeBackdropProps): ReactElement | null {
-  const enabled = useSyncExternalStore(
+  const wormhole3dEnabled = useSyncExternalStore(
     tunnelStore.subscribe,
     () => tunnelStore.getState().wormhole3dBackgroundEnabled,
     () => true,
   );
 
-  if (!enabled) return null;
+  if (!wormhole3dEnabled) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] h-[100dvh] w-screen">

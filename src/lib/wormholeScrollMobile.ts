@@ -1,11 +1,31 @@
 /**
  * Touch-primary / phone scroll tuning for production home (`/` → {@link Wormhole6ClientShell}).
  * Desktop wormhole labs keep longer coast; mobile needs snappier reversal after ring exit.
+ *
+ * Viewport probe is local (not {@link webglMobilePrefs}) to avoid a module cycle:
+ * `wormholeScrollMobile` → `webglMobilePrefs` → `wormholePageConfig` → tunnel chunks.
  */
-import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
+function isCoarseOrTouchPrimaryViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.matchMedia('(pointer: coarse)').matches) return true;
+  if (window.matchMedia('(hover: none)').matches && (navigator.maxTouchPoints ?? 0) > 0) {
+    return true;
+  }
+  return false;
+}
 
 export function isWormholeTouchScrollPrimary(): boolean {
   return isCoarseOrTouchPrimaryViewport();
+}
+
+/**
+ * Extra finger-pan / touch scroll gain on phones and touch-primary tablets only.
+ * Applied in {@link useScrollDepth} (`/` index + wormhole routes); desktop wheel unchanged.
+ */
+export const WORMHOLE_MOBILE_TOUCH_SCROLL_SENS_MUL = 1.36;
+
+export function wormholeMobileTouchScrollSensMul(): number {
+  return isWormholeTouchScrollPrimary() ? WORMHOLE_MOBILE_TOUCH_SCROLL_SENS_MUL : 1;
 }
 
 /** Coast e-folding time (seconds) — locked/free velocity decay from prior impulse. */

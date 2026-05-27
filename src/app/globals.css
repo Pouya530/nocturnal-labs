@@ -525,6 +525,10 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   align-items: center;
 }
 
+.landing-nav-right-cluster__prepend .landing-nav-ambient-audio {
+  flex-shrink: 0;
+}
+
 .landing-nav-right-cluster > .landing-nav-trigger,
 .landing-nav-right-cluster > .landing-nav-burger,
 .landing-nav-right-cluster__prepend {
@@ -557,22 +561,88 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   flex-shrink: 0;
 }
 
+/* Ambient AUDIO / PAUSE — same 22/26/28 icon slot as burger; pill bars + play triangle. */
+.landing-nav-trigger-icon--ambient {
+  --ambient-glyph-h: 10px;
+  --ambient-pause-bar-w: 4px;
+  --ambient-glyph-gap: 4px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  min-width: 22px;
+}
+
+@media (min-width: 800px) and (max-width: 1199px) {
+  .landing-nav-trigger-icon--ambient {
+    --ambient-glyph-h: 11px;
+    --ambient-pause-bar-w: 4.5px;
+    width: 26px;
+    min-width: 26px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .landing-nav-trigger-icon--ambient {
+    --ambient-glyph-h: 12px;
+    --ambient-pause-bar-w: 5px;
+    width: 28px;
+    min-width: 28px;
+  }
+}
+
 .landing-nav-trigger-icon--pause {
   flex-direction: row;
-  gap: 5px;
-  height: 13px;
+  gap: var(--ambient-glyph-gap);
+}
+
+/*
+ * Play slot: flexbox centers the ▶ in the icon column (same box as pause + burger width).
+ * Gradient text stays on the inner glyph (`inline-block` + clip) so WebKit still paints it.
+ */
+.landing-nav-trigger-icon--ambient.landing-nav-trigger-icon--play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .landing-nav-trigger-icon--pause .landing-nav-burger-line--icon {
-  width: 5px;
-  height: 13px;
+  width: var(--ambient-pause-bar-w);
+  height: var(--ambient-glyph-h);
+  min-height: var(--ambient-glyph-h);
+  border-radius: 999px;
 }
 
-.landing-nav-trigger-icon--play.landing-nav-burger-line--icon {
-  display: block;
-  width: 100%;
-  height: 13px;
-  clip-path: polygon(34% 10%, 34% 90%, 90% 50%);
+/*
+ * ▶ — colour comes from shared nav utilities (same stack as AUDIO label).
+ * WebKit often skips gradient text inside `display:flex`; keep glyph `inline-block`.
+ */
+.landing-nav-ambient-play-glyph {
+  display: inline-block;
+  flex-shrink: 0;
+  text-align: center;
+  vertical-align: middle;
+  width: calc(var(--ambient-glyph-h) * 1.25);
+  min-width: calc(var(--ambient-glyph-h) * 1.25);
+  height: var(--ambient-glyph-h);
+  font-size: calc(var(--ambient-glyph-h) * 0.78);
+  font-weight: 700;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Override body-text iridescent padding — play glyph vertical inset in the ambient icon slot. */
+.landing-nav-ambient-play-glyph.coming-soon-text-iridescent {
+  padding-top: 0px;
+  padding-bottom: 0px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.landing-nav-ambient-audio {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* MENU/CLOSE label — Universal tier sizes (iridescent classes still apply) */
@@ -1110,10 +1180,26 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 }
 
 /* Portrait + fold-inner width + coarse pointer only (e.g. Galaxy Z Fold inner portrait ~840–980 CSS px).
- * Perspective + translateZ shifts the coin horizontally on wide canvases; flatten 3D for this viewport only. */
+ * Same centre / halo treatment as landscape fold block — does not apply to tablets or desktop. */
 @media (orientation: portrait) and (pointer: coarse) and (min-width: 840px) and (max-width: 980px) {
+  .hero-logo-size-var,
+  .wormhole-home-intro-logo .hero-logo-size-var,
+  .wormhole5-hero-logo .hero-logo-size-var {
+    --hero-logo-size: min(264px, calc(100vw - 3rem));
+  }
+
+  /*
+   * Issue 1: perspective + translateZ micro-intro shifts the coin horizontally on wide canvases;
+   * flatten 3D for this viewport only. Issue 3: tighten halo / black-hole discs so blur rings do not
+   * hug fold/display seams.
+   */
   .wormhole-hero-perspective-root {
     perspective: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100%;
+    min-height: calc(100dvh - 4.5rem);
   }
 
   .cinematic-hero-perspective {
@@ -1121,6 +1207,54 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole-lab-micro-intro-logo {
-    transform: translateZ(0) scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
+    transform: translateY(clamp(-2.75rem, -4.5dvh, -1.5rem)) translateZ(0)
+      scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
+    transform-origin: center center;
+  }
+
+  main[aria-label='Wormhole'] {
+    align-items: center;
+    justify-content: center;
+    margin-inline: auto;
+    width: 100%;
+    max-width: 100%;
+    flex: 1 1 auto;
+    min-height: min(100%, calc(100dvh - 8.5rem));
+    /* Override Tailwind `py-24` on wormhole hero — was pushing the coin too low on fold inner portrait. */
+    padding-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 2.75rem)) !important;
+    padding-bottom: max(4.75rem, calc(env(safe-area-inset-bottom, 0px) + 3.25rem)) !important;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  .hero-logo-size-var.mx-auto.flex {
+    margin-inline: auto;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .black-hole-overlay {
+    width: calc(var(--hero-logo-size, 200px) * 2.65);
+    height: calc(var(--hero-logo-size, 200px) * 2.65);
+    filter: blur(2.5px);
+  }
+
+  .hero-logo-iridescent-soft.hero-logo-iridescent-soft--coin {
+    width: calc(var(--hero-logo-size, 200px) * 2.85);
+    height: calc(var(--hero-logo-size, 200px) * 2.85);
+    filter: blur(18px);
+  }
+
+  /* PAUSE / AUDIO — reliable taps above the full-screen menu layer on fold inner portrait. */
+  .landing-nav-right-cluster {
+    z-index: 9992 !important;
+  }
+
+  @supports (overflow-clip-margin: 1px) {
+    html,
+    body {
+      overflow-clip-margin: 0;
+    }
   }
 }

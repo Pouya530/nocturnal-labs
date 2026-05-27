@@ -64,6 +64,9 @@ export const WORMHOLE10_TUNNEL_START = WORMHOLE5_TUNNEL_START;
 /** `/wormhole11` — same mouth / mobile start as wormhole9 (cosmic + wormhole5 GL + intro cam ramp). */
 export const WORMHOLE11_TUNNEL_START = WORMHOLE9_TUNNEL_START;
 
+/** `/wormhole20` — same mouth lock / intro as {@link WORMHOLE5_TUNNEL_START} (dev lab on localhost:3001). */
+export const WORMHOLE20_TUNNEL_START = WORMHOLE5_TUNNEL_START;
+
 /** Production `/` — touch-primary: start further into the tube; vel 0. */
 export const WORMHOLE6_MOBILE_TUNNEL_START = {
   depth: 122.76,
@@ -167,6 +170,14 @@ export const WORMHOLE_COIN_DEPTH_SLOT_MUL = 1.84;
  * `/wormhole4` — Wormhole (3D) debug panel defaults on first paint (restored when leaving the route).
  * Matches lab snapshot: 3D on, helices off, bloom 0.35 / radius 1.5 / threshold 0.02, fog 0.018.
  */
+/** Random scroll camera tilt — base half-ranges before {@link TunnelState.wormholeDebugRandomCamTiltAmount}. */
+export const WORMHOLE_DEBUG_RANDOM_CAM_TILT_TX = 0.44;
+export const WORMHOLE_DEBUG_RANDOM_CAM_TILT_TY = 0.38;
+
+/** Tunnel debug slider default / max for random cam tilt amount. */
+export const WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT = 1;
+export const WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_MAX = 2.5;
+
 export const WORMHOLE4_DEBUG_START = {
   wormhole3dBackgroundEnabled: true,
   wormholeHelices3dEnabled: false,
@@ -180,6 +191,30 @@ export const WORMHOLE4_DEBUG_START = {
   fogDensity: 0.018,
 } as const;
 
+/** Production `/` + `/wormhole5` — scroll zoom gain and inner void (tunnel debug sliders). */
+export const WORMHOLE_HOME_TUNNEL_VISUAL = {
+  zoomRate: 1000,
+  holeRadius: 0.55,
+} as const;
+
+/**
+ * Production `/` on touch-primary — lighter helix Julia + bloom through the ring→helix hand-off
+ * (see {@link JuliaWormholeBackdrop} intro ring fade + `exitB` journey phase).
+ */
+export const WORMHOLE_HOME_MOBILE_TUNNEL_PERF = {
+  wormholeHelixJuliaPatternBloomMul: 1.15,
+  wormholeHelixJuliaInteriorBlur: 0.28,
+  wormholeHelixJuliaShimmer: 0.55,
+  bloomStrength: 0.22,
+  bloomRadius: 0.28,
+} as const;
+
+/** Generic tunnel store defaults (2D fractal / legacy routes). */
+export const TUNNEL_STORE_DEFAULT_SCROLL = {
+  zoomRate: 0.25,
+  holeRadius: 0.28,
+} as const;
+
 /**
  * `/wormhole5` — same 3D debug tuning as wormhole4, but **helix ribbons on** (lab helices +
  * wormhole4 rings + journey camera stacked).
@@ -187,22 +222,34 @@ export const WORMHOLE4_DEBUG_START = {
 export const WORMHOLE5_DEBUG_START = {
   ...WORMHOLE4_DEBUG_START,
   wormholeHelices3dEnabled: true,
-} as const;
-
-/** Production `/` — tunnel debug tuning baked for live (no debug panel). */
-export const WORMHOLE_HOME_TUNNEL_VISUAL = {
-  zoomRate: 1000,
-  holeRadius: 0.55,
+  ...WORMHOLE_HOME_TUNNEL_VISUAL,
 } as const;
 
 /**
- * Production desktop/laptop (`next start` / Vercel) — framebuffer scale ceiling.
- * {@link WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR} supersamples sub-3× displays.
+ * `/wormhole5` lab route — atmosphere, bloom, ambient↔Julia sync (applied after helix postfx in shell).
  */
-export const WORMHOLE_DESKTOP_PRODUCTION_DPR_MAX = 4;
+export const WORMHOLE5_TUNNEL_LAB_DEFAULTS = {
+  wormholeAtmospherePreset: 'glacier',
+  bloomStrength: 0.3,
+  wormholeDebugJuliaAmbientSync: true,
+  wormholeDebugJuliaAmbientSyncRate: 3,
+  wormholeCoinFollowCamEnabled: false,
+  wormholeCoinFollowCamStrength: 1,
+  /** Idle drift-mote XY buzz when scroll is fully idle (wormhole5 locked mouth). */
+  wormholeDebugDriftMotesIdleBuzz: true,
+} as const;
 
-/** Minimum render scale on desktop prod (sharp on 1×/2× laptop panels). */
-export const WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR = 2.5;
+/** `/wormhole20` — wormhole5 ambient sync + Web Audio equalizer (dev preview). */
+export const WORMHOLE20_TUNNEL_LAB_DEFAULTS = {
+  ...WORMHOLE5_TUNNEL_LAB_DEFAULTS,
+  wormholeDebugJuliaAmbientEqualizer: true,
+  wormholeDebugJuliaAmbientEqualizerStrength: 1,
+} as const;
+
+export {
+  WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR,
+  WORMHOLE_DESKTOP_PRODUCTION_DPR_MAX,
+} from '@/lib/wormholeDesktopDpr';
 
 /** Inversion-stack ring tessellation when {@link wormholeDesktopProductionHighQuality}. */
 export const WORMHOLE_DESKTOP_PROD_RING_SEGS_INVERSION = 192;

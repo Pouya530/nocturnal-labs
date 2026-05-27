@@ -23,16 +23,24 @@ import {
   WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT,
   WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_MAX,
   WORMHOLE_HOME_DESKTOP_PROD_TUNNEL,
+  WORMHOLE_HOME_MOBILE_TUNNEL_PERF,
   WORMHOLE_HOME_TUNNEL_VISUAL,
   WORMHOLE5_INTRO_LOGO_START_TZ_PX,
   WORMHOLE5_INTRO_DEPTH_PULLBACK_MS,
   WORMHOLE5_INTRO_DEPTH_START,
   WORMHOLE5_TUNNEL_START,
+  WORMHOLE5_TUNNEL_LAB_DEFAULTS,
+  WORMHOLE20_TUNNEL_LAB_DEFAULTS,
   WORMHOLE_CLASSIC_TUNNEL,
 } from '@/lib/wormholePageConfig';
+import {
+  disableWormholeAmbientEqualizer,
+  enableWormholeAmbientEqualizer,
+} from '@/audio/wormholeAmbientEqualizer';
 import { clearAllIntros, getActiveIntro, getIntroDurationMs, initActiveIntro, runActiveIntro } from '@/intros/introRegistry';
 import { clearStageReveal, initStageReveal } from '@/lib/stageReveal';
 import { wormholeHomeIntroFreezeTranslateZOnProduction } from '@/lib/wormholeHomeIntroEasing';
+import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import { wormholeDesktopProductionHighQuality } from '@/lib/wormholeProductionQuality';
 import { runWormholeHeroStageReveal, wormholeHeroStageRevealAmbientFadeOpts } from '@/lib/wormholeHeroStageReveal';
 import { runWormhole5ParallelCamIntro } from '@/lib/wormhole5ParallelCamIntro';
@@ -78,9 +86,12 @@ function devRandomCamTiltAmount(): number {
 export function Wormhole5ClientShell({
   children,
   localHomePresentation = false,
+  /** `/wormhole20` — identical wormhole5 stack + FFT Julia equalizer (localhost dev). */
+  juliaEqualizerLab = false,
 }: {
   children: ReactNode;
   localHomePresentation?: boolean;
+  juliaEqualizerLab?: boolean;
 }): ReactElement {
   const ambientAudio = useSyncExternalStore(
     subscribeWormhole5AmbientAudio,
@@ -91,6 +102,12 @@ export function Wormhole5ClientShell({
   const depthPullRaf = useRef(0);
   const stageRevealCancel = useRef({ cancel: () => {} });
   const introStarted = useRef(false);
+
+  useEffect(() => {
+    if (!juliaEqualizerLab) return;
+    enableWormholeAmbientEqualizer();
+    return () => disableWormholeAmbientEqualizer();
+  }, [juliaEqualizerLab]);
 
   const runDepthPullback = useCallback(() => {
     const t0 = performance.now();
@@ -233,10 +250,27 @@ export function Wormhole5ClientShell({
     const prevWormhole8HelixBoost = s.wormhole8HelixBoostEnabled;
     const prevJourneyMouseParallax = s.wormholeJourneyMouseParallax;
     const prevWormhole5HelixCoinRefl = s.wormhole5CoinHelixReflectionEnabled;
+    const prevWormhole5DriftMoteFaceRefl = s.wormhole5CoinDriftMoteFaceReflectionEnabled;
+    const prevWormhole5LiveParticleFaceRefl = s.wormhole5CoinDriftMoteLiveParticleReflectionEnabled;
+    const prevWormhole5CinematicSpinLight = s.wormhole5CoinCinematicSpinLightingEnabled;
     const prevZoomRate = s.zoomRate;
     const prevHoleRadius = s.holeRadius;
+    const prevJuliaSync = s.wormholeDebugJuliaAmbientSync;
+    const prevJuliaSyncRate = s.wormholeDebugJuliaAmbientSyncRate;
+    const prevJuliaEq = s.wormholeDebugJuliaAmbientEqualizer;
+    const prevJuliaEqStrength = s.wormholeDebugJuliaAmbientEqualizerStrength;
+    const prevDriftMotesIdleBuzz = s.wormholeDebugDriftMotesIdleBuzz;
+    const prevCoinFollowCam = s.wormholeCoinFollowCamEnabled;
+    const prevCoinFollowCamStrength = s.wormholeCoinFollowCamStrength;
+    const tunnelLabDefaults = juliaEqualizerLab
+      ? WORMHOLE20_TUNNEL_LAB_DEFAULTS
+      : WORMHOLE5_TUNNEL_LAB_DEFAULTS;
 
     const introDepth = WORMHOLE5_INTRO_DEPTH_START;
+    const homeTouchPerf =
+      localHomePresentation &&
+      typeof window !== 'undefined' &&
+      isCoarseOrTouchPrimaryViewport();
     tunnelStore.setState({
       sensitivity: WORMHOLE4_SENSITIVITY,
       maxDepth: WORMHOLE_CLASSIC_TUNNEL.maxDepth,
@@ -255,14 +289,12 @@ export function Wormhole5ClientShell({
       wormholeHelices3dEnabled: true,
       /** Helix glow/colour read like `/wormhole2` (wormhole4 debug bloom is much weaker). */
       ...WORMHOLE2_HELIX_LAB_POSTFX,
-      wormholeAtmospherePreset: 'nebula',
       /** Lab screenshot — ribbon boost off, mouse parallax off, bloom/fog as tuned in debug panel. */
       wormhole8HelixBoostEnabled: false,
       wormholeDebugRandomCamTilt: false,
       wormholeDebugRandomCamTiltAmount: devRandomCamTiltAmount(),
       wormholeDebugCircularCamTilt: false,
       wormholeJourneyMouseParallax: 'off',
-      bloomStrength: 0.3,
       bloomRadius: 0.4,
       bloomThreshold: 0,
       fogDensity: 0.004,
@@ -274,11 +306,16 @@ export function Wormhole5ClientShell({
       wormholeHelixJuliaShimmer: 1,
       /** Ribbon-coloured helix-style reflections on the hero coin (toggle in tunnel debug on `/wormhole5`). */
       wormhole5CoinHelixReflectionEnabled: false,
+      wormhole5CoinDriftMoteFaceReflectionEnabled: false,
+      wormhole5CoinDriftMoteLiveParticleReflectionEnabled: false,
+      wormhole5CoinCinematicSpinLightingEnabled: false,
+      ...tunnelLabDefaults,
       /** Last so nothing in the spread can override; wormhole5 always boots in locked scroll (not free fly). */
       mode: 'locked',
       ...(localHomePresentation
         ? {
             ...WORMHOLE_HOME_TUNNEL_VISUAL,
+            ...(homeTouchPerf ? WORMHOLE_HOME_MOBILE_TUNNEL_PERF : {}),
             ...(wormholeDesktopProductionHighQuality() ? WORMHOLE_HOME_DESKTOP_PROD_TUNNEL : {}),
           }
         : {}),
@@ -341,11 +378,25 @@ export function Wormhole5ClientShell({
         wormhole8HelixBoostEnabled: prevWormhole8HelixBoost,
         wormholeJourneyMouseParallax: prevJourneyMouseParallax,
         wormhole5CoinHelixReflectionEnabled: prevWormhole5HelixCoinRefl,
+        wormhole5CoinDriftMoteFaceReflectionEnabled: prevWormhole5DriftMoteFaceRefl,
+        wormhole5CoinDriftMoteLiveParticleReflectionEnabled: prevWormhole5LiveParticleFaceRefl,
+        wormhole5CoinCinematicSpinLightingEnabled: prevWormhole5CinematicSpinLight,
         zoomRate: prevZoomRate,
         holeRadius: prevHoleRadius,
+        wormholeCoinFollowCamEnabled: prevCoinFollowCam,
+        wormholeCoinFollowCamStrength: prevCoinFollowCamStrength,
+        wormholeDebugDriftMotesIdleBuzz: prevDriftMotesIdleBuzz,
+        ...(juliaEqualizerLab
+          ? {
+              wormholeDebugJuliaAmbientSync: prevJuliaSync,
+              wormholeDebugJuliaAmbientSyncRate: prevJuliaSyncRate,
+              wormholeDebugJuliaAmbientEqualizer: prevJuliaEq,
+              wormholeDebugJuliaAmbientEqualizerStrength: prevJuliaEqStrength,
+            }
+          : {}),
       });
     };
-  }, [localHomePresentation]);
+  }, [localHomePresentation, juliaEqualizerLab]);
 
   useEffect(() => {
     tunnelStore.setState({ mode: 'locked' });
@@ -366,7 +417,20 @@ export function Wormhole5ClientShell({
   }, [localHomePresentation, runLabIntroSequence]);
 
   return (
-    <div className="relative min-h-[100dvh] w-full bg-[#030208]">
+    <div
+      className={[
+        'relative min-h-[100dvh] w-full bg-[#030208]',
+        localHomePresentation ? 'wormhole5-home-route' : 'wormhole5-route',
+      ].join(' ')}
+    >
+      {juliaEqualizerLab ? (
+        <p
+          className="pointer-events-none fixed left-1/2 top-[4.25rem] z-[90] max-w-[min(92vw,30rem)] -translate-x-1/2 rounded-md border border-fuchsia-500/40 bg-black/80 px-2.5 py-1 text-center text-[10px] font-medium uppercase tracking-[0.08em] text-fuchsia-100/90 shadow-lg backdrop-blur-sm"
+          aria-hidden
+        >
+          Wormhole 20 — wormhole5 + ambient sync + FFT equalizer (dev localhost:3001)
+        </p>
+      ) : null}
       <WormholeJuliaThreeBackdrop
         helixLab
         ringGrowthInversion
@@ -383,9 +447,7 @@ export function Wormhole5ClientShell({
         showDebugPanel={!localHomePresentation}
         showIntroSequence={!localHomePresentation}
       />
-      <LandingTopNav
-        menuPrepend={ambientAudio ? <Wormhole5AmbientNavToggle /> : undefined}
-      />
+      <LandingTopNav menuPrepend={<Wormhole5AmbientNavToggle />} />
       {!localHomePresentation ? (
         <WormholeLabIntroProvider>
           <div className="gravity-vignette pointer-events-none fixed inset-0 z-[8]" aria-hidden />

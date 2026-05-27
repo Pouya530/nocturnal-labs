@@ -11,7 +11,10 @@ import {
   armWormhole5AmbientFromEnter,
   isWormhole5AmbientAudioRoute,
   teardownWormhole5Ambient,
+  warmWormhole5AmbientAudio,
 } from '@/audio/wormhole5AmbientAudio';
+import { prefetchLogoCoinCanvas } from '@/lib/prefetchHeroAssets';
+import { tunnelStore } from '@/tunnel/tunnelStore';
 
 export type SitePreloaderProps = {
   /** Fires when dismissal fade begins (parallel with cinematic backdrops). */
@@ -47,6 +50,27 @@ export function SitePreloader({
     const ambient =
       wormhole5AmbientAudio && !reduced && isWormhole5AmbientAudioRoute();
 
+    tunnelStore.setState({ wormholeTunnelRenderPaused: true });
+    prefetchLogoCoinCanvas();
+    if (ambient) {
+      warmWormhole5AmbientAudio();
+    }
+
+    const runFadeComplete = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          tunnelStore.setState({ wormholeTunnelRenderPaused: false });
+          const cover = devBlackCoverRef.current;
+          if (isDev && !reduced && cover) {
+            devBlackCoverRef.current = null;
+            cover.fadeOut(() => onFadeCompleteRef.current?.());
+            return;
+          }
+          onFadeCompleteRef.current?.();
+        });
+      });
+    };
+
     mountTerminalPreloader({
       onGone: () => {
         if (isDev && !reduced) {
@@ -54,15 +78,7 @@ export function SitePreloader({
         }
         onGoneRef.current?.();
       },
-      onFadeComplete: () => {
-        const cover = devBlackCoverRef.current;
-        if (isDev && !reduced && cover) {
-          devBlackCoverRef.current = null;
-          cover.fadeOut(() => onFadeCompleteRef.current?.());
-          return;
-        }
-        onFadeCompleteRef.current?.();
-      },
+      onFadeComplete: runFadeComplete,
       reduced,
       autoAdvance: !ambient,
       autoAdvanceMs: 1800,
@@ -75,6 +91,7 @@ export function SitePreloader({
 
     return () => {
       document.body.style.overflow = '';
+      tunnelStore.setState({ wormholeTunnelRenderPaused: false });
       devBlackCoverRef.current?.teardown();
       devBlackCoverRef.current = null;
       if (wormhole5AmbientAudio) {

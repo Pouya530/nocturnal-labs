@@ -109,6 +109,12 @@ export function Logo(props: LogoProps): ReactElement {
     [onActivate],
   );
 
+  const coinScrollCamRevision = useSyncExternalStore(
+    tunnelStore.subscribe,
+    () => tunnelStore.getState().wormholeCoinScrollCamRevision,
+    () => 0,
+  );
+
   return (
     <div
       className={[
@@ -135,7 +141,12 @@ export function Logo(props: LogoProps): ReactElement {
           onAnimationEnd={onAnimationEnd}
         >
           <div className="block h-full w-full min-h-0 overflow-visible leading-none" aria-hidden>
-            <LogoCoinCanvas spin={!reducedMotion} tossToken={tossToken} spinSyncScroll={spinSyncScroll} />
+            <LogoCoinCanvas
+              key={`coin-scroll-cam-${coinScrollCamRevision}`}
+              spin={!reducedMotion}
+              tossToken={tossToken}
+              spinSyncScroll={spinSyncScroll}
+            />
           </div>
         </div>
       </div>

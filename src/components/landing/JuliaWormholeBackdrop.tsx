@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactElement } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
@@ -10,28 +10,17 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 
 import { motionPrefs } from '@/core/motion';
 import {
+  isChromiumDesktopBrowser,
   webglPowerPreference,
-  webglWormholeAntialias,
-  webglWormholePixelRatio,
   wormholeNarrowViewport,
-  wormholeTunnelRingsMaxQuality,
 } from '@/lib/webglMobilePrefs';
-import {
-  WORMHOLE_DESKTOP_PROD_HELIX_PATH_PTS,
-  WORMHOLE_DESKTOP_PROD_HELIX_TUBE_RADIAL_SEGS,
-  WORMHOLE_DESKTOP_PROD_RING_SEGS_CLASSIC,
-  WORMHOLE_DESKTOP_PROD_RING_SEGS_INVERSION,
-  WORMHOLE_DESKTOP_PROD_SKY_SEGS,
-  WORMHOLE_DESKTOP_PROD_STAR_COUNT,
-  WORMHOLE_DESKTOP_PROD_TONE_EXPOSURE,
-  WORMHOLE_TUNNEL_MAX_PARTICLE_COUNT,
-  WORMHOLE_TUNNEL_MAX_RING_SEGS_CLASSIC,
-  WORMHOLE_TUNNEL_MAX_RING_SEGS_INVERSION,
-  WORMHOLE_TUNNEL_MAX_SKY_SEGS,
-  WORMHOLE_TUNNEL_MAX_STAR_COUNT,
-} from '@/lib/wormholePageConfig';
+import { computeWormholeCoinFollowCam } from '@/lib/wormholeCoinFollowCam';
+import { resolveWormholeHelixQuality } from '@/tunnel/wormholeHelixQuality';
+import { resolveWormholeTunnelQuality } from '@/tunnel/wormholeTunnelQuality';
+import { WORMHOLE_DESKTOP_PROD_TONE_EXPOSURE } from '@/lib/wormholePageConfig';
 import { wormholeDesktopProductionHighQuality } from '@/lib/wormholeProductionQuality';
 import {
+  isWormholeTouchScrollPrimary,
   WORMHOLE_MOBILE_CAM_VEL_BANK_CAP,
   WORMHOLE_MOBILE_CAM_VEL_BANK_EASE,
   WORMHOLE_MOBILE_CAM_VEL_BANK_MUL,
@@ -43,12 +32,30 @@ import {
   WORMHOLE_MOBILE_CAM_VEL_FOV_MUL,
   WORMHOLE_MOBILE_MOUTH_CAM_Z_CAP,
   WORMHOLE_MOBILE_MOUTH_FOV_ADD_CAP,
-  isWormholeTouchScrollPrimary,
 } from '@/lib/wormholeScrollMobile';
+import { getWormhole5AmbientPlaybackTime } from '@/audio/wormhole5AmbientAudio';
+import { tickWormholeAmbientEqualizer } from '@/audio/wormholeAmbientEqualizer';
 import { wormholeDevRingCylinderLook } from '@/lib/wormholeDevRingCylinder';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
-import { WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL, WORMHOLE_HOME_HELIX_RING_STACK_FILL_BOOST } from '@/lib/wormholePageConfig';
+import {
+  WORMHOLE_HOME_HELIX_FULLSCREEN_WALL_MUL,
+  WORMHOLE_HOME_HELIX_RING_STACK_FILL_BOOST,
+} from '@/lib/wormholePageConfig';
+import {
+  applyRandomCamTiltAfterLookAt,
+  createRandomCamTiltRuntime,
+} from '@/lib/wormholeRandomCamTilt';
 import { tunnelZoomMul } from '@/lib/tunnelZoomGain';
+import {
+  DRIFT_MOTE_PHYSICS,
+  driftMoteWaveAmp,
+  driftMoteWaveSample,
+  isDriftMoteWaveActive,
+} from '@/lib/wormholeDriftMotePhysics';
+import {
+  clearLiveDriftMoteParticleSamples,
+  publishLiveDriftMoteParticleSamples,
+} from '@/lib/wormholeDriftMoteParticleBridge';
 import { journeyMouseParallaxMul } from '@/tunnel/wormholeJourneyMouseParallax';
 import { tunnelStore } from '@/tunnel/tunnelStore';
 import { wormholeJuliaFragment, wormholeJuliaVertex } from '@/visuals/shaders/juliaWormholeShaderSources';
@@ -59,7 +66,6 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 }
 
 /** Lab helices on narrow viewports: multiply {@link UnrealBloomPass} strength by this (25% softer bloom). */
-const HELIX_MOBILE_BLOOM_MUL = 0.75;
 /** Narrow viewports: bump bloom strength after helix tuning (+10%). */
 const MOBILE_BLOOM_STRENGTH_MUL = 1.1;
 
@@ -236,32 +242,38 @@ export function JuliaWormholeBackdrop({
   helixWormhole2RibbonStyle = false,
 }: JuliaWormholeBackdropProps): ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
-
+  const tunnelQualityRevision = useSyncExternalStore(
+    tunnelStore.subscribe,
+    () => tunnelStore.getState().wormholeTunnelQualityRevision,
+    () => 0,
+  );
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const hqDesktopProd = wormholeDesktopProductionHighQuality();
-    const hqTunnelRings = wormholeTunnelRingsMaxQuality();
     const devRingCylLook = wormholeDevRingCylinderLook();
-    const ringSegsInversion = hqTunnelRings
-      ? WORMHOLE_TUNNEL_MAX_RING_SEGS_INVERSION
-      : hqDesktopProd
-        ? WORMHOLE_DESKTOP_PROD_RING_SEGS_INVERSION
-        : 96;
-    const ringSegsClassic = hqTunnelRings
-      ? WORMHOLE_TUNNEL_MAX_RING_SEGS_CLASSIC
-      : hqDesktopProd
-        ? WORMHOLE_DESKTOP_PROD_RING_SEGS_CLASSIC
-        : 80;
-    const hxBase = helixLab ? HELIX_LAB : HELIX_DEFAULT;
-    const hx =
-      hqDesktopProd && helixLab
-        ? { ...HELIX_LAB, tubeRadialSegs: WORMHOLE_DESKTOP_PROD_HELIX_TUBE_RADIAL_SEGS }
-        : hxBase;
-    const roundPointsTex = createCircleSpriteTexture(hqTunnelRings ? 128 : 64);
-
     const initial = tunnelStore.getState();
+    const tunnelQ = resolveWormholeTunnelQuality(initial);
+    const helixQ = resolveWormholeHelixQuality(initial);
+    const ringSegsInversion = tunnelQ.ringSegsInversion;
+    const ringSegsClassic = tunnelQ.ringSegsClassic;
+    const hxBase = helixLab ? HELIX_LAB : HELIX_DEFAULT;
+    const hx = {
+      ...hxBase,
+      tubeRadialSegs: helixQ.tubeRadialSegs,
+      ...(helixLab
+        ? {
+            tubeRadius: helixQ.tubeRadius,
+            twistTurns: helixQ.twistTurns,
+            radialScale: helixQ.radialScale,
+            wobbleAmp: helixQ.wobbleAmp,
+            wobbleFreq: helixQ.wobbleFreq,
+            opacity: helixQ.opacity,
+          }
+        : {}),
+    };
+    const roundPointsTex = createCircleSpriteTexture(tunnelQ.moteSpriteSize);
     const localhostHelixLabRibbonToggle =
       helixLab && typeof window !== 'undefined' && isLocalhostHostname(window.location.hostname);
     const initialHelixRibbonJuliaShader =
@@ -318,10 +330,10 @@ export function JuliaWormholeBackdrop({
       flareFinalThird,
     );
 
-    const wormholeDpr = webglWormholePixelRatio(window.devicePixelRatio || 1);
+    const wormholeDpr = tunnelQ.rendererDpr;
 
     const renderer = new THREE.WebGLRenderer({
-      antialias: webglWormholeAntialias(),
+      antialias: tunnelQ.rendererAntialias,
       powerPreference: webglPowerPreference(),
       alpha: false,
       stencil: false,
@@ -348,6 +360,7 @@ export function JuliaWormholeBackdrop({
     camera.position.set(0, 0, 0);
 
     /** Wormhole4/5 Julia rings — rim alpha feather + glow (`uRingCylEdgeSoft` in fragment shader). */
+    const hqTunnelRings = tunnelQ.ringSegsInversion >= 192;
     const RING_RIM_FEATHER_GLOW = hqTunnelRings ? 0.06 : hqDesktopProd ? 0.06 : 0.12;
     /** Helix ribbons when not on wormhole5 grade — fixed dev feather (not tied to ring HQ). */
     const HELIX_RIM_FEATHER_DEV = 0.12;
@@ -414,24 +427,12 @@ export function JuliaWormholeBackdrop({
       skyJulia = makeMat(0, 1, 0.55, 0.4);
       skyMat = skyJulia;
     }
-    const skySegW = hqTunnelRings
-      ? WORMHOLE_TUNNEL_MAX_SKY_SEGS.w
-      : hqDesktopProd
-        ? WORMHOLE_DESKTOP_PROD_SKY_SEGS.w
-        : 48;
-    const skySegH = hqTunnelRings
-      ? WORMHOLE_TUNNEL_MAX_SKY_SEGS.h
-      : hqDesktopProd
-        ? WORMHOLE_DESKTOP_PROD_SKY_SEGS.h
-        : 32;
+    const skySegW = tunnelQ.skySegW;
+    const skySegH = tunnelQ.skySegH;
     const sky = new THREE.Mesh(new THREE.SphereGeometry(220, skySegW, skySegH), skyMat);
     scene.add(sky);
 
-    const starCount = hqTunnelRings
-      ? WORMHOLE_TUNNEL_MAX_STAR_COUNT
-      : hqDesktopProd
-        ? WORMHOLE_DESKTOP_PROD_STAR_COUNT
-        : 1500;
+    const starCount = tunnelQ.starCount;
     const starGeo = new THREE.BufferGeometry();
     const starPos = new Float32Array(starCount * 3);
     const starCol = new Float32Array(starCount * 3);
@@ -524,7 +525,8 @@ export function JuliaWormholeBackdrop({
       : null;
 
     if (introRingsOverlay) {
-      const introCount = 30;
+      const introCount =
+        typeof window !== 'undefined' && isWormholeTouchScrollPrimary() ? 18 : 30;
       const introSpacing = initial.ringSpacing * 0.92;
       const introOuter =
         homeHelixViewportMul != null
@@ -558,26 +560,9 @@ export function JuliaWormholeBackdrop({
     let helixRibbonUsesJuliaShader = helixLab && initialHelixRibbonJuliaShader;
     const helixStrands = helixLab ? 3 : initial.helixCount;
 
-    /** Lab: centers on radius R with 120° spacing stay tangent when R√3 = 2r; scale bundle to the tunnel wall. */
-    const r0 = hx.tubeRadius;
-    const R0 = (2 * r0) / Math.sqrt(3);
-    const bundleOuter = R0 + r0;
     const helixWallInsetMul =
       homeHelixViewportMul ??
       (helixWallInsetMulProp !== undefined ? helixWallInsetMulProp : 0.88);
-    const targetWall = initial.ringRadius * hx.radialScale * helixWallInsetMul;
-    const bundleScale = helixLab ? targetWall / bundleOuter : 1;
-    const helixTubeR = helixLab ? r0 * bundleScale : hx.tubeRadius;
-    const helixPathR = (t01: number) => {
-      if (helixLab) {
-        return (
-          bundleScale * (R0 + Math.sin(t01 * hx.wobbleFreq) * hx.wobbleAmp * 0.28)
-        );
-      }
-      return (
-        initial.ringRadius * hx.radialScale + Math.sin(t01 * hx.wobbleFreq) * hx.wobbleAmp
-      );
-    };
 
     const helixRimFeather = helixRibbonGradeWormhole5
       ? HELIX_WORMHOLE5_RIM_FEATHER
@@ -586,55 +571,110 @@ export function JuliaWormholeBackdrop({
     const helixZoomNudge = helixRibbonGradeWormhole5 ? 0.06 : 0;
     const helixEdgeHaloMul = helixRibbonGradeWormhole5 ? HELIX_WORMHOLE5_EDGE_HALO_MUL : 1;
 
-    for (let h = 0; h < helixStrands; h++) {
-      const phaseOffset = (h / helixStrands) * Math.PI * 2;
-      const points: THREE.Vector3[] = [];
-      const HELIX_PTS = hqDesktopProd ? WORMHOLE_DESKTOP_PROD_HELIX_PATH_PTS : 900;
-      const HELIX_TWISTS = hx.twistTurns;
-      for (let i = 0; i <= HELIX_PTS; i++) {
-        const t = i / HELIX_PTS;
-        const z = throat ? -(1 - t) * TUNNEL_LENGTH : -t * TUNNEL_LENGTH;
-        const radius = helixPathR(t);
-        const angle = phaseOffset + t * Math.PI * 2 * HELIX_TWISTS;
-        points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, z));
+    const rebuildHelixGeometry = () => {
+      const live = tunnelStore.getState();
+      const helixQNow = resolveWormholeHelixQuality(live);
+      const hxNow = {
+        ...hxBase,
+        tubeRadialSegs: helixQNow.tubeRadialSegs,
+        ...(helixLab
+          ? {
+              tubeRadius: helixQNow.tubeRadius,
+              twistTurns: helixQNow.twistTurns,
+              radialScale: helixQNow.radialScale,
+              wobbleAmp: helixQNow.wobbleAmp,
+              wobbleFreq: helixQNow.wobbleFreq,
+              opacity: helixQNow.opacity,
+            }
+          : {}),
+      };
+
+      const r0 = hxNow.tubeRadius;
+      const R0 = (2 * r0) / Math.sqrt(3);
+      const bundleOuter = R0 + r0;
+      const targetWall = live.ringRadius * hxNow.radialScale * helixWallInsetMul;
+      const bundleScale = helixLab ? targetWall / bundleOuter : 1;
+      const helixTubeR = helixLab ? r0 * bundleScale : hxNow.tubeRadius;
+      const helixPathR = (t01: number) => {
+        if (helixLab) {
+          return bundleScale * (R0 + Math.sin(t01 * hxNow.wobbleFreq) * hxNow.wobbleAmp * 0.28);
+        }
+        return (
+          live.ringRadius * hxNow.radialScale +
+          Math.sin(t01 * hxNow.wobbleFreq) * hxNow.wobbleAmp
+        );
+      };
+
+      const useJuliaRibbonTube =
+        helixLab &&
+        (!localhostHelixLabRibbonToggle || live.wormholeHelixJuliaRibbonShaderEnabled);
+
+      for (const mesh of helices) {
+        scene.remove(mesh);
+        mesh.geometry.dispose();
+        (mesh.material as THREE.Material).dispose();
       }
-      const curve = new THREE.CatmullRomCurve3(points);
-      const tube = new THREE.TubeGeometry(
-        curve,
-        HELIX_PTS,
-        helixTubeR,
-        hx.tubeRadialSegs,
-        false,
-      );
-      const useJuliaRibbonTube = helixLab && initialHelixRibbonJuliaShader;
-      const mat = useJuliaRibbonTube
-        ? makeMat(
-            h,
-            2,
-            1.42 + (h % 3) * 0.11 + helixZoomNudge,
-            helixMatIntensity,
-            helixRimFeather,
-            helixEdgeHaloMul,
-          )
-        : new THREE.MeshBasicMaterial({
-            color: PALETTE[h % PALETTE.length]!,
-            transparent: true,
-            opacity: hx.opacity,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            toneMapped: false,
-            fog: true,
-            side: THREE.FrontSide,
-          });
-      if (useJuliaRibbonTube) helixMats.push(mat as THREE.ShaderMaterial);
-      const mesh = new THREE.Mesh(tube, mat);
-      mesh.userData.basePhase = phaseOffset;
-      /** Intro mouth rings use `renderOrder` 40 + no depth test; draw lab helices after so ribbons stay visible (`/wormhole5`). */
-      /** Intro mouth rings draw above helices when stacked; fullscreen prod lab lifts helices over inversion rings without overlay. */
-      if (helixLab && (introRingsOverlay || helixLabFullscreen)) mesh.renderOrder = 50;
-      helices.push(mesh);
-      scene.add(mesh);
-    }
+      helices.length = 0;
+      helixMats.length = 0;
+      helixRibbonUsesJuliaShader = useJuliaRibbonTube;
+
+      for (let h = 0; h < helixStrands; h++) {
+        const phaseOffset = (h / helixStrands) * Math.PI * 2;
+        const points: THREE.Vector3[] = [];
+        const HELIX_PTS = helixQNow.pathPts;
+        const HELIX_TWISTS = hxNow.twistTurns;
+        for (let i = 0; i <= HELIX_PTS; i++) {
+          const t = i / HELIX_PTS;
+          const z = throat ? -(1 - t) * TUNNEL_LENGTH : -t * TUNNEL_LENGTH;
+          const radius = helixPathR(t);
+          const angle = phaseOffset + t * Math.PI * 2 * HELIX_TWISTS;
+          points.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, z));
+        }
+        const curve = new THREE.CatmullRomCurve3(points);
+        const tube = new THREE.TubeGeometry(
+          curve,
+          HELIX_PTS,
+          helixTubeR,
+          hxNow.tubeRadialSegs,
+          false,
+        );
+        const mat = useJuliaRibbonTube
+          ? makeMat(
+              h,
+              2,
+              1.42 + (h % 3) * 0.11 + helixZoomNudge,
+              helixMatIntensity,
+              helixRimFeather,
+              helixEdgeHaloMul,
+            )
+          : new THREE.MeshBasicMaterial({
+              color: PALETTE[h % PALETTE.length]!,
+              transparent: true,
+              opacity: hxNow.opacity,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+              toneMapped: false,
+              fog: true,
+              side: THREE.FrontSide,
+            });
+        if (useJuliaRibbonTube) helixMats.push(mat as THREE.ShaderMaterial);
+        const mesh = new THREE.Mesh(tube, mat);
+        mesh.userData.basePhase = phaseOffset;
+        if (helixLab && (introRingsOverlay || helixLabFullscreen)) mesh.renderOrder = 50;
+        helices.push(mesh);
+        scene.add(mesh);
+      }
+    };
+
+    rebuildHelixGeometry();
+
+    let trackedHelixQualityRevision = tunnelStore.getState().wormholeHelixQualityRevision;
+    const unsubHelixQuality = tunnelStore.subscribe(() => {
+      const nextRev = tunnelStore.getState().wormholeHelixQualityRevision;
+      if (nextRev === trackedHelixQualityRevision) return;
+      trackedHelixQualityRevision = nextRev;
+      rebuildHelixGeometry();
+    });
 
     const replaceHelixRibbonMaterials = (useJulia: boolean) => {
       helixMats.length = 0;
@@ -679,9 +719,7 @@ export function JuliaWormholeBackdrop({
           })
         : null;
 
-    const tunnelParticleCount = hqTunnelRings
-      ? Math.max(initial.particleCount, WORMHOLE_TUNNEL_MAX_PARTICLE_COUNT)
-      : initial.particleCount;
+    const tunnelParticleCount = tunnelQ.particleCount;
     const pGeo = new THREE.BufferGeometry();
     const pPos = new Float32Array(tunnelParticleCount * 3);
     const pCol = new Float32Array(tunnelParticleCount * 3);
@@ -729,7 +767,7 @@ export function JuliaWormholeBackdrop({
     composer.setSize(window.innerWidth, window.innerHeight);
     composer.addPass(new RenderPass(scene, camera));
     const narrow0 = wormholeNarrowViewport();
-    const helixMobileBloomMul0 = helixLab && narrow0 ? HELIX_MOBILE_BLOOM_MUL : 1;
+    const helixMobileBloomMul0 = helixLab && narrow0 ? helixQ.effectiveMobileBloomMul : 1;
     const mobileBloomStrengthMul0 = narrow0 ? MOBILE_BLOOM_STRENGTH_MUL : 1;
     const bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -741,7 +779,8 @@ export function JuliaWormholeBackdrop({
     composer.addPass(new OutputPass());
 
     let resizePending = false;
-    const onResize = () => {
+    let resizeDebounceId: ReturnType<typeof setTimeout> | undefined;
+    const applyResize = () => {
       if (resizePending) return;
       resizePending = true;
       requestAnimationFrame(() => {
@@ -753,6 +792,17 @@ export function JuliaWormholeBackdrop({
         composer.setSize(w, h);
         resizePending = false;
       });
+    };
+    const onResize = () => {
+      if (isWormholeTouchScrollPrimary()) {
+        if (resizeDebounceId !== undefined) clearTimeout(resizeDebounceId);
+        resizeDebounceId = setTimeout(() => {
+          resizeDebounceId = undefined;
+          applyResize();
+        }, 220);
+        return;
+      }
+      applyResize();
     };
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
@@ -791,11 +841,29 @@ export function JuliaWormholeBackdrop({
     const pointerFine =
       typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
     /** Wormhole6: mouse aim only on fine pointers (desktop); Wormhole3 path unchanged. */
-    const attachMouseAim =
+    const attachMouseAimBase =
       useThroatCamera && (!journeyCameraFromStart || pointerFine);
-    if (attachMouseAim) {
-      window.addEventListener('pointermove', onPointerMove, { passive: true });
-    }
+    let pointerListenerOn = false;
+    const syncPointerListener = () => {
+      const parallaxOn =
+        attachMouseAimBase &&
+        journeyMouseParallaxMul(tunnelStore.getState().wormholeJourneyMouseParallax) > 0;
+      if (parallaxOn && !pointerListenerOn) {
+        window.addEventListener('pointermove', onPointerMove, { passive: true });
+        pointerListenerOn = true;
+      } else if (!parallaxOn && pointerListenerOn) {
+        window.removeEventListener('pointermove', onPointerMove);
+        pointerListenerOn = false;
+        ptr.x = 0;
+        ptr.y = 0;
+        ptr.sx = 0;
+        ptr.sy = 0;
+        lookLagX = 0;
+        lookLagY = 0;
+      }
+    };
+    syncPointerListener();
+    const unsubPointerParallax = tunnelStore.subscribe(syncPointerListener);
 
     const clock = new THREE.Clock();
     let smoothedBank = 0;
@@ -803,21 +871,64 @@ export function JuliaWormholeBackdrop({
     let helixVelStrafe = 0;
     /** Prod home (`helixWormhole2RibbonStyle`): extra twist like `/wormhole2` idle drift without touching tunnel depth (rings stay unchanged). */
     let helixWormhole2SynthTwist = 0;
-    /** Tunnel debug: random tilt targets + smoothed euler offsets (rad). */
-    let randCamPulse = 0;
-    let randCamLastDepth = 0;
-    let randCamTx = 0;
-    let randCamTy = 0;
-    let randCamRx = 0;
-    let randCamRy = 0;
+    const randCamTilt = createRandomCamTiltRuntime();
     /** Low-pass journey depth + scroll vel — mouth FOV/dolly/fog do not step when reversing scroll after rings. */
     let journey01Sm = 0;
     let scrollVelSm = 0;
+    let chromiumIdleSkipToggle = false;
     let raf = 0;
     const tick = () => {
-      const dt = Math.min(clock.getDelta(), 0.05);
-      const time = clock.elapsedTime;
       const s = tunnelStore.getState();
+      if (s.wormholeTunnelRenderPaused) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+
+      const scrollCoasting = Math.abs(s.velocity) >= 0.08;
+      const driftMoteWaveActive = isDriftMoteWaveActive(
+        s.scrollInputIdle,
+        s.velocity,
+        s.wormholeDebugDriftMotesIdleBuzz,
+      );
+      const tunnelTrulyIdle =
+        s.scrollInputIdle > 0.995 && Math.abs(s.velocity) < 0.06;
+      const pointerParallaxOnEarly =
+        journeyMouseParallaxMul(s.wormholeJourneyMouseParallax) > 0;
+      if (
+        !motionPrefs.reduced &&
+        isChromiumDesktopBrowser() &&
+        !pointerParallaxOnEarly &&
+        tunnelTrulyIdle
+      ) {
+        chromiumIdleSkipToggle = !chromiumIdleSkipToggle;
+        if (chromiumIdleSkipToggle) {
+          raf = requestAnimationFrame(tick);
+          return;
+        }
+      }
+
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.elapsedTime;
+      let juliaTime = elapsed;
+      if (s.wormholeDebugJuliaAmbientSync) {
+        const audioT = getWormhole5AmbientPlaybackTime();
+        if (audioT != null) {
+          juliaTime = audioT * Math.max(0.05, s.wormholeDebugJuliaAmbientSyncRate);
+        }
+      }
+
+      let eqIntensityMul = 1;
+      let eqShimmerAdd = 0;
+      if (s.wormholeDebugJuliaAmbientEqualizer) {
+        const eq = tickWormholeAmbientEqualizer(dt);
+        const k = THREE.MathUtils.clamp(s.wormholeDebugJuliaAmbientEqualizerStrength, 0, 2);
+        eqIntensityMul = 1 + eq.rms * k * 1.45;
+        eqShimmerAdd = eq.bass * k * 0.75 + eq.treble * k * 0.2;
+        juliaTime += (eq.bass * k * 5.5 + eq.mid * k * 2) * dt;
+        juliaTime += eq.treble * k * 0.035;
+      }
+
+      const time = elapsed;
       const zMul = tunnelZoomMul(s.zoomRate);
       const holeR = THREE.MathUtils.clamp(s.holeRadius, 0.1, 0.55);
       const maxDepthForJourney = Math.max(1, s.maxDepth);
@@ -836,6 +947,8 @@ export function JuliaWormholeBackdrop({
       const journeyMouth = useThroatCamera ? journey01Sm : journey01;
       const exitB = useThroatCamera ? throatExitBlend(journeyMouth) : 0;
       const introB = useThroatCamera ? throatIntroBlend(journeyMouth) : 0;
+      /** Softer ring→helix / exit bloom on touch — less of a one-frame GPU cliff at journey end. */
+      const exitBEff = touchScrollPrimary ? exitB * 0.62 : exitB;
 
       /**
        * `/wormhole5` (helix lab + intro rings + journey): at the mouth, use the same framing as
@@ -881,8 +994,11 @@ export function JuliaWormholeBackdrop({
       journeyFovAdd *= zMul;
       journeyCamZAdd *= zMul;
 
+      const parallaxMul = journeyMouseParallaxMul(s.wormholeJourneyMouseParallax);
+      const pointerParallaxOn = parallaxMul > 0;
+
       if (useThroatCamera) {
-        if (!journeyCameraFromStart || pointerFine) {
+        if (pointerParallaxOn && (!journeyCameraFromStart || pointerFine)) {
           const errX = ptr.x - ptr.sx;
           const errY = ptr.y - ptr.sy;
           const errMag = Math.hypot(errX, errY);
@@ -904,24 +1020,30 @@ export function JuliaWormholeBackdrop({
         velRideSm += -velRideSm * (1 - Math.exp(-dt * 4));
       }
 
-      mouseAimSm += (mouseAimEasing - mouseAimSm) * (1 - Math.exp(-dt * 5.2));
-      const parallaxMul = journeyMouseParallaxMul(s.wormholeJourneyMouseParallax);
-      /**
-       * Smooth in **full** parallax space, then scale for subtle (`journeyMouseParallaxMul` 0.42). If we
-       * scale ptr before this loop, `lookErr` is tiny in subtle mode: `lookLambda` sits in the slow
-       * band and flips with subpixel pointer noise — visible jitter. Full mode was unaffected.
-       */
-      const lookTxFull = useThroatCamera ? ptr.sx * 0.64 * mouseAimSm : 0;
-      const lookTyFull = useThroatCamera ? ptr.sy * 0.42 * mouseAimSm : 0;
-      const lookErr = Math.hypot(lookTxFull - lookLagX, lookTyFull - lookLagY);
-      const lookBlend = THREE.MathUtils.smoothstep(lookErr, 0.0009, 0.052);
-      const lookLambda = THREE.MathUtils.lerp(2.35, 6.6, lookBlend);
-      let lookOutEase = 1 - Math.exp(-dt * lookLambda);
-      lookOutEase = Math.min(lookOutEase, 0.26);
-      lookLagX += (lookTxFull - lookLagX) * lookOutEase;
-      lookLagY += (lookTyFull - lookLagY) * lookOutEase;
-      const aimX = lookLagX * parallaxMul;
-      const aimY = lookLagY * parallaxMul;
+      let aimX = 0;
+      let aimY = 0;
+      if (pointerParallaxOn) {
+        mouseAimSm += (mouseAimEasing - mouseAimSm) * (1 - Math.exp(-dt * 5.2));
+        /**
+         * Smooth in **full** parallax space, then scale for subtle (`journeyMouseParallaxMul` 0.42). If we
+         * scale ptr before this loop, `lookErr` is tiny in subtle mode: `lookLambda` sits in the slow
+         * band and flips with subpixel pointer noise — visible jitter. Full mode was unaffected.
+         */
+        const lookTxFull = useThroatCamera ? ptr.sx * 0.64 * mouseAimSm : 0;
+        const lookTyFull = useThroatCamera ? ptr.sy * 0.42 * mouseAimSm : 0;
+        const lookErr = Math.hypot(lookTxFull - lookLagX, lookTyFull - lookLagY);
+        const lookBlend = THREE.MathUtils.smoothstep(lookErr, 0.0009, 0.052);
+        const lookLambda = THREE.MathUtils.lerp(2.35, 6.6, lookBlend);
+        let lookOutEase = 1 - Math.exp(-dt * lookLambda);
+        lookOutEase = Math.min(lookOutEase, 0.26);
+        lookLagX += (lookTxFull - lookLagX) * lookOutEase;
+        lookLagY += (lookTyFull - lookLagY) * lookOutEase;
+        aimX = lookLagX * parallaxMul;
+        aimY = lookLagY * parallaxMul;
+      } else {
+        lookLagX = 0;
+        lookLagY = 0;
+      }
 
       if (helixWormhole2RibbonStyle && helixLab) {
         helixWormhole2SynthTwist += dt * 0.48;
@@ -978,6 +1100,13 @@ export function JuliaWormholeBackdrop({
             fade *= 1 - smoothstep(TUNNEL_LENGTH - RING_INV_FADE * 2, TUNNEL_LENGTH, distAhead);
           }
 
+          if (fade < 0.012) {
+            ring.visible = false;
+            mat.uniforms.uScrollFade.value = 0;
+            mat.uniforms.uIntensity.value = 0;
+            continue;
+          }
+          ring.visible = true;
           mat.uniforms.uScrollFade.value = fade;
           const baseIntensity = (ring.userData.baseRingIntensity as number) ?? 1;
           mat.uniforms.uIntensity.value = baseIntensity * fade;
@@ -1028,37 +1157,57 @@ export function JuliaWormholeBackdrop({
           scrollFade *= smoothstep(wrapLower, wrapLower + rearTight, relZ);
         }
 
-        mat.uniforms.uScrollFade.value = scrollFade;
+        const ringVis = scrollFade * fadeIn * fadeOut;
+        if (ringVis < 0.012) {
+          ring.visible = false;
+          mat.uniforms.uScrollFade.value = 0;
+          mat.uniforms.uIntensity.value = 0;
+        } else {
+          ring.visible = true;
+          mat.uniforms.uScrollFade.value = scrollFade;
+          const baseIntensity = (ring.userData.baseRingIntensity as number) ?? 1;
+          const throatBoost = throat && !helixLab ? 1.1 : 1;
+          const exitRingDim = throat ? 1 - exitBEff * 0.4 : 1;
+          mat.uniforms.uIntensity.value =
+            baseIntensity * fadeIn * fadeOut * throatBoost * exitRingDim * eqIntensityMul;
+          mat.uniforms.uDistAhead.value =
+            throat && !helixLab
+              ? Math.min(Math.max(0, distAhead), 92)
+              : Math.max(0, distAhead);
 
-        const baseIntensity = (ring.userData.baseRingIntensity as number) ?? 1;
-        const throatBoost = throat && !helixLab ? 1.1 : 1;
-        const exitRingDim = throat ? 1 - exitB * 0.4 : 1;
-        mat.uniforms.uIntensity.value = baseIntensity * fadeIn * fadeOut * throatBoost * exitRingDim;
-        mat.uniforms.uDistAhead.value =
-          throat && !helixLab
-            ? Math.min(Math.max(0, distAhead), 92)
-            : Math.max(0, distAhead);
-
-        const tNorm = THREE.MathUtils.clamp(Math.max(0, distAhead) / TUNNEL_LENGTH, 0, 1);
-        const distFactor = THREE.MathUtils.clamp(tNorm, 0, 1);
-        const spinRate =
-          (ring.userData.spin as number) * (0.6 + distFactor * 1.8) + s.velocity * 0.04;
-        ring.rotation.z += spinRate * dt;
+          const tNorm = THREE.MathUtils.clamp(Math.max(0, distAhead) / TUNNEL_LENGTH, 0, 1);
+          const distFactor = THREE.MathUtils.clamp(tNorm, 0, 1);
+          const spinRate =
+            (ring.userData.spin as number) * (0.6 + distFactor * 1.8) + s.velocity * 0.04;
+          ring.rotation.z += spinRate * dt;
+        }
       }
 
       if (introRingsOverlay) {
+        const introFadeOutStart = touchScrollPrimary ? 96 : 88;
+        const introFadeOutEnd = touchScrollPrimary ? 215 : 170;
+        /** Mouth-only stack — hide after home intro cam finishes so rings do not ghost on the radial bg. */
+        const introMouthRevealActive =
+          !openingJourneyCameraIntro || (s.wormholeHomeIntroCam01 ?? 1) < 0.94;
         for (let ri = 0; ri < introRings.length; ri++) {
           const ring = introRings[ri]!;
           const mat = introRingMats[ri]!;
           const relZ = ring.position.z + s.depth;
           const distAhead = -relZ;
           const fadeIn = smoothstep(-2, 5, distAhead);
-          const fadeOut = 1 - smoothstep(88, 170, distAhead);
+          const fadeOut = 1 - smoothstep(introFadeOutStart, introFadeOutEnd, distAhead);
           const introFade = fadeIn * fadeOut;
+          if (!introMouthRevealActive || introFade < 0.012) {
+            ring.visible = false;
+            mat.uniforms.uScrollFade.value = 0;
+            mat.uniforms.uIntensity.value = 0;
+            continue;
+          }
+          ring.visible = true;
           mat.uniforms.uScrollFade.value = introFade;
-          mat.uniforms.uIntensity.value = introFade * 1.05;
+          mat.uniforms.uIntensity.value = introFade * 1.05 * eqIntensityMul;
           mat.uniforms.uDistAhead.value = Math.max(0, distAhead);
-          mat.uniforms.uTime.value = time;
+          mat.uniforms.uTime.value = juliaTime;
           mat.uniforms.uDepth.value = s.depth;
           mat.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
           mat.uniforms.uDiscRadius.value = s.discRadius;
@@ -1068,19 +1217,20 @@ export function JuliaWormholeBackdrop({
       }
 
       for (const m of ringMats) {
-        m.uniforms.uTime.value = time;
+        m.uniforms.uTime.value = juliaTime;
         m.uniforms.uDepth.value = s.depth;
         m.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
         m.uniforms.uDiscRadius.value = s.discRadius;
         m.uniforms.uHoleRadius.value = holeR;
       }
       if (skyJulia) {
-        skyJulia.uniforms.uTime.value = time * 0.4;
+        skyJulia.uniforms.uTime.value = juliaTime * 0.4;
         skyJulia.uniforms.uDepth.value = s.depth * 0.05;
         skyJulia.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
         skyJulia.uniforms.uDiscRadius.value = s.discRadius;
         if (useThroatCamera) {
-          skyJulia.uniforms.uIntensity.value = 0.4 * (1 + introB * 0.35 + exitB * 1.15);
+          skyJulia.uniforms.uIntensity.value =
+            0.4 * (1 + introB * 0.35 + exitBEff * 1.15) * eqIntensityMul;
         }
       }
 
@@ -1103,7 +1253,7 @@ export function JuliaWormholeBackdrop({
       if (helixShow && helixRibbonUsesJuliaShader) {
         for (let hi = 0; hi < helixMats.length; hi++) {
           const hm = helixMats[hi]!;
-          hm.uniforms.uTime.value = time;
+          hm.uniforms.uTime.value = juliaTime;
           hm.uniforms.uDepth.value = s.depth;
           hm.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
           hm.uniforms.uDiscRadius.value = s.discRadius;
@@ -1114,13 +1264,14 @@ export function JuliaWormholeBackdrop({
             (helixBase + velFlare) *
             helixFadeIn *
             helixFadeOut *
-            hx.opacity *
-            helixOpacityBoost;
+            resolveWormholeHelixQuality(s).opacity *
+            helixOpacityBoost *
+            eqIntensityMul;
           hm.uniforms.uHelixTubeVariant.value = s.wormholeHelixTubeVariant;
           hm.uniforms.uHelixJuliaPattern.value = s.wormholeHelixTubeJuliaPatternEnabled ? 1 : 0;
           hm.uniforms.uHelixJuliaPatternBloomMul.value = Math.max(
             0.05,
-            s.wormholeHelixJuliaPatternBloomMul,
+            s.wormholeHelixJuliaPatternBloomMul * (0.85 + eqIntensityMul * 0.15),
           );
           hm.uniforms.uHelixJuliaInteriorBlur.value = THREE.MathUtils.clamp(
             s.wormholeHelixJuliaInteriorBlur,
@@ -1128,7 +1279,7 @@ export function JuliaWormholeBackdrop({
             1,
           );
           hm.uniforms.uHelixJuliaShimmer.value = THREE.MathUtils.clamp(
-            s.wormholeHelixJuliaShimmer,
+            s.wormholeHelixJuliaShimmer + eqShimmerAdd,
             0,
             1,
           );
@@ -1149,7 +1300,7 @@ export function JuliaWormholeBackdrop({
           const hm = h.material as THREE.MeshBasicMaterial;
           const flare = Math.min(Math.abs(s.velocity) * 0.08, 0.35);
           let op = 0.85 + flare;
-          if (useThroatCamera) op *= 1 - exitB * 0.58;
+          if (useThroatCamera) op *= 1 - exitBEff * 0.58;
           hm.opacity = op;
         }
       }
@@ -1157,41 +1308,46 @@ export function JuliaWormholeBackdrop({
       const positions = pGeo.attributes.position!.array as Float32Array;
       const phases = pGeo.attributes.phase!.array as Float32Array;
       const waveSel = pGeo.attributes.wave!.array as Float32Array;
-      const dz = s.velocity * dt * 12;
+      const dz = s.velocity * dt * DRIFT_MOTE_PHYSICS.zVelMul;
       const ringR = Math.max(0.5, s.ringRadius);
-      const waveAmp = ringR * 0.042;
+      const waveAmp = driftMoteWaveAmp(ringR);
       for (let i = 0; i < tunnelParticleCount; i++) {
         positions[i * 3 + 2] += dz;
         if (positions[i * 3 + 2] > 5) positions[i * 3 + 2] -= TUNNEL_LENGTH;
         else if (positions[i * 3 + 2] < -TUNNEL_LENGTH + 5) positions[i * 3 + 2] += TUNNEL_LENGTH;
         const x = positions[i * 3]!;
         const y = positions[i * 3 + 1]!;
-        const angSpeed = 0.04 + phases[i]! * 0.002;
+        const angSpeed =
+          DRIFT_MOTE_PHYSICS.angSpeedBase + phases[i]! * DRIFT_MOTE_PHYSICS.angSpeedPhaseMul;
         const cs = Math.cos(angSpeed * dt);
         const sn = Math.sin(angSpeed * dt);
         positions[i * 3] = x * cs - y * sn;
         positions[i * 3 + 1] = x * sn + y * cs;
-        if (!motionPrefs.reduced && waveSel[i]! > 0.5) {
+        if (!motionPrefs.reduced && driftMoteWaveActive && waveSel[i]! > 0.5) {
           const rz = positions[i * 3 + 2]!;
           const ph = phases[i]!;
-          const slow = Math.sin(time * 1.75 + ph * 2.35 + rz * 0.041);
-          const fast = Math.cos(time * 2.62 + ph * 1.82 + rz * 0.033);
-          const shim = Math.sin(time * 4.15 + ph * 5.9);
-          const pulse = 0.62 + 0.38 * (shim * 0.5 + 0.5);
-          positions[i * 3] += slow * waveAmp * 0.88 * pulse;
-          positions[i * 3 + 1] += fast * waveAmp * pulse;
+          const w = driftMoteWaveSample(time, ph, rz);
+          positions[i * 3] += w.slow * waveAmp * DRIFT_MOTE_PHYSICS.slowXYMul * w.pulse;
+          positions[i * 3 + 1] += w.fast * waveAmp * w.pulse;
         }
       }
       pGeo.attributes.position!.needsUpdate = true;
 
+      if (s.wormhole5CoinDriftMoteLiveParticleReflectionEnabled) {
+        const pCol = pGeo.attributes.color!.array as Float32Array;
+        publishLiveDriftMoteParticleSamples(positions, pCol, tunnelParticleCount, ringR);
+      }
+
       stars.rotation.z = time * 0.005;
       if (useThroatCamera) {
         const sm = stars.material as THREE.PointsMaterial;
-        sm.opacity = 0.7 * (1 - introB * 0.28 + exitB * 0.22);
+        sm.opacity = 0.7 * (1 - introB * 0.28 + exitBEff * 0.22);
       }
 
       const narrow = wormholeNarrowViewport();
-      const helixMobileBloomMul = helixLab && narrow ? HELIX_MOBILE_BLOOM_MUL : 1;
+      const helixMobileBloomMul = helixLab && narrow
+        ? resolveWormholeHelixQuality(s).effectiveMobileBloomMul
+        : 1;
       const mobileBloomStrengthMul = narrow
         ? touchScrollPrimary
           ? 0.9
@@ -1201,7 +1357,7 @@ export function JuliaWormholeBackdrop({
         s.bloomStrength *
         helixMobileBloomMul *
         mobileBloomStrengthMul *
-        (useThroatCamera ? 1 + exitB * 0.14 : 1);
+        (useThroatCamera ? 1 + exitBEff * 0.14 : 1);
       bloomPass.radius = s.bloomRadius;
       bloomPass.threshold = s.bloomThreshold;
 
@@ -1213,7 +1369,7 @@ export function JuliaWormholeBackdrop({
             introFog *= 0.42;
           }
           fd *= 1 - introFog * 0.42;
-          fd *= 1 - exitB * 0.55;
+          fd *= 1 - exitBEff * 0.55;
         }
         scene.fog.density = fd;
       }
@@ -1225,11 +1381,18 @@ export function JuliaWormholeBackdrop({
         // 1. Velocity-driven FOV breathing — speed lines / hyperspace lens stretch.
         //    Faster scroll = wider FOV (warps periphery inward).
         const camVel = touchScrollPrimary ? scrollVelSm : s.velocity;
+        const coinFollow = computeWormholeCoinFollowCam({
+          enabled: s.wormholeCoinFollowCamEnabled && useThroatCamera,
+          strength: s.wormholeCoinFollowCamStrength,
+          depth: s.depth,
+          maxDepth: maxDepthForJourney,
+          velocity: camVel,
+        });
         const velFovMul = touchScrollPrimary ? WORMHOLE_MOBILE_CAM_VEL_FOV_MUL : 0.65;
         const velFovCap = touchScrollPrimary ? WORMHOLE_MOBILE_CAM_VEL_FOV_CAP : 8;
         const velDollyMul = touchScrollPrimary ? WORMHOLE_MOBILE_CAM_VEL_DOLLY_MUL : 0.16;
         const velDollyCap = touchScrollPrimary ? WORMHOLE_MOBILE_CAM_VEL_DOLLY_CAP : 1;
-        const baseFov = 72 + journeyFovAdd;
+        const baseFov = 72 + journeyFovAdd + coinFollow.fovAdd;
         const targetFov = baseFov + Math.min(Math.abs(camVel) * velFovMul, velFovCap);
         const fovEase = 1 - Math.exp(-dt * (touchScrollPrimary ? WORMHOLE_MOBILE_CAM_VEL_FOV_EASE : 6));
         camera.fov += (targetFov - camera.fov) * fovEase;
@@ -1241,7 +1404,7 @@ export function JuliaWormholeBackdrop({
         //    bursts then springs back to z=0. Reads as "weight" inside the tube.
         const dollyTarget = -Math.min(Math.abs(camVel) * velDollyMul, velDollyCap);
         const scrollRideZ = useThroatCamera ? velRideSm * journeyCamEasing : 0;
-        const targetZ = dollyTarget + journeyCamZAdd + scrollRideZ;
+        const targetZ = dollyTarget + journeyCamZAdd + scrollRideZ + coinFollow.dollyZ;
         const dollyEase = touchScrollPrimary ? WORMHOLE_MOBILE_CAM_VEL_DOLLY_EASE : 4;
         camera.position.z += (targetZ - camera.position.z) * (1 - Math.exp(-dt * dollyEase));
 
@@ -1262,27 +1425,15 @@ export function JuliaWormholeBackdrop({
         camera.lookAt(aimX, aimY, -10);
         camera.rotateZ(smoothedBank);
 
-        const randTilt = s.wormholeDebugRandomCamTilt;
-        if (randTilt) {
-          randCamPulse += dt;
-          const scrolling =
-            Math.abs(s.velocity) > 0.032 || Math.abs(s.depth - randCamLastDepth) > 5.5;
-          randCamLastDepth = s.depth;
-          if (scrolling && randCamPulse > 0.34) {
-            randCamPulse = 0;
-            randCamTx = (Math.random() - 0.5) * 0.44;
-            randCamTy = (Math.random() - 0.5) * 0.38;
-          }
-          randCamRx += (randCamTx - randCamRx) * (1 - Math.exp(-dt * 4.2));
-          randCamRy += (randCamTy - randCamRy) * (1 - Math.exp(-dt * 4.2));
-          camera.rotateX(randCamRx);
-          camera.rotateY(randCamRy);
-        } else {
-          randCamTx = 0;
-          randCamTy = 0;
-          randCamRx += (0 - randCamRx) * (1 - Math.exp(-dt * 6));
-          randCamRy += (0 - randCamRy) * (1 - Math.exp(-dt * 6));
-        }
+        applyRandomCamTiltAfterLookAt(
+          camera,
+          s.wormholeDebugRandomCamTilt,
+          s.wormholeDebugRandomCamTiltAmount,
+          touchScrollPrimary ? scrollVelSm : s.velocity,
+          s.depth,
+          randCamTilt,
+          dt,
+        );
 
         if (s.wormholeDebugCircularCamTilt) {
           const ph = time * 0.26;
@@ -1292,8 +1443,19 @@ export function JuliaWormholeBackdrop({
       } else {
         smoothedBank = 0;
         if (useThroatCamera) {
-          camera.fov = 72 + journeyFovAdd;
-          camera.position.set(0, 0, journeyCamZAdd + velRideSm * journeyCamEasing);
+          const coinFollowReduced = computeWormholeCoinFollowCam({
+            enabled: s.wormholeCoinFollowCamEnabled && useThroatCamera,
+            strength: s.wormholeCoinFollowCamStrength,
+            depth: s.depth,
+            maxDepth: maxDepthForJourney,
+            velocity: 0,
+          });
+          camera.fov = 72 + journeyFovAdd + coinFollowReduced.fovAdd;
+          camera.position.set(
+            0,
+            0,
+            journeyCamZAdd + velRideSm * journeyCamEasing + coinFollowReduced.dollyZ,
+          );
           camera.updateProjectionMatrix();
         } else {
           camera.fov = 72;
@@ -1315,14 +1477,18 @@ export function JuliaWormholeBackdrop({
 
     return () => {
       cancelAnimationFrame(raf);
+      if (resizeDebounceId !== undefined) clearTimeout(resizeDebounceId);
+      unsubHelixQuality();
       unsubHelixJuliaRibbon?.();
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
       if (visualViewport) {
         visualViewport.removeEventListener('resize', onResize);
       }
-      if (attachMouseAim) window.removeEventListener('pointermove', onPointerMove);
+      unsubPointerParallax();
+      if (pointerListenerOn) window.removeEventListener('pointermove', onPointerMove);
       document.removeEventListener('visibilitychange', onVis);
+      clearLiveDriftMoteParticleSamples();
       composer.dispose();
       if (sharedRingGeo) {
         sharedRingGeo.dispose();
@@ -1364,6 +1530,7 @@ export function JuliaWormholeBackdrop({
     helixLabFullscreen,
     helixWallInsetMulProp,
     helixWormhole2RibbonStyle,
+    tunnelQualityRevision,
   ]);
 
   return (

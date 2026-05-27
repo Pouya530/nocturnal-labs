@@ -17,6 +17,7 @@ const disallow = [
   '/wormhole9',
   '/wormhole10',
   '/wormhole11',
+  '/wormhole20',
 ];
 
 export default function robots(): MetadataRoute.Robots {

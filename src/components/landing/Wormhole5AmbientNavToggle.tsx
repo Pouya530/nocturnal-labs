@@ -6,7 +6,6 @@ import { useSyncExternalStore } from 'react';
 import {
   LANDING_NAV_MENU_TRIGGER_LABEL_CLASS,
   LANDING_NAV_TRIGGER_BTN_CLASS,
-  LANDING_NAV_TRIGGER_ICON_CLASS,
 } from '@/components/landing/landingNavChrome';
 import {
   isWormhole5AmbientAudioRoute,
@@ -16,26 +15,33 @@ import {
 } from '@/audio/wormhole5AmbientAudio';
 import { dmSans } from '@/lib/fonts';
 
-/** Pause bars — same iridescent chrome as the burger lines. */
+const AMBIENT_ICON_CLASS = 'landing-nav-trigger-icon landing-nav-trigger-icon--ambient';
+
+/** Pause — two iridescent pill bars (same slot as play). */
 function AmbientPauseIcon(): ReactElement {
   return (
-    <span
-      className={`${LANDING_NAV_TRIGGER_ICON_CLASS} landing-nav-trigger-icon--pause`}
-      aria-hidden
-    >
+    <span className={`${AMBIENT_ICON_CLASS} landing-nav-trigger-icon--pause`} aria-hidden>
       <span className="landing-nav-burger-line landing-nav-burger-line--icon" />
       <span className="landing-nav-burger-line landing-nav-burger-line--icon" />
     </span>
   );
 }
 
-/** Play triangle — same gradient + glow as burger lines. */
+/**
+ * Play glyph — same iridescent stack as the AUDIO label (`background-clip: text`).
+ * WebKit often omits clip-path + SVG gradient shapes in the nav cluster; text clip is reliable.
+ */
 function AmbientPlayIcon(): ReactElement {
   return (
-    <span
-      className={`${LANDING_NAV_TRIGGER_ICON_CLASS} landing-nav-trigger-icon--play landing-nav-burger-line landing-nav-burger-line--icon`}
-      aria-hidden
-    />
+    <span className={`${AMBIENT_ICON_CLASS} landing-nav-trigger-icon--play`} aria-hidden>
+      <span
+        className="landing-nav-ambient-play-glyph coming-soon-text-iridescent landing-nav-glow landing-nav-text-stroke"
+        style={{ paddingTop: 0, paddingBottom: 0 }}
+        aria-hidden
+      >
+        ▶
+      </span>
+    </span>
   );
 }
 
@@ -57,10 +63,19 @@ export function Wormhole5AmbientNavToggle(): ReactElement | null {
   return (
     <button
       type="button"
-      className={[LANDING_NAV_TRIGGER_BTN_CLASS, 'landing-nav-ambient-audio', dmSans.className].join(' ')}
+      className={[
+        LANDING_NAV_TRIGGER_BTN_CLASS,
+        'landing-nav-ambient-audio',
+        'landing-nav-ambient-audio--wormhole5',
+        dmSans.className,
+      ].join(' ')}
       aria-pressed={playing}
       aria-label={playing ? 'Pause ambient audio' : 'Play ambient audio'}
-      onClick={() => toggleWormhole5AmbientPlayback()}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleWormhole5AmbientPlayback();
+      }}
     >
       {playing ? <AmbientPauseIcon /> : <AmbientPlayIcon />}
       <span className={LANDING_NAV_MENU_TRIGGER_LABEL_CLASS}>{playing ? 'PAUSE' : 'AUDIO'}</span>

@@ -1,7 +1,7 @@
 import {
   WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR,
   WORMHOLE_DESKTOP_PRODUCTION_DPR_MAX,
-} from '@/lib/wormholePageConfig';
+} from '@/lib/wormholeDesktopDpr';
 import { wormholeDesktopProductionHighQuality } from '@/lib/wormholeProductionQuality';
 
 /**
@@ -103,4 +103,12 @@ export function wormholeTunnelRingsMaxQuality(): boolean {
   if (isIOSLike()) return false;
   if (isCoarseOrTouchPrimaryViewport()) return false;
   return true;
+}
+
+/** Desktop Chrome / Edge / Chromium — not touch-primary (Safari excluded). */
+export function isChromiumDesktopBrowser(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (isCoarseOrTouchPrimaryViewport()) return false;
+  const ua = navigator.userAgent;
+  return /Chrome\//.test(ua) || /Chromium\//.test(ua) || /Edg\//.test(ua);
 }

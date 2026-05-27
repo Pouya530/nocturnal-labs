@@ -1,15 +1,35 @@
+import { isLocalhostHostname } from '@/lib/isLocalhost';
 import { isCoarseOrTouchPrimaryViewport, isIOSLike } from '@/lib/webglMobilePrefs';
 
 /**
- * Home `/` + `/wormhole5` ambient loop.
- * Full: `public/audio/sub-bass-silence.mp3` (desktop seeks past intro).
- * Trimmed: `public/audio/sub-bass-silence-trimmed.mp3` (mobile plays from 0, no seek).
+ * Home `/` + `/wormhole5` + `/wormhole20` ambient loop.
+ * Production home `/`: `nc-bass-baptism` (+ trimmed). Lab `/wormhole5` on prod keeps legacy sub-bass.
+ * Localhost dev: Bass Baptism on all ambient routes.
  */
 
 export const WORMHOLE5_AMBIENT_AUDIO_SRC = '/audio/sub-bass-silence.mp3';
 
 /** Same mix from ~4s in — used on touch / iOS to avoid runtime seek stalls. */
 export const WORMHOLE5_AMBIENT_AUDIO_SRC_TRIM = '/audio/sub-bass-silence-trimmed.mp3';
+
+/** Stripped `NC_Bass-Baptism.mp3` — production home `/` + localhost dev. */
+export const WORMHOLE5_AMBIENT_AUDIO_SRC_BASS_BAPTISM = '/audio/nc-bass-baptism.mp3';
+
+export const WORMHOLE5_AMBIENT_AUDIO_SRC_BASS_BAPTISM_TRIM =
+  '/audio/nc-bass-baptism-trimmed.mp3';
+
+/** Production home index — always Bass Baptism (labs.nocturnal.cloud `/`). */
+export function isWormholeHomeIndexRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  return path === '/' || path === '';
+}
+
+export function wormhole5AmbientUsesBassBaptismTrack(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (isWormholeHomeIndexRoute()) return true;
+  return isLocalhostHostname(window.location.hostname);
+}
 
 const TARGET_VOLUME = 0.58;
 const FADE_IN_MS = 3200;
@@ -22,9 +42,29 @@ export function wormhole5AmbientUsesTrimmedFile(): boolean {
 }
 
 export function wormhole5AmbientAudioSrc(): string {
-  return wormhole5AmbientUsesTrimmedFile()
-    ? WORMHOLE5_AMBIENT_AUDIO_SRC_TRIM
-    : WORMHOLE5_AMBIENT_AUDIO_SRC;
+  const bassBaptism = wormhole5AmbientUsesBassBaptismTrack();
+  if (wormhole5AmbientUsesTrimmedFile()) {
+    return bassBaptism
+      ? WORMHOLE5_AMBIENT_AUDIO_SRC_BASS_BAPTISM_TRIM
+      : WORMHOLE5_AMBIENT_AUDIO_SRC_TRIM;
+  }
+  return bassBaptism ? WORMHOLE5_AMBIENT_AUDIO_SRC_BASS_BAPTISM : WORMHOLE5_AMBIENT_AUDIO_SRC;
+}
+
+function ambientSrcAbsolute(): string {
+  return new URL(wormhole5AmbientAudioSrc(), window.location.origin).href;
+}
+
+/** Keep singleton `<audio>` on the resolved track when route/host changes. */
+function syncAmbientElementSrc(el: HTMLAudioElement): void {
+  const nextAbs = ambientSrcAbsolute();
+  if (el.src === nextAbs) return;
+  el.pause();
+  el.src = wormhole5AmbientAudioSrc();
+  el.load();
+  el.volume = 0;
+  playing = false;
+  emit();
 }
 
 /** `0` on trimmed / touch; {@link WORMHOLE5_AMBIENT_START_OFFSET_SEC} on desktop full file. */
@@ -56,7 +96,8 @@ function cancelFade(): void {
 function getAudio(): HTMLAudioElement | null {
   if (typeof window === 'undefined') return null;
   if (!audio) {
-    audio = new Audio(wormhole5AmbientAudioSrc());
+    const el = new Audio(wormhole5AmbientAudioSrc());
+    audio = el;
     audio.loop = true;
     audio.preload = 'auto';
     audio.volume = 0;
@@ -72,6 +113,9 @@ function getAudio(): HTMLAudioElement | null {
       playing = false;
       emit();
     });
+    void import('@/audio/wormholeAmbientEqualizer').then((m) =>
+      m.wormholeAmbientEqualizerOnAudioElementReady(el),
+    );
     const loopSkipSec = wormhole5AmbientStartOffsetSec();
     if (loopSkipSec > 0) {
       audio.addEventListener('timeupdate', () => {
@@ -80,6 +124,8 @@ function getAudio(): HTMLAudioElement | null {
         }
       });
     }
+  } else {
+    syncAmbientElementSrc(audio);
   }
   return audio;
 }
@@ -116,10 +162,27 @@ function fadeVolumeTo(target: number, durationMs: number, onDone?: () => void): 
   fadeRaf = requestAnimationFrame(tick);
 }
 
+export function isWormhole20LabRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  return path === '/wormhole20' || path === '/wormhole20/';
+}
+
 export function isWormhole5AmbientAudioRoute(): boolean {
   if (typeof window === 'undefined') return false;
   const path = window.location.pathname;
-  return path === '/' || path === '/wormhole5' || path === '/wormhole5/';
+  return (
+    path === '/' ||
+    path === '/wormhole5' ||
+    path === '/wormhole5/' ||
+    isWormhole20LabRoute()
+  );
+}
+
+/** Shared `<audio>` element for ambient routes (analyser hookup on wormhole20). */
+export function getWormhole5AmbientAudioElement(): HTMLAudioElement | null {
+  if (typeof window === 'undefined') return null;
+  return audio;
 }
 
 export function subscribeWormhole5AmbientAudio(listener: () => void): () => void {
@@ -131,17 +194,54 @@ export function isWormhole5AmbientGestureUnlocked(): boolean {
   return gestureUnlocked;
 }
 
+/** UI + monitors — derive from the element only; internal `playing` can desync from `paused` on WebKit. */
 export function isWormhole5AmbientPlaying(): boolean {
   const a = audio;
-  return playing && !!a && !a.paused;
+  return !!a && !a.paused;
+}
+
+/** Julia debug sync — `currentTime` in seconds, or `null` if the element is not created yet. */
+export function getWormhole5AmbientPlaybackTime(): number | null {
+  if (!audio) return null;
+  const t = audio.currentTime;
+  return Number.isFinite(t) ? t : null;
+}
+
+/** Same formula as {@link JuliaWormholeBackdrop} — for tunnel debug monitor. */
+export function computeWormhole5JuliaShaderTimes(
+  syncEnabled: boolean,
+  syncRate: number,
+): {
+  audioSec: number | null;
+  uTime: number | null;
+  skyUTime: number | null;
+} {
+  const audioSec = getWormhole5AmbientPlaybackTime();
+  if (!syncEnabled || audioSec == null) {
+    return { audioSec, uTime: null, skyUTime: null };
+  }
+  const uTime = audioSec * Math.max(0.05, syncRate);
+  return { audioSec, uTime, skyUTime: uTime * 0.4 };
+}
+
+/**
+ * Create/load the ambient element during boot (before ENTER) so the click path only unlocks playback.
+ */
+export function warmWormhole5AmbientAudio(): void {
+  if (!isWormhole5AmbientAudioRoute()) return;
+  getAudio();
 }
 
 /** Preloader Enter — unlock autoplay (silent play/pause) before dismiss. */
 export function armWormhole5AmbientFromEnter(): void {
-  const a = getAudio();
+  warmWormhole5AmbientAudio();
+  const a = audio;
   if (!a) return;
   gestureUnlocked = true;
   emit();
+  if (isWormhole20LabRoute()) {
+    void import('@/audio/wormholeAmbientEqualizer').then((m) => m.resumeWormholeAmbientAudioContext());
+  }
   void a
     .play()
     .then(() => {
@@ -209,6 +309,11 @@ export function startWormhole5AmbientSyncedFade(opts: Wormhole5AmbientSyncFadeOp
     a.volume = 0;
     seekAmbientToStartOffset(a, startOffsetSec);
     void a.play().then(() => {
+      if (isWormhole20LabRoute()) {
+        void import('@/audio/wormholeAmbientEqualizer').then((m) =>
+          m.resumeWormholeAmbientAudioContext(),
+        );
+      }
       const t0 = performance.now();
       const tick = (now: number) => {
         const linear = Math.min(1, (now - t0) / durationMs);
@@ -254,16 +359,34 @@ export function startWormhole5AmbientImmediate(): void {
 export function toggleWormhole5AmbientPlayback(): void {
   const a = getAudio();
   if (!a) return;
-  if (a.paused) {
-    gestureUnlocked = true;
-    cancelFade();
-    void a.play().then(() => {
-      fadeVolumeTo(TARGET_VOLUME, 900);
-    }).catch(() => {});
+  clearSyncFade();
+  cancelFade();
+
+  if (!a.paused) {
+    a.pause();
+    playing = false;
+    emit();
+    /* WebKit sometimes updates `paused` after the current task — second tick refreshes nav UI. */
+    requestAnimationFrame(() => emit());
     return;
   }
-  cancelFade();
-  a.pause();
+
+  gestureUnlocked = true;
+  if (a.volume < 0.01) {
+    a.volume = 0;
+  }
+  void a
+    .play()
+    .then(() => {
+      playing = true;
+      emit();
+      requestAnimationFrame(() => emit());
+      fadeVolumeTo(TARGET_VOLUME, 900);
+    })
+    .catch(() => {
+      playing = false;
+      emit();
+    });
 }
 
 export function pauseWormhole5Ambient(): void {

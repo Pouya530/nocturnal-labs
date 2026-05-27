@@ -28,8 +28,47 @@ import {
 } from '@/lib/webglMobilePrefs';
 import { getWormholeFallMotionSnapshot } from '@/components/wormhole/wormholeFallMotionBridge';
 import { WORMHOLE_LAB_COIN_CANVAS_PERCENT } from '@/lib/wormholePageConfig';
+import { wormholeCoinScrollCameraFromStore } from '@/lib/wormholeCoinScrollCamera';
+import { computeHeroCoinFollowCam } from '@/lib/wormholeCoinFollowCam';
 import { isWormholeTouchScrollPrimary } from '@/lib/wormholeScrollMobile';
+import {
+  COIN_DRIFT_MOTE_ARC_META,
+  COIN_DRIFT_MOTE_FACE_HUES,
+  COIN_DRIFT_MOTE_FACE_Z_EPS,
+  COIN_DRIFT_MOTE_GLINT_ROLES,
+  COIN_DRIFT_MOTE_TUNNEL_LENGTH,
+  COIN_DRIFT_MOTE_VIRTUAL_SEEDS,
+  isDriftMoteWaveActive,
+  projectDriftMoteToCoinFace,
+  projectLiveParticleToCoinFace,
+  tickVirtualDriftMote,
+  type VirtualDriftMote,
+} from '@/lib/wormholeDriftMotePhysics';
+import {
+  COIN_LIVE_PARTICLE_GLINT_MAX,
+  getLiveDriftMoteParticleSamples,
+} from '@/lib/wormholeDriftMoteParticleBridge';
+import { CoinCinematicBloom } from '@/components/Hero/CoinCinematicBloom';
+import {
+  COIN_CINEMATIC_AMBIENT,
+  COIN_CINEMATIC_DIR_INTENSITY,
+  COIN_CINEMATIC_EDGE_COLOR,
+  COIN_CINEMATIC_EDGE_INTENSITY,
+  COIN_CINEMATIC_ENV_INTENSITY,
+  COIN_CINEMATIC_FACE_METALNESS,
+  COIN_CINEMATIC_FACE_ROUGHNESS,
+  COIN_CINEMATIC_KEY_DISTANCE,
+  COIN_CINEMATIC_KEY_INTENSITY,
+  COIN_CINEMATIC_LEFT_COLOR,
+  COIN_CINEMATIC_LEFT_LIGHT,
+  COIN_CINEMATIC_RIGHT_COLOR,
+  COIN_CINEMATIC_RIGHT_LIGHT,
+  COIN_CINEMATIC_RIM_METALNESS,
+  COIN_CINEMATIC_RIM_ROUGHNESS,
+  coinCinematicHighlightWeights,
+} from '@/lib/wormholeCoinCinematicSpinLighting';
 import { tunnelStore } from '@/tunnel/tunnelStore';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 /** Place assets in `public/brand/` (front: Latin motto, back: alternate wordmark). Full-size backups: `*.original.png` next to each active file. */
 const FACE_SRC_FRONT = '/brand/updated-latin-motto.png';
@@ -75,25 +114,10 @@ const CAM_BASE_FOV = 33.5;
  */
 const CAM_MICRO_INTRO_PULL_Z = 0.4;
 const CAM_MICRO_INTRO_FOV = 2.35;
-/** Wormhole: max extra Z pull-back / FOV widen at high scroll speed (velocity magnitude). */
+/** Wormhole free-fly: max extra Z pull-back / FOV widen at high scroll speed. */
 const CAM_SCROLL_Z_PULL = 2.35;
 const CAM_SCROLL_FOV_EXTRA = 7;
-const CAM_SCROLL_V_REF = 95;
-/** `useScrollDepth` locked branch scales wheel impulse ×0.35 — match coin camera zoom to free-mode feel. */
-const CAM_SCROLL_LOCKED_VEL_SCALE = 2.85;
-/** Locked: scroll down (v+) — stronger zoom-out than free-mode symmetric curve. */
-const CAM_SCROLL_LOCKED_Z_PULL_DOWN = 4.35;
-const CAM_SCROLL_LOCKED_FOV_DOWN = 13.2;
-/** Locked: scroll up (v−) — dolly in + narrower FOV (“zoom in”). */
-const CAM_SCROLL_LOCKED_Z_PUSH_UP = 1.42;
-const CAM_SCROLL_LOCKED_FOV_UP = 6.35;
 const CAM_SCROLL_LOCKED_FOV_MIN = 22;
-/**
- * Locked: extra dolly / FOV from scroll **speed** (|v|), both directions — coin reads smaller at
- * high speed; this pulls the camera farther back so framing matches.
- */
-const CAM_SCROLL_LOCKED_Z_SPEED_AWAY = 0.92;
-const CAM_SCROLL_LOCKED_FOV_SPEED_AWAY = 3.1;
 /** Locked backward zoom-in: 0 at mouth → full by this fraction of `maxDepth` (eases scroll-back clip). */
 const CAM_SCROLL_LOCKED_BACK_ZOOM_IN_DEPTH_FRAC = 0.045;
 /**
@@ -120,6 +144,36 @@ const HELIX_RIBBON_REFLECTION_HEX = [0xff4da8, 0x8e3bff, 0x3b7bff] as const;
 const HELIX_REFLECT_ORBIT_R = 2.06;
 const HELIX_REFLECT_TWIST_TURNS = 2.28;
 
+/** Face glints — hues align with virtual drift-mote sources ({@link COIN_DRIFT_MOTE_FACE_HUES}). */
+function isWormhole5CoinDriftMoteReflectionRoute(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return (
+    pathname === '/wormhole5' ||
+    pathname === '/wormhole5/' ||
+    pathname === '/wormhole20' ||
+    pathname === '/wormhole20/'
+  );
+}
+
+function isWormhole5LiveParticleReflectionRoute(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return pathname === '/wormhole5' || pathname === '/wormhole5/';
+}
+
+function isWormhole5CinematicSpinLightingRoute(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return pathname === '/wormhole5' || pathname === '/wormhole5/';
+}
+
+function subscribeWormhole5CinematicSpinLighting(): () => void {
+  return tunnelStore.subscribe(() => {});
+}
+
+function snapshotWormhole5CinematicSpinLighting(pathname: string | null): boolean {
+  if (!isWormhole5CinematicSpinLightingRoute(pathname)) return false;
+  return tunnelStore.getState().wormhole5CoinCinematicSpinLightingEnabled;
+}
+
 /** Tangent to gunmetal **edge** (cylinder): in-plane orbit just outside r=1 for specular rim streaks. */
 const RIM_TANGENT_RING_R = 1.075;
 
@@ -137,12 +191,17 @@ const BACKDROP_FACE_EMISSIVE_COLOR = new THREE.Color('#f4f9ff');
 /** Scroll-sync Y spin: exponential approach toward target rad/s (responsive during sustained scroll). */
 const SPIN_RATE_SMOOTH_LAMBDA = 13;
 /**
- * Softer approach after hands leave idle (`scrollInputIdle` was high) — eases out of fall drift into
- * steady vertical spin without snapping to full boost immediately.
+ * Softer spin-rate smoothing across idle↔fall hand-offs (scroll start or release) so Y spin does not
+ * snap when fall motion takes over or yields back to steady horizontal spin.
  */
 const SPIN_RATE_SMOOTH_LAMBDA_SOFT = 3.6;
-/** Seconds after idle→scroll where {@link SPIN_RATE_SMOOTH_LAMBDA_SOFT} applies. */
+/** Seconds after a scroll-idle edge where {@link SPIN_RATE_SMOOTH_LAMBDA_SOFT} applies. */
 const SPIN_SOFT_ENTRY_HOLD_SEC = 0.55;
+/** During fall (`w` from {@link WormholeFallingCoin}), damp velocity-linked spin boost. */
+const SPIN_FALL_BOOST_DAMP = 0.88;
+/** Start restoring idle spin while `scrollInputIdle` rises — before fall blend hits zero. */
+const SPIN_RELEASE_HANDOFF_START = 0.82;
+const SPIN_RELEASE_HANDOFF_END = 0.97;
 
 /** How each rim point-light moves in space (highlights sweep instead of only pulsing). */
 type RimLightMotion = 'orbit' | 'vertical' | 'diagDown' | 'diagUp';
@@ -363,15 +422,16 @@ function ScrollVelocityCamera({ enabled }: { enabled: boolean }): null {
     }
 
     const s = tunnelStore.getState();
+    const cam = wormholeCoinScrollCameraFromStore(s);
     const v = s.velocity;
     const touchScroll = isWormholeTouchScrollPrimary();
-    const camVelMul = s.mode === 'locked' ? CAM_SCROLL_LOCKED_VEL_SCALE : 1;
+    const camVelMul = s.mode === 'locked' ? cam.lockedVelScale : 1;
     const signedVel = v * camVelMul;
     const signedVelSmooth = 1 - Math.exp(-delta * (touchScroll ? 20 : CAM_SCROLL_SIGNED_VEL_SMOOTH));
     signedVelSmRef.current += (signedVel - signedVelSmRef.current) * signedVelSmooth;
     const av = Math.abs(signedVelSmRef.current);
     smoothAbsVelRef.current += (av - smoothAbsVelRef.current) * velSmooth;
-    const speedNorm = Math.min(1, smoothAbsVelRef.current / CAM_SCROLL_V_REF);
+    const speedNorm = Math.min(1, smoothAbsVelRef.current / Math.max(1, cam.velRef));
     const eased = speedNorm * speedNorm;
     /** Forward-only: coasting |v| after a deep scroll must not keep “zoom out” while user scrolls up. */
     const forward01 = THREE.MathUtils.smoothstep(signedVelSmRef.current, 0, 14);
@@ -381,10 +441,10 @@ function ScrollVelocityCamera({ enabled }: { enabled: boolean }): null {
     let targetFov: number;
 
     if (s.mode === 'locked') {
-      const zSpeedAway = touchScroll ? 0 : eased * CAM_SCROLL_LOCKED_Z_SPEED_AWAY;
-      const fovSpeedAway = touchScroll ? 0 : eased * CAM_SCROLL_LOCKED_FOV_SPEED_AWAY;
-      const targetZPos = CAM_BASE_Z + easedForward * CAM_SCROLL_LOCKED_Z_PULL_DOWN + zSpeedAway;
-      const targetFovPos = CAM_BASE_FOV + easedForward * CAM_SCROLL_LOCKED_FOV_DOWN + fovSpeedAway;
+      const zSpeedAway = touchScroll ? 0 : eased * cam.lockedZSpeedAway;
+      const fovSpeedAway = touchScroll ? 0 : eased * cam.lockedFovSpeedAway;
+      const targetZPos = CAM_BASE_Z + easedForward * cam.lockedZPullDown + zSpeedAway;
+      const targetFovPos = CAM_BASE_FOV + easedForward * cam.lockedFovDown + fovSpeedAway;
       /** Trim the last ~25% of the zoom-in lever so fast “in” scroll stops short of the harshest dolly/FOV. */
       const maxD = Math.max(1, s.maxDepth);
       const shallowTarget = THREE.MathUtils.smoothstep(
@@ -395,10 +455,10 @@ function ScrollVelocityCamera({ enabled }: { enabled: boolean }): null {
       const shallowSmooth = 1 - Math.exp(-delta * CAM_SCROLL_SHALLOW_SMOOTH);
       shallow01SmRef.current += (shallowTarget - shallow01SmRef.current) * shallowSmooth;
       const zoomInEase = Math.min(eased, 0.74) * shallow01SmRef.current;
-      const targetZNeg = CAM_BASE_Z - zoomInEase * CAM_SCROLL_LOCKED_Z_PUSH_UP + zSpeedAway;
+      const targetZNeg = CAM_BASE_Z - zoomInEase * cam.lockedZPushUp + zSpeedAway;
       const targetFovNeg = Math.max(
         CAM_SCROLL_LOCKED_FOV_MIN,
-        CAM_BASE_FOV - zoomInEase * CAM_SCROLL_LOCKED_FOV_UP + fovSpeedAway,
+        CAM_BASE_FOV - zoomInEase * cam.lockedFovUp + fovSpeedAway,
       );
       const wSign = THREE.MathUtils.smoothstep(
         signedVelSmRef.current,
@@ -417,6 +477,16 @@ function ScrollVelocityCamera({ enabled }: { enabled: boolean }): null {
     targetZ += introOpening * CAM_MICRO_INTRO_PULL_Z;
     targetFov += introOpening * CAM_MICRO_INTRO_FOV;
 
+    const coinFollow = computeHeroCoinFollowCam({
+      enabled: s.wormholeCoinFollowCamEnabled,
+      strength: s.wormholeCoinFollowCamStrength,
+      depth: s.depth,
+      maxDepth: s.maxDepth,
+      velocity: signedVelSmRef.current,
+    });
+    targetZ += coinFollow.dollyZ;
+    targetFov += coinFollow.fovAdd;
+
     persp.position.x += (CAM_BASE_X - persp.position.x) * ease;
     persp.position.y = CAM_BASE_Y;
     persp.position.z += (targetZ - persp.position.z) * ease;
@@ -429,6 +499,21 @@ function ScrollVelocityCamera({ enabled }: { enabled: boolean }): null {
 
 function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMeshProps): ReactElement {
   const { gl } = useThree();
+  const pathname = usePathname();
+  const cinematicSpinLightingEnabled = useSyncExternalStore(
+    subscribeWormhole5CinematicSpinLighting,
+    () => snapshotWormhole5CinematicSpinLighting(pathname),
+    () => false,
+  );
+  const coinEnvMap = useMemo(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    pmrem.compileEquirectangularShader();
+    const tex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+    return tex;
+  }, [gl]);
+  useEffect(() => () => coinEnvMap.dispose(), [coinEnvMap]);
+
   const rimSideTex = useMemo(() => createCoinRimSideTexture(), []);
   useEffect(() => {
     return () => {
@@ -450,6 +535,21 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
   const helixRibbonLight0 = useRef<THREE.PointLight>(null);
   const helixRibbonLight1 = useRef<THREE.PointLight>(null);
   const helixRibbonLight2 = useRef<THREE.PointLight>(null);
+  const driftMoteFaceLight0 = useRef<THREE.PointLight>(null);
+  const driftMoteFaceLight1 = useRef<THREE.PointLight>(null);
+  const driftMoteFaceLight2 = useRef<THREE.PointLight>(null);
+  const driftMoteFaceLight3 = useRef<THREE.PointLight>(null);
+  const driftMoteLiveLights = useRef<(THREE.PointLight | null)[]>([]);
+  const driftMoteLiveColorScratch = useRef(new THREE.Color());
+  const driftMoteVirtuals = useRef<VirtualDriftMote[]>(
+    COIN_DRIFT_MOTE_VIRTUAL_SEEDS.map((m) => ({ ...m })),
+  );
+  const driftMoteFacePosSm = useRef([
+    new THREE.Vector3(),
+    new THREE.Vector3(),
+    new THREE.Vector3(),
+    new THREE.Vector3(),
+  ]);
   /** Orbit in the rim plane (XZ at ~coin thickness) for cylindrical edge specular highlights. */
   const rimTangentRing0 = useRef<THREE.PointLight>(null);
   const rimTangentRing1 = useRef<THREE.PointLight>(null);
@@ -467,6 +567,15 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
   const rimLightE = useRef<THREE.PointLight>(null);
   const rimLightF = useRef<THREE.PointLight>(null);
   const rimLightG = useRef<THREE.PointLight>(null);
+  const ambientRef = useRef<THREE.AmbientLight>(null);
+  const dirLight0Ref = useRef<THREE.DirectionalLight>(null);
+  const dirLight1Ref = useRef<THREE.DirectionalLight>(null);
+  const dirLight2Ref = useRef<THREE.DirectionalLight>(null);
+  const cinematicLeftRef = useRef<THREE.PointLight>(null);
+  const cinematicRightRef = useRef<THREE.PointLight>(null);
+  const cinematicEdgeRef = useRef<THREE.PointLight>(null);
+  const cinematicBlendSm = useRef(0);
+  const cinematicBloomStrengthRef = useRef(0);
   const [frontTex, backTex] = useTexture([FACE_SRC_FRONT, FACE_SRC_BACK]) as [THREE.Texture, THREE.Texture];
   const backdropMode = useSyncExternalStore(
     subscribeActiveLandingBackdropMode,
@@ -533,8 +642,6 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
   const prevScrollInputIdleRef = useRef(1);
   const spinSoftEntryUntilRef = useRef(0);
 
-  const pathname = usePathname();
-
   useFrame((state, delta) => {
     const vortexReflective = backdropMode === 'vortext2';
     if (spin && spinGroup.current) {
@@ -545,18 +652,32 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
         const scrollBoost = Math.min(av * 0.038, 4.2);
         const visMul = s.wormholeScrollVisualMul ?? 1;
         const dir = (av < 0.06 ? 1 : Math.sign(vel)) * visMul;
-        const targetSpinRate = (0.62 + scrollBoost) * dir;
+        const fallW = getWormholeFallMotionSnapshot().w;
+        const idleSpin = 0.62 * dir;
+        const idle = s.scrollInputIdle;
+        const releaseHandoff = Math.min(
+          1,
+          Math.max(
+            0,
+            (idle - SPIN_RELEASE_HANDOFF_START) / (SPIN_RELEASE_HANDOFF_END - SPIN_RELEASE_HANDOFF_START),
+          ),
+        );
+        const releaseEase = releaseHandoff * releaseHandoff * (3 - 2 * releaseHandoff);
+        const fallInfluence = Math.min(1, fallW) * (1 - releaseEase * 0.94);
+        const boostedSpin = (0.62 + scrollBoost) * dir;
+        const targetSpinRate =
+          fallInfluence < 0.04
+            ? idleSpin
+            : idleSpin + (boostedSpin - idleSpin) * (1 - fallInfluence * SPIN_FALL_BOOST_DAMP);
 
         if (scrollSpinRateSmoothedRef.current === null) {
           scrollSpinRateSmoothedRef.current = targetSpinRate;
         }
 
-        const idle = s.scrollInputIdle;
-        if (
-          prevScrollInputIdleRef.current > 0.96 &&
-          idle < 0.88 &&
-          av > 0.14
-        ) {
+        const scrollStarting =
+          prevScrollInputIdleRef.current > 0.96 && idle < 0.88 && av > 0.14;
+        const scrollEnding = prevScrollInputIdleRef.current < 0.88 && idle > 0.9;
+        if (scrollStarting || scrollEnding) {
           spinSoftEntryUntilRef.current = state.clock.elapsedTime + SPIN_SOFT_ENTRY_HOLD_SEC;
         }
         prevScrollInputIdleRef.current = idle;
@@ -618,12 +739,94 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
     const ts = tunnelStore.getState();
     const wormhole5HelixRefl =
       pathname === '/wormhole5' && ts.wormhole5CoinHelixReflectionEnabled;
+    const driftMoteFaceRefl =
+      isWormhole5CoinDriftMoteReflectionRoute(pathname) &&
+      ts.wormhole5CoinDriftMoteFaceReflectionEnabled &&
+      !ts.wormhole5CoinDriftMoteLiveParticleReflectionEnabled;
+    const liveParticleFaceRefl =
+      isWormhole5LiveParticleReflectionRoute(pathname) &&
+      ts.wormhole5CoinDriftMoteLiveParticleReflectionEnabled;
+    const cinematicSpinLight =
+      isWormhole5CinematicSpinLightingRoute(pathname) &&
+      ts.wormhole5CoinCinematicSpinLightingEnabled;
     const backdropFaceOn = ts.wormholeCoinBackdropFaceLightEnabled;
-    const rimUvOn = ts.wormholeCoinGunmetalRimUvMotionEnabled;
-    const rimEmissiveOn = ts.wormholeCoinGunmetalRimEmissiveShimmerEnabled;
-    const sweepOn = ts.wormholeCoinGunmetalRimSweepLightsEnabled;
-    const edgeGrazeOn = ts.wormholeCoinGunmetalRimEdgeGrazeLightsEnabled;
-    const tangentRingOn = ts.wormholeCoinGunmetalRimTangentRingLightsEnabled;
+    const rimUvOn = ts.wormholeCoinGunmetalRimUvMotionEnabled && !cinematicSpinLight;
+    const rimEmissiveOn =
+      ts.wormholeCoinGunmetalRimEmissiveShimmerEnabled && !cinematicSpinLight;
+    const sweepOn = ts.wormholeCoinGunmetalRimSweepLightsEnabled && !cinematicSpinLight;
+    const edgeGrazeOn =
+      ts.wormholeCoinGunmetalRimEdgeGrazeLightsEnabled && !cinematicSpinLight;
+    const tangentRingOn =
+      ts.wormholeCoinGunmetalRimTangentRingLightsEnabled && !cinematicSpinLight;
+
+    const cinematicTarget = cinematicSpinLight ? 1 : 0;
+    cinematicBlendSm.current +=
+      (cinematicTarget - cinematicBlendSm.current) * (1 - Math.exp(-delta * 9));
+    const cineBl = cinematicBlendSm.current;
+    const spinY = spinGroup.current?.rotation.y ?? 0;
+    const cineWeights = coinCinematicHighlightWeights(spinY);
+    cinematicBloomStrengthRef.current = cineWeights.bloom * cineBl;
+
+    const amb = ambientRef.current;
+    if (amb) {
+      amb.intensity = THREE.MathUtils.lerp(0.6, COIN_CINEMATIC_AMBIENT, cineBl);
+    }
+    const d0 = dirLight0Ref.current;
+    const d1 = dirLight1Ref.current;
+    const d2 = dirLight2Ref.current;
+    if (d0) d0.intensity = THREE.MathUtils.lerp(0.42, COIN_CINEMATIC_DIR_INTENSITY, cineBl);
+    if (d1) d1.intensity = THREE.MathUtils.lerp(0.42, COIN_CINEMATIC_DIR_INTENSITY, cineBl);
+    if (d2) d2.intensity = THREE.MathUtils.lerp(0.3125, COIN_CINEMATIC_DIR_INTENSITY * 0.85, cineBl);
+
+    const cLeft = cinematicLeftRef.current;
+    const cRight = cinematicRightRef.current;
+    const cEdge = cinematicEdgeRef.current;
+    if (cLeft) {
+      cLeft.intensity =
+        cineBl *
+        COIN_CINEMATIC_KEY_INTENSITY *
+        (0.18 + cineWeights.leftFace * 0.82);
+    }
+    if (cRight) {
+      cRight.intensity =
+        cineBl *
+        COIN_CINEMATIC_KEY_INTENSITY *
+        (0.18 + cineWeights.rightFace * 0.82);
+    }
+    if (cEdge) {
+      cEdge.intensity = cineBl * COIN_CINEMATIC_EDGE_INTENSITY * cineWeights.edgeBlink;
+    }
+
+    if (cineBl > 0.02) {
+      state.scene.environment = coinEnvMap;
+    } else if (cinematicTarget === 0 && cineBl < 0.02) {
+      state.scene.environment = null;
+    }
+
+    faceMaterialFront.metalness = THREE.MathUtils.lerp(
+      FACE_METALNESS,
+      COIN_CINEMATIC_FACE_METALNESS,
+      cineBl,
+    );
+    faceMaterialFront.roughness = THREE.MathUtils.lerp(
+      FACE_ROUGHNESS,
+      COIN_CINEMATIC_FACE_ROUGHNESS,
+      cineBl,
+    );
+    faceMaterialBack.metalness = faceMaterialFront.metalness;
+    faceMaterialBack.roughness = faceMaterialFront.roughness;
+    if (cineBl > 0.02) {
+      faceMaterialFront.envMap = coinEnvMap;
+      faceMaterialBack.envMap = coinEnvMap;
+      const envI = COIN_CINEMATIC_ENV_INTENSITY * cineBl;
+      faceMaterialFront.envMapIntensity = envI;
+      faceMaterialBack.envMapIntensity = envI;
+    } else {
+      faceMaterialFront.envMap = null;
+      faceMaterialBack.envMap = null;
+      faceMaterialFront.envMapIntensity = 0;
+      faceMaterialBack.envMapIntensity = 0;
+    }
 
     /** Scroll rim-side UVs (reed + grain) so cylindrical edge picks up motion even between glints. */
     if (rimUvOn) {
@@ -638,6 +841,23 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
 
     const m = rimMat.current;
     if (m) {
+      m.metalness = THREE.MathUtils.lerp(
+        RIM_METALNESS * 1.14,
+        COIN_CINEMATIC_RIM_METALNESS,
+        cineBl,
+      );
+      m.roughness = THREE.MathUtils.lerp(
+        RIM_ROUGHNESS * 0.76,
+        COIN_CINEMATIC_RIM_ROUGHNESS,
+        cineBl,
+      );
+      if (cineBl > 0.02) {
+        m.envMap = coinEnvMap;
+        m.envMapIntensity = COIN_CINEMATIC_ENV_INTENSITY * cineBl * 0.88;
+      } else {
+        m.envMap = null;
+        m.envMapIntensity = 0;
+      }
       if (vortexReflective) {
         m.emissive.setHSL((0.74 + rt * 0.19 + d.vortexHueSkew) % 1, 0.5, 0.52);
         m.emissiveIntensity =
@@ -650,6 +870,9 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
           RIM_EMISSIVE_BASE * 0.805 +
           Math.sin(rt * 2.35 * d.rimWaveHz + d.rimWavePh) * (RIM_EMISSIVE_WAVE * 0.72) +
           ch;
+      } else if (cineBl > 0.04) {
+        m.emissive.set('#141820');
+        m.emissiveIntensity = 0.06 * cineBl;
       } else {
         m.emissive.set(RIM_EMISSIVE_INITIAL_HEX);
         m.emissiveIntensity = RIM_EMISSIVE_BASE * 0.805;
@@ -849,6 +1072,111 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
       if (hb2) hb2.intensity = 0;
     }
 
+    const dm0 = driftMoteFaceLight0.current;
+    const dm1 = driftMoteFaceLight1.current;
+    const dm2 = driftMoteFaceLight2.current;
+    const dm3 = driftMoteFaceLight3.current;
+    const driftLights = [dm0, dm1, dm2, dm3];
+    const coinHalfThick = 0.1;
+    const speedNorm = Math.min(1, Math.abs(ts.velocity) * 0.011);
+    const posEase = 1 - Math.exp(-delta * 9.5);
+
+    if (liveParticleFaceRefl) {
+      const ringR = Math.max(0.5, ts.ringRadius);
+      const liveSamples = getLiveDriftMoteParticleSamples();
+      const liveColor = driftMoteLiveColorScratch.current;
+      for (let gi = 0; gi < COIN_LIVE_PARTICLE_GLINT_MAX; gi++) {
+        const pl = driftMoteLiveLights.current[gi];
+        if (!pl) continue;
+        const sample = liveSamples[gi];
+        if (!sample) {
+          pl.intensity = 0;
+          continue;
+        }
+        const face: 'front' | 'back' = sample.z >= 0 ? 'front' : 'back';
+        const proj = projectLiveParticleToCoinFace(
+          sample.x,
+          sample.y,
+          sample.z,
+          ringR,
+          face,
+        );
+        const zFace =
+          face === 'front'
+            ? coinHalfThick + COIN_DRIFT_MOTE_FACE_Z_EPS
+            : -coinHalfThick - COIN_DRIFT_MOTE_FACE_Z_EPS;
+        pl.position.set(proj.x, proj.y, zFace);
+        pl.intensity =
+          (0.045 + proj.fade * 0.16 + speedNorm * 0.07) * (vortexReflective ? 0.55 : 1);
+        liveColor.setRGB(sample.r, sample.g, sample.b);
+        pl.color.copy(liveColor);
+      }
+      for (const pl of driftLights) {
+        if (pl) pl.intensity = 0;
+      }
+    } else if (driftMoteFaceRefl) {
+      const ringR = Math.max(0.5, ts.ringRadius);
+      const waveActive = isDriftMoteWaveActive(
+        ts.scrollInputIdle,
+        ts.velocity,
+        ts.wormholeDebugDriftMotesIdleBuzz,
+      );
+      const virtuals = driftMoteVirtuals.current;
+      for (const mote of virtuals) {
+        tickVirtualDriftMote(
+          mote,
+          delta,
+          t,
+          ts.velocity,
+          ringR,
+          waveActive,
+          COIN_DRIFT_MOTE_TUNNEL_LENGTH,
+        );
+      }
+      for (let gi = 0; gi < COIN_DRIFT_MOTE_GLINT_ROLES.length; gi++) {
+        const pl = driftLights[gi];
+        const role = COIN_DRIFT_MOTE_GLINT_ROLES[gi]!;
+        if (!pl) continue;
+        const mote = virtuals[role.moteIndex];
+        if (!mote) continue;
+        const arcMeta = COIN_DRIFT_MOTE_ARC_META[role.moteIndex]!;
+        const proj = projectDriftMoteToCoinFace(
+          mote,
+          ringR,
+          t,
+          role.face,
+          arcMeta,
+          waveActive,
+        );
+        const zFace =
+          role.face === 'front'
+            ? coinHalfThick + COIN_DRIFT_MOTE_FACE_Z_EPS
+            : -coinHalfThick - COIN_DRIFT_MOTE_FACE_Z_EPS;
+        const sm = driftMoteFacePosSm.current[gi]!;
+        sm.x += (proj.x - sm.x) * posEase;
+        sm.y += (proj.y - sm.y) * posEase;
+        sm.z = zFace;
+        pl.position.copy(sm);
+        pl.intensity =
+          role.intensityMul *
+          (0.028 + proj.pulse * proj.depthFade * 0.1 + proj.flyBy * 0.14 + speedNorm * 0.09) *
+          (vortexReflective ? 0.55 : 1);
+        pl.color.setHex(COIN_DRIFT_MOTE_FACE_HUES[role.moteIndex]!);
+      }
+      for (let gi = 0; gi < COIN_LIVE_PARTICLE_GLINT_MAX; gi++) {
+        const pl = driftMoteLiveLights.current[gi];
+        if (pl) pl.intensity = 0;
+      }
+    } else {
+      for (const pl of driftLights) {
+        if (pl) pl.intensity = 0;
+      }
+      for (let gi = 0; gi < COIN_LIVE_PARTICLE_GLINT_MAX; gi++) {
+        const pl = driftMoteLiveLights.current[gi];
+        if (pl) pl.intensity = 0;
+      }
+    }
+
     /** Full-disc tunnel fill on faces (emissive), uniform per face — not rim. */
     const mf = faceMaterialFront;
     const mb = faceMaterialBack;
@@ -899,10 +1227,38 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
 
   return (
     <group>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[3.2, 4, 5]} intensity={0.42} />
-      <directionalLight position={[-3.2, 4, -5]} intensity={0.42} />
-      <directionalLight position={[-2, -1, 2]} intensity={0.3125} color="#a8b8ff" />
+      <CoinCinematicBloom
+        enabled={cinematicSpinLightingEnabled}
+        strengthRef={cinematicBloomStrengthRef}
+      />
+      <ambientLight ref={ambientRef} intensity={0.6} />
+      <directionalLight ref={dirLight0Ref} position={[3.2, 4, 5]} intensity={0.42} />
+      <directionalLight ref={dirLight1Ref} position={[-3.2, 4, -5]} intensity={0.42} />
+      <directionalLight ref={dirLight2Ref} position={[-2, -1, 2]} intensity={0.3125} color="#a8b8ff" />
+      <pointLight
+        ref={cinematicLeftRef}
+        position={COIN_CINEMATIC_LEFT_LIGHT}
+        color={COIN_CINEMATIC_LEFT_COLOR}
+        intensity={0}
+        distance={COIN_CINEMATIC_KEY_DISTANCE}
+        decay={2}
+      />
+      <pointLight
+        ref={cinematicRightRef}
+        position={COIN_CINEMATIC_RIGHT_LIGHT}
+        color={COIN_CINEMATIC_RIGHT_COLOR}
+        intensity={0}
+        distance={COIN_CINEMATIC_KEY_DISTANCE}
+        decay={2}
+      />
+      <pointLight
+        ref={cinematicEdgeRef}
+        position={[0, 0.35, 3.65]}
+        color={COIN_CINEMATIC_EDGE_COLOR}
+        intensity={0}
+        distance={8}
+        decay={2}
+      />
       <pointLight position={[0, 0, 1.35]} intensity={0.2} distance={8} />
       <pointLight position={[0, 0, -1.35]} intensity={0.2} distance={8} />
       <pointLight ref={rimEdgeLightV} position={[0, 0, 1.22]} intensity={0} distance={5.5} decay={2} />
@@ -913,6 +1269,22 @@ function CoinMesh({ spin, tossToken, spinSyncScroll = false, onLoaded }: CoinMes
       <pointLight ref={helixRibbonLight0} position={[0, 0, 0]} intensity={0} distance={14} decay={2} />
       <pointLight ref={helixRibbonLight1} position={[0, 0, 0]} intensity={0} distance={14} decay={2} />
       <pointLight ref={helixRibbonLight2} position={[0, 0, 0]} intensity={0} distance={14} decay={2} />
+      <pointLight ref={driftMoteFaceLight0} position={[0, 0, 0.11]} intensity={0} distance={1.65} decay={2} />
+      <pointLight ref={driftMoteFaceLight1} position={[0, 0, 0.11]} intensity={0} distance={1.65} decay={2} />
+      <pointLight ref={driftMoteFaceLight2} position={[0, 0, 0.11]} intensity={0} distance={1.65} decay={2} />
+      <pointLight ref={driftMoteFaceLight3} position={[0, 0, -0.11]} intensity={0} distance={1.65} decay={2} />
+      {Array.from({ length: COIN_LIVE_PARTICLE_GLINT_MAX }, (_, i) => (
+        <pointLight
+          key={`drift-mote-live-${i}`}
+          ref={(el) => {
+            driftMoteLiveLights.current[i] = el;
+          }}
+          position={[0, 0, 0.11]}
+          intensity={0}
+          distance={1.55}
+          decay={2}
+        />
+      ))}
       <pointLight ref={rimLightA} position={[2.35, 1.05, 1.25]} intensity={0} distance={16} decay={2} />
       <pointLight ref={rimLightB} position={[-2.05, -0.95, 1.45]} intensity={0} distance={16} decay={2} />
       <pointLight ref={rimLightC} position={[0.25, 2.35, 0.95]} intensity={0} distance={16} decay={2} />
@@ -1029,29 +1401,47 @@ export function LogoCoinCanvas({ spin, tossToken = 0, spinSyncScroll = false }: 
     return webglCoinCanvasDpr(window.devicePixelRatio || 1);
   }, []);
 
-  /** R3F measures the canvas box once at mount; after visibility/layout shifts the framebuffer can stay undersized until a resize — visible as top/bottom clip on the first strong zoom-in. */
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
+
+  /** Resize R3F when the canvas box changes (avoids timed global resize storms). */
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!coinShown && !reducedMotion) return;
-    const fire = () => window.dispatchEvent(new Event('resize'));
-    const t0 = window.setTimeout(fire, 0);
-    const t1 = window.setTimeout(fire, 150);
-    const t2 = window.setTimeout(fire, 1100);
-    return () => {
-      clearTimeout(t0);
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [coinShown, reducedMotion]);
+    const wrap = canvasWrapRef.current;
+    if (!wrap) return;
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const id = window.setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
-    return () => clearTimeout(id);
-  }, [wormholeLabBigCanvas]);
+    let debounceId: ReturnType<typeof setTimeout> | undefined;
+    let lastW = 0;
+    let lastH = 0;
+
+    const fire = () => window.dispatchEvent(new Event('resize'));
+
+    const ro = new ResizeObserver(() => {
+      const rect = wrap.getBoundingClientRect();
+      const w = Math.round(rect.width);
+      const h = Math.round(rect.height);
+      if (w < 1 || h < 1) return;
+      if (Math.abs(w - lastW) < 2 && Math.abs(h - lastH) < 2) return;
+      lastW = w;
+      lastH = h;
+      if (debounceId !== undefined) clearTimeout(debounceId);
+      debounceId = setTimeout(() => {
+        debounceId = undefined;
+        fire();
+      }, 48);
+    });
+    ro.observe(wrap);
+    fire();
+
+    return () => {
+      ro.disconnect();
+      if (debounceId !== undefined) clearTimeout(debounceId);
+    };
+  }, [coinShown, reducedMotion, wormholeLabBigCanvas]);
 
   return (
     <div
+      ref={canvasWrapRef}
       className={[
         'block min-h-0 overflow-visible leading-none',
         wormholeLabBigCanvas

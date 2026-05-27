@@ -8,6 +8,10 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 import { motionPrefs } from '@/core/motion';
+import {
+  applyRandomCamTiltAfterLookAt,
+  createRandomCamTiltRuntime,
+} from '@/lib/wormholeRandomCamTilt';
 import { wormholeNarrowViewport } from '@/lib/webglMobilePrefs';
 import {
   cosmicFragment,
@@ -257,12 +261,7 @@ export function CosmicBackdrop({ wormholeOverlayStack = false }: CosmicBackdropP
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    let randCamPulse = 0;
-    let randCamLastDepth = 0;
-    let randCamTx = 0;
-    let randCamTy = 0;
-    let randCamRx = 0;
-    let randCamRy = 0;
+    const randCamTilt = createRandomCamTiltRuntime();
 
     const tick = () => {
       const dt = Math.min(clock.getDelta(), 0.05);
@@ -307,27 +306,15 @@ export function CosmicBackdrop({ wormholeOverlayStack = false }: CosmicBackdropP
         camera.position.set(0, 0, 0);
         camera.rotation.set(0, 0, 0);
         camera.lookAt(0, 0, -10);
-        const randTilt = s.wormholeDebugRandomCamTilt;
-        if (randTilt) {
-          randCamPulse += dt;
-          const scrolling =
-            Math.abs(s.velocity) > 0.032 || Math.abs(s.depth - randCamLastDepth) > 5.5;
-          randCamLastDepth = s.depth;
-          if (scrolling && randCamPulse > 0.34) {
-            randCamPulse = 0;
-            randCamTx = (Math.random() - 0.5) * 0.44;
-            randCamTy = (Math.random() - 0.5) * 0.38;
-          }
-          randCamRx += (randCamTx - randCamRx) * (1 - Math.exp(-dt * 4.2));
-          randCamRy += (randCamTy - randCamRy) * (1 - Math.exp(-dt * 4.2));
-          camera.rotateX(randCamRx);
-          camera.rotateY(randCamRy);
-        } else {
-          randCamTx = 0;
-          randCamTy = 0;
-          randCamRx += (0 - randCamRx) * (1 - Math.exp(-dt * 6));
-          randCamRy += (0 - randCamRy) * (1 - Math.exp(-dt * 6));
-        }
+        applyRandomCamTiltAfterLookAt(
+          camera,
+          s.wormholeDebugRandomCamTilt,
+          s.wormholeDebugRandomCamTiltAmount,
+          s.velocity,
+          s.depth,
+          randCamTilt,
+          dt,
+        );
         if (s.wormholeDebugCircularCamTilt) {
           const ph = time * 0.26;
           camera.rotateX(Math.cos(ph) * 0.013);
@@ -337,12 +324,7 @@ export function CosmicBackdrop({ wormholeOverlayStack = false }: CosmicBackdropP
         camera.position.set(0, 0, 0);
         camera.rotation.set(0, 0, 0);
         camera.lookAt(0, 0, -10);
-        randCamTx = 0;
-        randCamTy = 0;
-        randCamRx = 0;
-        randCamRy = 0;
-        randCamPulse = 0;
-        randCamLastDepth = s.depth;
+        Object.assign(randCamTilt, createRandomCamTiltRuntime());
       }
 
       const positions = pGeo.attributes.position.array as Float32Array;

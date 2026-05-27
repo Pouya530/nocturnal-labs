@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 
 import {
+  wormholeMobileTouchScrollSensMul,
   wormholeScrollCoastTauSec,
   wormholeScrollFrictionEffective,
   wormholeScrollReversalBrakePerSec,
@@ -235,7 +236,7 @@ export function useScrollDepth(enabled: boolean, options?: ScrollDepthOptions) {
       const velSettlePerSec = wormholeScrollVelSettlePerSec();
       const reversalBrakePerSec = wormholeScrollReversalBrakePerSec();
       const reversalImpulseMul = wormholeScrollReversalImpulseMul();
-      const effSens = s.sensitivity * sensRouteBoost;
+      const effSens = s.sensitivity * sensRouteBoost * wormholeMobileTouchScrollSensMul();
 
       const advanceScrollInputIdle = (hadInput: boolean) => {
         let idle = scrollInputIdleRef.current;
