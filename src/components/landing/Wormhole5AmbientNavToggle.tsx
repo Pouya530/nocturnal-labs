@@ -45,12 +45,24 @@ function AmbientPlayIcon(): ReactElement {
           focusable="false"
         >
           <defs>
-            <linearGradient id={gradId} x1="0%" y1="50%" x2="100%" y2="50%">
+            <linearGradient id={gradId} x1="0" y1="12" x2="24" y2="12" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stopColor="#ff0080" />
-              <stop offset="22%" stopColor="#7c3aed" />
+              <stop offset="12%" stopColor="#c026d3" />
+              <stop offset="24%" stopColor="#7c3aed" />
+              <stop offset="36%" stopColor="#2563eb" />
               <stop offset="48%" stopColor="#0ea5e9" />
+              <stop offset="60%" stopColor="#14b8a6" />
               <stop offset="72%" stopColor="#22c55e" />
+              <stop offset="84%" stopColor="#eab308" />
+              <stop offset="92%" stopColor="#f97316" />
               <stop offset="100%" stopColor="#ff0080" />
+              <animateTransform
+                attributeName="gradientTransform"
+                type="translate"
+                values="-24 0;24 0;-24 0"
+                dur="14s"
+                repeatCount="indefinite"
+              />
             </linearGradient>
           </defs>
           <path d="M8 5.5v13L19 12 8 5.5Z" fill={`url(#${gradId})`} />

@@ -623,8 +623,10 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   width: calc(var(--ambient-glyph-h) * 1.22);
   height: var(--ambient-glyph-h);
   flex-shrink: 0;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.92)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 0 10px rgba(139, 92, 246, 0.38)) drop-shadow(0 0 20px rgba(236, 72, 153, 0.2));
+  /* Match MENU / CLOSE chrome depth + violet/pink bloom glow. */
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.92)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.62))
+    drop-shadow(0 4px 14px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))
+    drop-shadow(0 0 22px rgba(236, 72, 153, 0.22));
 }
 
 .landing-nav-ambient-play-svg__inner {
