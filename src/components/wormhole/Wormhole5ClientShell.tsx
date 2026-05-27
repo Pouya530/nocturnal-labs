@@ -279,8 +279,10 @@ export function Wormhole5ClientShell({
     const introDepth = WORMHOLE5_INTRO_DEPTH_START;
     const touchPrimary =
       typeof window !== 'undefined' && isCoarseOrTouchPrimaryViewport();
+    const mobilePortrait =
+      typeof window !== 'undefined' && isWormholeMobilePortrait();
     tunnelStore.setState({
-      sensitivity: WORMHOLE4_SENSITIVITY,
+      sensitivity: mobilePortrait ? WORMHOLE4_SENSITIVITY * 1.35 : WORMHOLE4_SENSITIVITY,
       maxDepth: WORMHOLE_CLASSIC_TUNNEL.maxDepth,
       wormholeIdleForward: 0,
       ringCount: WORMHOLE_CLASSIC_TUNNEL.ringCount,

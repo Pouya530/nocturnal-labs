@@ -235,12 +235,17 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 }
 
+/* Portrait phones — +50% coin vs legacy 268px cap; relaxed vh-cap (÷2.16 was clamping size). */
 @media (orientation: portrait) and (pointer: coarse) and (max-width: 839px) {
-  .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
-    --hero-logo-size: min(
-      var(--hero-coin-diameter, min(402px, calc(100vw - 2.75rem))),
-      var(--hero-logo-vh-cap)
+  .wormhole5-route .wormhole-hero-perspective-root {
+    --hero-logo-vh-cap: calc(
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 8rem) / 1.35
     );
+  }
+
+  .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
+    --hero-logo-size: min(280px, calc(100vw - 2rem), var(--hero-logo-vh-cap));
+    --hero-logo-scale: 1.5;
   }
 }
 
@@ -250,11 +255,11 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 }
 
-/* Short portrait phones (not fold-inner width): slightly tighter vh cap. */
+/* Short portrait phones — same relaxed cap as portrait block above. */
 @media (orientation: portrait) and (pointer: coarse) and (max-height: 720px) and (max-width: 839px) {
   .wormhole5-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
-      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 10.25rem) / 2.16
+      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 8.5rem) / 1.35
     );
   }
 }

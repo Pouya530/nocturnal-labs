@@ -180,8 +180,8 @@ export const HERO_FOCAL_POINT = {
 /** Default desktop / tablet coin diameter on wormhole5 + home (matches lab). */
 export const HERO_COIN_SIZE_DESKTOP = 'min(182px, calc(100vw - 3rem))';
 
-/** Default touch-portrait coin diameter (+50% vs prior 268px cap). */
-export const HERO_COIN_SIZE_MOBILE_PORTRAIT = 'min(402px, calc(100vw - 2.75rem))';
+/** Base touch-portrait coin before `--hero-logo-scale: 1.5` in CSS (~420px effective). */
+export const HERO_COIN_SIZE_MOBILE_PORTRAIT = 'min(280px, calc(100vw - 2rem))';
 
 /**
  * Optional diameter overrides (fold / short landscape). Default sizing follows `.hero-logo-size-var`
