@@ -5,7 +5,8 @@ const loadingFallback = (
 );
 
 /**
- * Home `/` — {@link LocalHomeWormhole5Route}: wormhole5 tunnel, marquee footer, ambient audio + ENTER preloader.
+ * Home `/` — {@link LocalHomeWormhole5Route}: same experience as `/wormhole5` (tunnel + GL stack), without lab HUD;
+ * marquee footer, ambient audio + ENTER preloader.
  */
 const HomeExperience = dynamic(
   () =>

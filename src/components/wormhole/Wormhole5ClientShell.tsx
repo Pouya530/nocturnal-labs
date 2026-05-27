@@ -22,9 +22,6 @@ import {
   WORMHOLE5_DEBUG_START,
   WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT,
   WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_MAX,
-  WORMHOLE_HOME_DESKTOP_PROD_TUNNEL,
-  WORMHOLE_HOME_MOBILE_TUNNEL_PERF,
-  WORMHOLE_HOME_TUNNEL_VISUAL,
   WORMHOLE5_INTRO_LOGO_START_TZ_PX,
   WORMHOLE5_INTRO_DEPTH_PULLBACK_MS,
   WORMHOLE5_INTRO_DEPTH_START,
@@ -40,8 +37,6 @@ import {
 import { clearAllIntros, getActiveIntro, getIntroDurationMs, initActiveIntro, runActiveIntro } from '@/intros/introRegistry';
 import { clearStageReveal, initStageReveal } from '@/lib/stageReveal';
 import { wormholeHomeIntroFreezeTranslateZOnProduction } from '@/lib/wormholeHomeIntroEasing';
-import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
-import { wormholeDesktopProductionHighQuality } from '@/lib/wormholeProductionQuality';
 import { runWormholeHeroStageReveal, wormholeHeroStageRevealAmbientFadeOpts } from '@/lib/wormholeHeroStageReveal';
 import { runWormhole5ParallelCamIntro } from '@/lib/wormhole5ParallelCamIntro';
 import { Wormhole5AmbientNavToggle } from '@/components/landing/Wormhole5AmbientNavToggle';
@@ -78,7 +73,8 @@ function devRandomCamTiltAmount(): number {
  * `/wormhole5` — helix-lab 3D ribbons (as `/wormhole2`) **plus** wormhole4 inverted Julia rings,
  * journey camera, intro mouth rings, atmosphere; **locked** at intro depth then mouth with no idle drift.
  *
- * `localHomePresentation`: localhost `/` only — no locked/free HUD or tunnel debug; marquee footer like production home.
+ * `localHomePresentation`: home `/` — same tunnel store init as `/wormhole5`; hides locked/free HUD, tunnel debug,
+ * and lab intro chrome; marquee footer + stage-reveal hero intro.
  *
  * Hero intro follows THREE_INTRO_SEQUENCES.md when tunnel debug is available; localhost `localHomePresentation` keeps
  * {@link runWormholeHeroStageReveal} only. `wormholeHomeIntroCam01` feeds the hero coin camera.
@@ -267,10 +263,6 @@ export function Wormhole5ClientShell({
       : WORMHOLE5_TUNNEL_LAB_DEFAULTS;
 
     const introDepth = WORMHOLE5_INTRO_DEPTH_START;
-    const homeTouchPerf =
-      localHomePresentation &&
-      typeof window !== 'undefined' &&
-      isCoarseOrTouchPrimaryViewport();
     tunnelStore.setState({
       sensitivity: WORMHOLE4_SENSITIVITY,
       maxDepth: WORMHOLE_CLASSIC_TUNNEL.maxDepth,
@@ -312,13 +304,6 @@ export function Wormhole5ClientShell({
       ...tunnelLabDefaults,
       /** Last so nothing in the spread can override; wormhole5 always boots in locked scroll (not free fly). */
       mode: 'locked',
-      ...(localHomePresentation
-        ? {
-            ...WORMHOLE_HOME_TUNNEL_VISUAL,
-            ...(homeTouchPerf ? WORMHOLE_HOME_MOBILE_TUNNEL_PERF : {}),
-            ...(wormholeDesktopProductionHighQuality() ? WORMHOLE_HOME_DESKTOP_PROD_TUNNEL : {}),
-          }
-        : {}),
     });
 
     /** Beat Strict Mode remount / any same-tick store writes so HUD + scroll integrator stay locked. */
