@@ -1099,36 +1099,43 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
  * and halo overspill on wide-short foldables (Issue 1–3).
  * ───────────────────────────────────────────────────────────────────────────── */
 
-@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Landscape + touch-primary phones: vertical centre + scaled coin (short viewports).
+ * Overrides Tailwind `py-24` on the wormhole hero so the coin sits mid-screen, not low.
+ * ───────────────────────────────────────────────────────────────────────────── */
+
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 720px) and (max-width: 960px) {
   .hero-logo-size-var,
   .wormhole-home-intro-logo .hero-logo-size-var,
   .wormhole5-hero-logo .hero-logo-size-var {
-    --hero-logo-size: min(180px, calc(100dvh - 4rem));
+    --hero-logo-size: min(
+      min(232px, calc(100vw - 3rem)),
+      calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 5.5rem)
+    );
   }
-}
 
-@media (orientation: landscape) and (max-height: 600px) and (min-height: 501px) and (min-width: 700px) and (pointer: coarse) {
-  .hero-logo-size-var,
-  .wormhole-home-intro-logo .hero-logo-size-var,
-  .wormhole5-hero-logo .hero-logo-size-var {
-    --hero-logo-size: min(220px, calc(100dvh - 5rem));
-  }
-}
-
-@media
-  ((orientation: landscape) and (max-height: 500px) and (pointer: coarse)),
-  ((orientation: landscape) and (max-height: 600px) and (min-height: 501px) and (min-width: 700px) and (pointer: coarse)) {
   /*
-   * Issue 1: perspective + translateZ micro-intro shifts the coin horizontally on wide canvases;
-   * flatten 3D for this viewport only. Issue 3: tighten halo / black-hole discs so blur rings do not
-   * hug fold/display seams.
+   * Flatten perspective so translateZ micro-intro does not shift the coin on short landscape.
    */
   .wormhole-hero-perspective-root {
     perspective: none !important;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    width: 100%;
   }
 
   .cinematic-hero-perspective {
     perspective: none !important;
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
   }
 
   .wormhole-lab-micro-intro-logo {
@@ -1136,13 +1143,18 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   main[aria-label='Wormhole'] {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
+    min-height: 0 !important;
     margin-inline: auto;
     width: 100%;
     max-width: 100%;
-    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
-    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px)) !important;
     padding-left: max(1rem, env(safe-area-inset-left, 0px));
     padding-right: max(1rem, env(safe-area-inset-right, 0px));
   }

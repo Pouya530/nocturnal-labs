@@ -16,9 +16,11 @@ import {
   setActiveLandingBackdropMode,
 } from '@/lib/landingBackdropMode';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
+import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import {
   WORMHOLE2_HELIX_LAB_POSTFX,
   WORMHOLE4_SENSITIVITY,
+  WORMHOLE5_COARSE_TOUCH_RENDER_TUNING,
   WORMHOLE5_DEBUG_START,
   WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT,
   WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_MAX,
@@ -239,6 +241,7 @@ export function Wormhole5ClientShell({
     const prevBloomRadius = s.bloomRadius;
     const prevBloomThreshold = s.bloomThreshold;
     const prevFogDensity = s.fogDensity;
+    const prevIters = s.iters;
     const prevSensitivity = s.sensitivity;
     const prevScrollInputIdle = s.scrollInputIdle;
     const prevHomeIntroCam = s.wormholeHomeIntroCam01;
@@ -263,6 +266,8 @@ export function Wormhole5ClientShell({
       : WORMHOLE5_TUNNEL_LAB_DEFAULTS;
 
     const introDepth = WORMHOLE5_INTRO_DEPTH_START;
+    const touchPrimary =
+      typeof window !== 'undefined' && isCoarseOrTouchPrimaryViewport();
     tunnelStore.setState({
       sensitivity: WORMHOLE4_SENSITIVITY,
       maxDepth: WORMHOLE_CLASSIC_TUNNEL.maxDepth,
@@ -302,6 +307,7 @@ export function Wormhole5ClientShell({
       wormhole5CoinDriftMoteLiveParticleReflectionEnabled: false,
       wormhole5CoinCinematicSpinLightingEnabled: false,
       ...tunnelLabDefaults,
+      ...(touchPrimary ? WORMHOLE5_COARSE_TOUCH_RENDER_TUNING : {}),
       /** Last so nothing in the spread can override; wormhole5 always boots in locked scroll (not free fly). */
       mode: 'locked',
     });
@@ -360,6 +366,7 @@ export function Wormhole5ClientShell({
         bloomThreshold: prevBloomThreshold,
         fogDensity: prevFogDensity,
         sensitivity: prevSensitivity,
+        iters: prevIters,
         wormhole8HelixBoostEnabled: prevWormhole8HelixBoost,
         wormholeJourneyMouseParallax: prevJourneyMouseParallax,
         wormhole5CoinHelixReflectionEnabled: prevWormhole5HelixCoinRefl,
@@ -404,7 +411,7 @@ export function Wormhole5ClientShell({
   return (
     <div
       className={[
-        'relative min-h-[100dvh] w-full bg-[#030208]',
+        'relative flex min-h-[100dvh] w-full flex-col bg-[#030208]',
         localHomePresentation ? 'wormhole5-home-route' : 'wormhole5-route',
       ].join(' ')}
     >
@@ -436,15 +443,15 @@ export function Wormhole5ClientShell({
       {!localHomePresentation ? (
         <WormholeLabIntroProvider>
           <div className="gravity-vignette pointer-events-none fixed inset-0 z-[8]" aria-hidden />
-          <div className="wormhole-hero-perspective-root relative z-10 [perspective:1600px]">
-            <div className="wormhole5-hero-logo wormhole-lab-micro-intro-logo [transform-style:preserve-3d]">
+          <div className="wormhole-hero-perspective-root relative z-10 flex min-h-0 flex-1 flex-col [perspective:1600px]">
+            <div className="wormhole5-hero-logo wormhole-lab-micro-intro-logo flex min-h-0 flex-1 flex-col [transform-style:preserve-3d]">
               {children}
             </div>
           </div>
         </WormholeLabIntroProvider>
       ) : (
-        <div className="wormhole-hero-perspective-root relative z-10 [perspective:1600px]">
-          <div className="wormhole5-hero-logo wormhole-lab-micro-intro-logo [transform-style:preserve-3d]">
+        <div className="wormhole-hero-perspective-root relative z-10 flex min-h-0 flex-1 flex-col [perspective:1600px]">
+          <div className="wormhole5-hero-logo wormhole-lab-micro-intro-logo flex min-h-0 flex-1 flex-col [transform-style:preserve-3d]">
             {children}
           </div>
         </div>

@@ -102,7 +102,7 @@ export function WormholePlanContent({
     <main
       aria-label="Wormhole"
       className={[
-        'flex min-h-[100dvh] flex-col items-center justify-center overflow-visible px-6 py-24 text-center',
+        'flex min-h-0 flex-1 flex-col items-center justify-center overflow-visible px-6 py-24 text-center',
         dmSans.className,
       ].join(' ')}
     >

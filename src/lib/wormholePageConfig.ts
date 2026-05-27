@@ -246,6 +246,21 @@ export const WORMHOLE20_TUNNEL_LAB_DEFAULTS = {
   wormholeDebugJuliaAmbientEqualizerStrength: 1,
 } as const;
 
+/**
+ * Wormhole5 shell — touch-primary phones / tablets: trim Julia iterations, helix Julia taps, bloom
+ * radius samples, and idle drift-mote buzz while staying close to lab colour motion.
+ */
+export const WORMHOLE5_COARSE_TOUCH_RENDER_TUNING = {
+  iters: 148,
+  wormholeHelixJuliaPatternBloomMul: 2.2,
+  wormholeHelixJuliaInteriorBlur: 0.42,
+  wormholeHelixJuliaShimmer: 0.72,
+  bloomStrength: 0.27,
+  bloomRadius: 0.34,
+  fogDensity: 0.0036,
+  wormholeDebugDriftMotesIdleBuzz: false,
+} as const;
+
 export {
   WORMHOLE_DESKTOP_PRODUCTION_DPR_FLOOR,
   WORMHOLE_DESKTOP_PRODUCTION_DPR_MAX,
