@@ -1149,17 +1149,23 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
  * tighten --hero-logo-vh-cap so the coin stays centred (global vh clamp still applies).
  * ───────────────────────────────────────────────────────────────────────────── */
 
-@media (orientation: landscape) and (pointer: coarse) and (max-height: 900px) {
+@media (orientation: landscape) and (max-height: 900px) and (hover: none),
+  (orientation: landscape) and (max-height: 900px) and (pointer: coarse) {
   /*
    * Home landscape (e.g. iPhone tilt): reserve *more* bottom band than portrait base — the previous
    * landscape override used smaller padding-bottom than default home, which pulled the flex centre
    * downward vs the fixed marquee. Also subtract more chrome in the vh cap than the old landscape
    * rule (that rule used a smaller subtract than portrait, yielding a relatively large cap on wide
    * short viewports once vw clamps interact with the depth slot + halos).
+   *
+   * Match `(hover: none) or (pointer: coarse)` via a comma-separated media list — not
+   * `(pointer: coarse)` alone — because some iOS / WebKit builds still report `pointer: fine` on
+   * phones; `hover: none` keeps this path on real touch handsets without widening it to mouse-first
+   * desktop (`hover: hover`).
    */
   .wormhole5-home-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
-      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 11.25rem) / 2.34
+      (100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12.75rem) / 2.68
     );
   }
 
@@ -1191,7 +1197,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole5-home-route .wormhole-lab-micro-intro-logo {
-    transform: translateY(clamp(-2.5rem, -5dvh, -0.65rem)) translateZ(0)
+    transform: translateY(clamp(-3.75rem, -14dvh, -1.25rem)) translateZ(0)
       scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
   }
 
@@ -1217,8 +1223,8 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole5-home-route main.wormhole-plan-main {
-    padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 3.05rem)) !important;
-    padding-bottom: max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem)) !important;
+    padding-top: max(0.45rem, calc(env(safe-area-inset-top, 0px) + 2.85rem)) !important;
+    padding-bottom: max(7.85rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem)) !important;
   }
 
   .hero-logo-size-var.mx-auto.flex {
@@ -1248,21 +1254,22 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 }
 
-/* Very short landscape phones (~≤430px tall): extra bottom reserve + smaller vh cap + stronger nudge. */
-@media (orientation: landscape) and (pointer: coarse) and (max-height: 460px) {
+/* Very short landscape phones (~≤460px tall): extra bottom reserve + smaller vh cap + stronger nudge. */
+@media (orientation: landscape) and (max-height: 460px) and (hover: none),
+  (orientation: landscape) and (max-height: 460px) and (pointer: coarse) {
   .wormhole5-home-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
-      (100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 11.85rem) / 2.48
+      (100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 13rem) / 2.78
     );
   }
 
   .wormhole5-home-route main.wormhole-plan-main {
-    padding-top: max(0.4rem, calc(env(safe-area-inset-top, 0px) + 2.95rem)) !important;
-    padding-bottom: max(6.65rem, calc(env(safe-area-inset-bottom, 0px) + 4.85rem)) !important;
+    padding-top: max(0.35rem, calc(env(safe-area-inset-top, 0px) + 2.75rem)) !important;
+    padding-bottom: max(8.15rem, calc(env(safe-area-inset-bottom, 0px) + 6rem)) !important;
   }
 
   .wormhole5-home-route .wormhole-lab-micro-intro-logo {
-    transform: translateY(clamp(-2.85rem, -5.75dvh, -0.75rem)) translateZ(0)
+    transform: translateY(clamp(-4.25rem, -16dvh, -1.5rem)) translateZ(0)
       scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
   }
 }
