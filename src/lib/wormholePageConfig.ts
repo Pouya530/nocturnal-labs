@@ -277,8 +277,8 @@ export const WORMHOLE20_TUNNEL_LAB_DEFAULTS = {
 } as const;
 
 /**
- * Wormhole5 shell — touch-primary phones / tablets: trim Julia iterations, helix Julia taps, bloom
- * radius samples, and idle drift-mote buzz while staying close to lab colour motion.
+ * Wormhole5 shell — touch-primary phones / tablets: trim Julia iterations, helix Julia taps, and bloom
+ * radius samples while staying close to lab colour motion ({@link WORMHOLE5_TUNNEL_LAB_DEFAULTS} idle buzz on).
  */
 export const WORMHOLE5_COARSE_TOUCH_RENDER_TUNING = {
   iters: 152,
@@ -288,7 +288,7 @@ export const WORMHOLE5_COARSE_TOUCH_RENDER_TUNING = {
   bloomStrength: 0.275,
   bloomRadius: 0.345,
   fogDensity: 0.00365,
-  wormholeDebugDriftMotesIdleBuzz: false,
+  wormholeDebugDriftMotesIdleBuzz: true,
 } as const;
 
 export {
