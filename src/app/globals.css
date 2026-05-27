@@ -1163,9 +1163,16 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
    * phones; `hover: none` keeps this path on real touch handsets without widening it to mouse-first
    * desktop (`hover: hover`).
    */
+  /* Step 1 — layout box tracks the *visible* band (svh), not the taller dynamic dvh shell. */
+  .wormhole5-home-route {
+    min-height: min(100dvh, 100svh);
+    max-height: min(100dvh, 100svh);
+  }
+
   .wormhole5-home-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
-      (100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12.75rem) / 2.68
+      (min(100dvh, 100svh) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 12.75rem) /
+        2.68
     );
   }
 
@@ -1197,12 +1204,17 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   }
 
   .wormhole5-home-route .wormhole-lab-micro-intro-logo {
-    transform: translateY(clamp(-3.75rem, -14dvh, -1.25rem)) translateZ(0)
+    transform: translateY(clamp(-2.25rem, -8dvh, -0.75rem)) translateZ(0)
       scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
   }
 
   .wormhole5-route .wormhole-lab-micro-intro-logo {
     transform: translateZ(0) scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
+  }
+
+  /* Step 3 — optical lift: depth slot (1.84×) + halos read below geometric centre. */
+  .wormhole5-home-route .wormhole-hero-perspective-root .hero-logo-size-var {
+    margin-top: calc(var(--hero-logo-size, 200px) * -0.18);
   }
 
   main.wormhole-plan-main {
@@ -1222,9 +1234,17 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
     padding-right: max(1rem, env(safe-area-inset-right, 0px));
   }
 
+  /* Step 2 — asymmetric chrome: more bottom reserve for fixed marquee than top nav. */
   .wormhole5-home-route main.wormhole-plan-main {
-    padding-top: max(0.45rem, calc(env(safe-area-inset-top, 0px) + 2.85rem)) !important;
-    padding-bottom: max(7.85rem, calc(env(safe-area-inset-bottom, 0px) + 5.75rem)) !important;
+    padding-top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 3rem)) !important;
+    padding-bottom: max(8.75rem, calc(env(safe-area-inset-bottom, 0px) + 6.5rem)) !important;
+  }
+
+  .wormhole5-home-route .hero-logo-size-var.mx-auto.flex {
+    margin-inline: auto;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
   }
 
   .hero-logo-size-var.mx-auto.flex {
@@ -1259,17 +1279,22 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   (orientation: landscape) and (max-height: 460px) and (pointer: coarse) {
   .wormhole5-home-route .wormhole-hero-perspective-root {
     --hero-logo-vh-cap: calc(
-      (100svh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 13rem) / 2.78
+      (min(100dvh, 100svh) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 13rem) /
+        2.78
     );
   }
 
   .wormhole5-home-route main.wormhole-plan-main {
-    padding-top: max(0.35rem, calc(env(safe-area-inset-top, 0px) + 2.75rem)) !important;
-    padding-bottom: max(8.15rem, calc(env(safe-area-inset-bottom, 0px) + 6rem)) !important;
+    padding-top: max(0.4rem, calc(env(safe-area-inset-top, 0px) + 2.85rem)) !important;
+    padding-bottom: max(9.25rem, calc(env(safe-area-inset-bottom, 0px) + 6.85rem)) !important;
+  }
+
+  .wormhole5-home-route .wormhole-hero-perspective-root .hero-logo-size-var {
+    margin-top: calc(var(--hero-logo-size, 200px) * -0.22);
   }
 
   .wormhole5-home-route .wormhole-lab-micro-intro-logo {
-    transform: translateY(clamp(-4.25rem, -16dvh, -1.5rem)) translateZ(0)
+    transform: translateY(clamp(-2.75rem, -10dvh, -1rem)) translateZ(0)
       scale(var(--stage-reveal-scale, var(--nl-logo-grow, 1)));
   }
 }
