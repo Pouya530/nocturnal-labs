@@ -1,4 +1,4 @@
-/** Dev-only: quick full-screen black → transparent after the terminal preloader dismisses. */
+/** Full-screen black → transparent after the terminal preloader dismisses (all environments; skipped when reduced motion). */
 
 export const DEV_POST_PRELOADER_FADE_MS = 480;
 

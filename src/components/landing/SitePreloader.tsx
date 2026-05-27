@@ -45,7 +45,6 @@ export function SitePreloader({
     document.body.style.overflow = 'hidden';
 
     const reduced = motionPrefs.reduced;
-    const isDev = process.env.NODE_ENV === 'development';
 
     const ambient =
       wormhole5AmbientAudio && !reduced && isWormhole5AmbientAudioRoute();
@@ -61,7 +60,7 @@ export function SitePreloader({
         requestAnimationFrame(() => {
           tunnelStore.setState({ wormholeTunnelRenderPaused: false });
           const cover = devBlackCoverRef.current;
-          if (isDev && !reduced && cover) {
+          if (!reduced && cover) {
             devBlackCoverRef.current = null;
             cover.fadeOut(() => onFadeCompleteRef.current?.());
             return;
@@ -73,7 +72,7 @@ export function SitePreloader({
 
     mountTerminalPreloader({
       onGone: () => {
-        if (isDev && !reduced) {
+        if (!reduced) {
           devBlackCoverRef.current = mountDevPostPreloaderBlackCover();
         }
         onGoneRef.current?.();

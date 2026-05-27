@@ -562,10 +562,11 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 }
 
 /* Ambient AUDIO / PAUSE — same 22/26/28 icon slot as burger; pill bars + play triangle. */
+/* Phone-first: larger ▶ / bars than legacy 10px so iOS Safari stays legible next to AUDIO. */
 .landing-nav-trigger-icon--ambient {
-  --ambient-glyph-h: 10px;
-  --ambient-pause-bar-w: 4px;
-  --ambient-glyph-gap: 4px;
+  --ambient-glyph-h: 14px;
+  --ambient-pause-bar-w: 5px;
+  --ambient-glyph-gap: 5px;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -576,8 +577,8 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 
 @media (min-width: 800px) and (max-width: 1199px) {
   .landing-nav-trigger-icon--ambient {
-    --ambient-glyph-h: 11px;
-    --ambient-pause-bar-w: 4.5px;
+    --ambient-glyph-h: 12px;
+    --ambient-pause-bar-w: 4.75px;
     width: 26px;
     min-width: 26px;
   }
@@ -585,7 +586,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
 
 @media (min-width: 1200px) {
   .landing-nav-trigger-icon--ambient {
-    --ambient-glyph-h: 12px;
+    --ambient-glyph-h: 13px;
     --ambient-pause-bar-w: 5px;
     width: 28px;
     min-width: 28px;
@@ -728,7 +729,7 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   pointer-events: none;
 }
 
-/* Dev: full-screen black → site after terminal preloader (see devPostPreloaderFade.ts) */
+/* Full-screen black → site after terminal preloader (see devPostPreloaderFade.ts) */
 .nl-post-preloader-fade {
   position: fixed;
   inset: 0;
