@@ -828,6 +828,27 @@ html[data-nl-intro-tz='progress'] .wormhole-home-intro-logo {
   opacity: 0;
 }
 
+/* Portrait ↔ landscape on touch phones (see orientationTransitionFade.ts) */
+.nl-orientation-transition-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  background: #030208;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 140ms ease-in;
+}
+
+.nl-orientation-transition-fade--cover {
+  opacity: 1;
+}
+
+.nl-orientation-transition-fade--reveal {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease-out;
+}
+
 .term-preloader__inner {
   max-width: var(--term-max-width);
   width: min(100%, var(--term-max-width));

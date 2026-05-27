@@ -41,6 +41,7 @@ import { clearStageReveal, initStageReveal } from '@/lib/stageReveal';
 import { wormholeHomeIntroFreezeTranslateZOnProduction } from '@/lib/wormholeHomeIntroEasing';
 import { runWormholeHeroStageReveal, wormholeHeroStageRevealAmbientFadeOpts } from '@/lib/wormholeHeroStageReveal';
 import { runWormhole5ParallelCamIntro } from '@/lib/wormhole5ParallelCamIntro';
+import { OrientationTransitionFade } from '@/components/landing/OrientationTransitionFade';
 import { Wormhole5AmbientNavToggle } from '@/components/landing/Wormhole5AmbientNavToggle';
 import { useGalaxyFoldViewportClass, useWormholeHeroFocalPoint } from '@/hooks/useWormholeHeroFocalPoint';
 import {
@@ -463,6 +464,7 @@ export function Wormhole5ClientShell({
         </div>
       )}
       {localHomePresentation ? <WormholeCoinSyncedMarqueeFooter /> : null}
+      <OrientationTransitionFade />
       <SitePreloader
         wormhole5AmbientAudio={ambientAudio}
         onFadeComplete={onPreloaderGone}
