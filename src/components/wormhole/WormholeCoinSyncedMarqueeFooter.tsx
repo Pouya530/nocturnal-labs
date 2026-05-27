@@ -100,6 +100,8 @@ export function WormholeCoinSyncedMarqueeFooter(): ReactElement {
           >
             {segment.repeat(4)}
           </span>
+          {/* Explicit space: flex siblings can collapse whitespace so "·" met "We" with no gap. */}
+          {' '}
           <span
             className="coming-soon-text-iridescent inline-block shrink-0 whitespace-nowrap text-[12px] uppercase leading-[1.5] tracking-[0.28em]"
             aria-hidden
