@@ -251,13 +251,13 @@ export const WORMHOLE20_TUNNEL_LAB_DEFAULTS = {
  * radius samples, and idle drift-mote buzz while staying close to lab colour motion.
  */
 export const WORMHOLE5_COARSE_TOUCH_RENDER_TUNING = {
-  iters: 148,
-  wormholeHelixJuliaPatternBloomMul: 2.2,
-  wormholeHelixJuliaInteriorBlur: 0.42,
-  wormholeHelixJuliaShimmer: 0.72,
-  bloomStrength: 0.27,
-  bloomRadius: 0.34,
-  fogDensity: 0.0036,
+  iters: 158,
+  wormholeHelixJuliaPatternBloomMul: 2.45,
+  wormholeHelixJuliaInteriorBlur: 0.48,
+  wormholeHelixJuliaShimmer: 0.78,
+  bloomStrength: 0.285,
+  bloomRadius: 0.36,
+  fogDensity: 0.00375,
   wormholeDebugDriftMotesIdleBuzz: false,
 } as const;
 

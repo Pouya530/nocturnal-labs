@@ -72,7 +72,7 @@ export const WORMHOLE_HELIX_QUALITY_PRESETS: Record<
   mobile: {
     id: 'mobile',
     label: 'Mobile / touch (coarse)',
-    pathPts: 560,
+    pathPts: 600,
     tubeRadialSegs: 6,
     ...HELIX_LAB_SHAPE,
     mobileBloomMul: 0.75,
@@ -80,7 +80,7 @@ export const WORMHOLE_HELIX_QUALITY_PRESETS: Record<
   'mobile-narrow': {
     id: 'mobile-narrow',
     label: 'Mobile narrow (≤767px)',
-    pathPts: 440,
+    pathPts: 480,
     tubeRadialSegs: 5,
     ...HELIX_LAB_SHAPE,
     mobileBloomMul: 0.7,

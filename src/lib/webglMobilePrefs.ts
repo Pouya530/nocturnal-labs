@@ -71,7 +71,7 @@ export function webglCoinCanvasDpr(devicePixelRatio: number): number | [number, 
   }
   /** Narrow phones: second WebGL context — cap DPR slightly under full retina for smoother frames. */
   if (typeof window !== 'undefined' && isCoarseOrTouchPrimaryViewport() && wormholeNarrowViewport()) {
-    return Math.min(1.68, dpr);
+    return Math.min(1.78, dpr);
   }
   if (isIOSLike()) {
     return Math.min(2, dpr);
