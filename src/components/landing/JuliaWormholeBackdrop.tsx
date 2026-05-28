@@ -16,7 +16,11 @@ import {
 } from '@/lib/webglMobilePrefs';
 import { computeWormholeCoinFollowCam } from '@/lib/wormholeCoinFollowCam';
 import { computeHeroFocalLookAtOffset } from '@/lib/wormholeHeroFocalCamera';
-import { getHeroFocalPointSnapshot } from '@/lib/wormholeHeroFocalPoint';
+import {
+  getEffectiveHeroFocalProfile,
+  getHeroFocalPointSnapshot,
+  shouldApplyHeroFocalTunnelSync,
+} from '@/lib/wormholeHeroFocalPoint';
 import { resolveWormholeHelixQuality } from '@/tunnel/wormholeHelixQuality';
 import { resolveWormholeTunnelQuality } from '@/tunnel/wormholeTunnelQuality';
 import { WORMHOLE_DESKTOP_PROD_TONE_EXPOSURE } from '@/lib/wormholePageConfig';
@@ -1426,8 +1430,12 @@ export function JuliaWormholeBackdrop({
         // Roll is applied after lookAt so banking is not cleared.
         let mouthAimX = aimX;
         let mouthAimY = aimY;
-        if (s.wormholeDebugHeroFocalSync) {
-          const focalOff = computeHeroFocalLookAtOffset(getHeroFocalPointSnapshot().focal);
+        if (shouldApplyHeroFocalTunnelSync(s.wormholeDebugHeroFocalSync)) {
+          const focalProfile = getEffectiveHeroFocalProfile();
+          const focalOff = computeHeroFocalLookAtOffset(
+            getHeroFocalPointSnapshot(focalProfile).focal,
+            focalProfile,
+          );
           mouthAimX += focalOff.x;
           mouthAimY += focalOff.y;
         }
@@ -1473,8 +1481,12 @@ export function JuliaWormholeBackdrop({
         }
         let mouthAimX = aimX;
         let mouthAimY = aimY;
-        if (s.wormholeDebugHeroFocalSync) {
-          const focalOff = computeHeroFocalLookAtOffset(getHeroFocalPointSnapshot().focal);
+        if (shouldApplyHeroFocalTunnelSync(s.wormholeDebugHeroFocalSync)) {
+          const focalProfile = getEffectiveHeroFocalProfile();
+          const focalOff = computeHeroFocalLookAtOffset(
+            getHeroFocalPointSnapshot(focalProfile).focal,
+            focalProfile,
+          );
           mouthAimX += focalOff.x;
           mouthAimY += focalOff.y;
         }

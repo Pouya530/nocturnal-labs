@@ -80,7 +80,10 @@ const listeners = new Set<() => void>();
 let audio: HTMLAudioElement | null = null;
 let gestureUnlocked = false;
 let playing = false;
+let ambientLoading = false;
 let fadeRaf = 0;
+let lastToggleAt = 0;
+const TOGGLE_DEBOUNCE_MS = 200;
 
 function emit(): void {
   for (const l of listeners) l();
@@ -198,6 +201,11 @@ export function isWormhole5AmbientGestureUnlocked(): boolean {
 export function isWormhole5AmbientPlaying(): boolean {
   const a = audio;
   return !!a && !a.paused;
+}
+
+/** True while a user-initiated play is waiting on the element to start (first buffer). */
+export function isWormhole5AmbientLoading(): boolean {
+  return ambientLoading;
 }
 
 /** Julia debug sync — `currentTime` in seconds, or `null` if the element is not created yet. */
@@ -357,12 +365,17 @@ export function startWormhole5AmbientImmediate(): void {
 }
 
 export function toggleWormhole5AmbientPlayback(): void {
+  const now = performance.now();
+  if (now - lastToggleAt < TOGGLE_DEBOUNCE_MS) return;
+  lastToggleAt = now;
+
   const a = getAudio();
   if (!a) return;
   clearSyncFade();
   cancelFade();
 
   if (!a.paused) {
+    ambientLoading = false;
     a.pause();
     playing = false;
     emit();
@@ -372,18 +385,22 @@ export function toggleWormhole5AmbientPlayback(): void {
   }
 
   gestureUnlocked = true;
+  ambientLoading = true;
+  emit();
   if (a.volume < 0.01) {
     a.volume = 0;
   }
   void a
     .play()
     .then(() => {
+      ambientLoading = false;
       playing = true;
       emit();
       requestAnimationFrame(() => emit());
       fadeVolumeTo(TARGET_VOLUME, 900);
     })
     .catch(() => {
+      ambientLoading = false;
       playing = false;
       emit();
     });
@@ -404,5 +421,6 @@ export function teardownWormhole5Ambient(): void {
   }
   gestureUnlocked = false;
   playing = false;
+  ambientLoading = false;
   emit();
 }

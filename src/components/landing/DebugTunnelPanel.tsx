@@ -20,9 +20,15 @@ import {
   WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_DEFAULT,
   WORMHOLE_DEBUG_RANDOM_CAM_TILT_AMOUNT_MAX,
   WORMHOLE_HOME_TUNNEL_VISUAL,
+  WORMHOLE5_DEBUG_START,
   WORMHOLE5_TUNNEL_LAB_DEFAULTS,
   WORMHOLE20_TUNNEL_LAB_DEFAULTS,
 } from '@/lib/wormholePageConfig';
+import {
+  getHeroFocalPointSnapshot,
+  subscribeHeroFocalCssVars,
+} from '@/lib/wormholeHeroFocalPoint';
+import { HERO_FOCAL_CAM_LOOK_MUL_WORMHOLE5_LAB } from '@/lib/wormholeHeroFocalCamera';
 import {
   WORMHOLE_ATMOSPHERE_PRESET_IDS,
   WORMHOLE_ATMOSPHERE_PRESET_LABELS,
@@ -64,6 +70,18 @@ function isAmbientJuliaDebugRoute(pathname: string | null): boolean {
     pathname === '/wormhole5/' ||
     pathname === '/wormhole20' ||
     pathname === '/wormhole20/'
+  );
+}
+
+function isWormhole5LabPath(pathname: string | null): boolean {
+  return pathname === '/wormhole5' || pathname === '/wormhole5/';
+}
+
+function useWormhole5LabHeroFocalReadout() {
+  return useSyncExternalStore(
+    subscribeHeroFocalCssVars,
+    () => getHeroFocalPointSnapshot('wormhole5Lab'),
+    () => getHeroFocalPointSnapshot('wormhole5Lab'),
   );
 }
 
@@ -117,6 +135,8 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
   const [fullscreenBackdrop, setFullscreenBackdrop] = useState(false);
   const [localhost, setLocalhost] = useState(false);
   const pathname = usePathname();
+  const onWormhole5Lab = isWormhole5LabPath(pathname);
+  const wormhole5LabFocal = useWormhole5LabHeroFocalReadout();
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get('debug');
@@ -262,14 +282,19 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
             tunnelStore.setState({
               zoomRate: scrollDefaults.zoomRate,
               holeRadius: scrollDefaults.holeRadius,
-              ...(pathname === '/wormhole5' || pathname === '/wormhole5/'
+              ...(onWormhole5Lab
                 ? {
+                    ...WORMHOLE5_DEBUG_START,
                     wormholeAtmospherePreset: WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeAtmospherePreset,
                     bloomStrength: WORMHOLE5_TUNNEL_LAB_DEFAULTS.bloomStrength,
                     wormholeDebugJuliaAmbientSync:
                       WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSync,
                     wormholeDebugJuliaAmbientSyncRate:
                       WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate,
+                    wormholeDebugHeroFocalSync:
+                      WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugHeroFocalSync,
+                    wormholeDebugDriftMotesIdleBuzz:
+                      WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugDriftMotesIdleBuzz,
                   }
                 : {}),
             })
@@ -332,21 +357,45 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
           />
         </label>
       </div>
-      <label className="mb-3 flex cursor-pointer items-center gap-2 rounded border border-emerald-700/40 bg-emerald-950/25 px-2 py-1.5">
-        <input
-          type="checkbox"
-          checked={s.wormholeDebugHeroFocalSync}
-          disabled={!s.wormhole3dBackgroundEnabled}
-          onChange={(e) =>
-            tunnelStore.setState({ wormholeDebugHeroFocalSync: e.target.checked })
-          }
-          className="rounded border-zinc-600 disabled:opacity-40"
-        />
-        <span className={!s.wormhole3dBackgroundEnabled ? 'text-zinc-500' : 'leading-snug'}>
-          Hero focal ↔ tunnel mouth{' '}
-          <span className="text-zinc-500">(coin + camera, HERO_FOCAL_POINT)</span>
-        </span>
-      </label>
+      {onWormhole5Lab ? (
+        <div className="mb-2 rounded-md border border-emerald-800/35 bg-emerald-950/15 px-2 py-2">
+          <p className="mb-1 text-[10px] font-semibold leading-snug text-emerald-100/90">
+            Hero coin focal <span className="font-normal text-zinc-500">(/wormhole5)</span>
+          </p>
+          <p className="mb-1 text-[10px] leading-snug text-zinc-400">
+            Coin CSS: x {wormhole5LabFocal.focal.x.toFixed(2)}, y{' '}
+            {wormhole5LabFocal.focal.y.toFixed(2)} (HERO_FOCAL_POINT_WORMHOLE5_LAB). Camera Y mul{' '}
+            {HERO_FOCAL_CAM_LOOK_MUL_WORMHOLE5_LAB.y.toFixed(1)} (tunnel lookAt tracks focal).
+          </p>
+          <p className="text-[10px] leading-snug text-zinc-500">
+            Tunnel lookAt follows coin focal on this route (always on). holeRadius only scales the shader
+            void — use reset below if store is stale.
+          </p>
+        </div>
+      ) : null}
+      {!onWormhole5Lab ? (
+        <label className="mb-3 flex cursor-pointer items-center gap-2 rounded border border-emerald-700/40 bg-emerald-950/25 px-2 py-1.5">
+          <input
+            type="checkbox"
+            checked={s.wormholeDebugHeroFocalSync}
+            disabled={!s.wormhole3dBackgroundEnabled}
+            onChange={(e) =>
+              tunnelStore.setState({ wormholeDebugHeroFocalSync: e.target.checked })
+            }
+            className="rounded border-zinc-600 disabled:opacity-40"
+          />
+          <span className={!s.wormhole3dBackgroundEnabled ? 'text-zinc-500' : 'leading-snug'}>
+            Hero focal ↔ tunnel mouth{' '}
+            <span className="text-zinc-500">(tunnel lookAt follows coin anchor)</span>
+          </span>
+        </label>
+      ) : null}
+      {!onWormhole5Lab && !s.wormholeDebugHeroFocalSync ? (
+        <p className="mb-3 rounded border border-amber-600/40 bg-amber-950/20 px-2 py-1.5 text-[10px] leading-snug text-amber-100/90">
+          Sync is off — coin uses the lab focal point but the tunnel aims at screen centre, which reads
+          as a mis-centred logo.
+        </p>
+      ) : null}
       <label className="mb-1 block">
         iters baseline {s.iters}
         <span className="block font-normal text-zinc-500">Scroll still boosts iterations above this baseline.</span>

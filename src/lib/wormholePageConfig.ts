@@ -157,11 +157,11 @@ export const WORMHOLE_HOME_HELIX_RING_STACK_FILL_BOOST = 1.34;
 export const WORMHOLE4_SENSITIVITY = 0.014;
 
 /**
- * Wormhole lab routes (`/wormhole`…): `LogoCoinCanvas` width/height as % of the logo stage so
- * scroll-driven camera zoom / FOV does not clip the coin at the GL framebuffer edges (fast wheel /
- * locked velocity spikes need generous slack).
+ * Wormhole lab routes (`/wormhole`…): `LogoCoinCanvas` width/height as % of the logo stage —
+ * bleed room for the iridescent halo outside the coin silhouette (not full footprint scale).
+ * Reduced from 222% per `NOCTURNAL_LABS_COIN_DIAGNOSIS_AND_FIX.md` (~4× stack with depth slot).
  */
-export const WORMHOLE_LAB_COIN_CANVAS_PERCENT = 222;
+export const WORMHOLE_LAB_COIN_CANVAS_PERCENT = 130;
 
 /**
  * `WormholeCoinDepthScale` layout slot vs `--hero-logo-size` — extra margin around the coin before
@@ -178,11 +178,24 @@ export const HERO_FOCAL_POINT = {
   desktopLarge: { x: 0.5, y: 0.51 },
 } as const;
 
+/**
+ * `/wormhole5` lab — coordinates match HERO_FOCAL_POINT so the coin and tunnel mouth sit
+ * in the same position as on `/`. Tunnel lookAt follows this focal on the wormhole5 route,
+ * so moving these values moves both the coin AND the tunnel mouth together.
+ */
+export const HERO_FOCAL_POINT_WORMHOLE5_LAB = {
+  portrait: { x: 0.5, y: 0.5 },
+  landscape: { x: 0.5, y: 0.54 },
+  foldUnfolded: { x: 0.5, y: 0.51 },
+  desktop: { x: 0.5, y: 0.51 },
+  desktopLarge: { x: 0.5, y: 0.51 },
+} as const;
+
 /** Default desktop / tablet coin diameter on wormhole5 + home (matches lab). */
-export const HERO_COIN_SIZE_DESKTOP = 'min(182px, calc(100vw - 3rem))';
+export const HERO_COIN_SIZE_DESKTOP = 'min(237px, calc(100vw - 3rem))';
 
 /** Base touch-portrait coin before `--hero-logo-scale: 1.5` in CSS (~420px effective). */
-export const HERO_COIN_SIZE_MOBILE_PORTRAIT = 'min(280px, calc(100vw - 2rem))';
+export const HERO_COIN_SIZE_MOBILE_PORTRAIT = 'min(364px, calc(100vw - 2rem))';
 
 /**
  * Optional diameter overrides (fold / short landscape). Default sizing follows `.hero-logo-size-var`
@@ -265,7 +278,7 @@ export const WORMHOLE5_TUNNEL_LAB_DEFAULTS = {
   wormholeCoinFollowCamStrength: 1,
   /** Idle drift-mote XY buzz when scroll is fully idle (wormhole5 locked mouth). */
   wormholeDebugDriftMotesIdleBuzz: true,
-  /** Hero coin anchor ↔ tunnel mouth (`HERO_FOCAL_POINT` + camera lookAt). */
+  /** Hero coin ↔ tunnel lookAt (also forced on `/wormhole5` via `shouldApplyHeroFocalTunnelSync`). */
   wormholeDebugHeroFocalSync: true,
 } as const;
 

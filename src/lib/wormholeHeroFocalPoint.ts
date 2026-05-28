@@ -8,12 +8,15 @@ import {
   subscribeGalaxyFoldViewportClass,
 } from '@/lib/galaxyFoldViewport';
 import {
+  HERO_COIN_SIZE_DESKTOP,
   HERO_COIN_DIAMETER,
+  HERO_COIN_SIZE_MOBILE_PORTRAIT,
   HERO_FOCAL_POINT,
+  HERO_FOCAL_POINT_WORMHOLE5_LAB,
 } from '@/lib/wormholePageConfig';
-import type { HeroFocalPoint } from '@/lib/wormholeHeroFocalCamera';
+import type { HeroFocalPoint, HeroFocalProfile } from '@/lib/wormholeHeroFocalCamera';
 
-export type { HeroFocalPoint };
+export type { HeroFocalPoint, HeroFocalProfile };
 
 export type HeroFocalCssVars = {
   '--hero-focal-x-frac': string;
@@ -28,8 +31,64 @@ export type HeroFocalResolved = {
 };
 
 const DESKTOP_LARGE_MIN_W = 1440;
-const MOBILE_PORTRAIT_MAX_W = 480;
+const DESKTOP_MIN_W = 1024;
 const SHORT_LANDSCAPE_MAX_H = 500;
+
+let heroFocalProfile: HeroFocalProfile = 'home';
+const profileListeners = new Set<() => void>();
+
+/** Lab `/wormhole5` vs production home — invalidates focal cache on change. */
+export function setHeroFocalProfile(profile: HeroFocalProfile): void {
+  if (heroFocalProfile === profile) return;
+  heroFocalProfile = profile;
+  cachedKey = '';
+  profileListeners.forEach((l) => l());
+}
+
+function inferHeroFocalProfileFromPath(): HeroFocalProfile {
+  if (typeof window === 'undefined') return 'home';
+  const p = window.location.pathname;
+  if (
+    p === '/wormhole5' ||
+    p === '/wormhole5/' ||
+    p === '/wormhole20' ||
+    p === '/wormhole20/'
+  ) {
+    return 'wormhole5Lab';
+  }
+  return 'home';
+}
+
+/** Shell override, else pathname inference (backdrop before layout effect on `/wormhole5`). */
+export function getHeroFocalProfile(): HeroFocalProfile {
+  if (heroFocalProfile === 'wormhole5Lab') return 'wormhole5Lab';
+  const inferred = inferHeroFocalProfileFromPath();
+  if (inferred === 'wormhole5Lab') return 'wormhole5Lab';
+  return heroFocalProfile;
+}
+
+/** Lab focal table + camera Y mul — `/wormhole5` lab route only (home `/` stays on {@link HERO_FOCAL_POINT}). */
+export function usesWormhole5LabFocalTable(profile: HeroFocalProfile = getHeroFocalProfile()): boolean {
+  return profile === 'wormhole5Lab';
+}
+
+export function getEffectiveHeroFocalProfile(
+  profile: HeroFocalProfile = getHeroFocalProfile(),
+): HeroFocalProfile {
+  return usesWormhole5LabFocalTable(profile) ? 'wormhole5Lab' : 'home';
+}
+
+/** Production `/`, `/wormhole5`, `/wormhole20` — tunnel lookAt always tracks hero focal (not optional). */
+export function isWormholeHeroFocalSyncRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  const p = window.location.pathname.replace(/\/$/, '') || '/';
+  return p === '/' || p === '/wormhole5' || p === '/wormhole20';
+}
+
+/** Tunnel camera mouth aim — debug flag or always on hero focal routes. */
+export function shouldApplyHeroFocalTunnelSync(debugSyncEnabled: boolean): boolean {
+  return debugSyncEnabled || isWormholeHeroFocalSyncRoute();
+}
 
 const SSR_RESOLVED: HeroFocalResolved = {
   focal: HERO_FOCAL_POINT.portrait,
@@ -45,31 +104,46 @@ let cachedKey = '';
 let cachedResolved: HeroFocalResolved = SSR_RESOLVED;
 let cachedSnapshot: HeroFocalCssVars = SSR_SNAPSHOT;
 
-function viewportCacheKey(): string {
+function viewportCacheKey(profile: HeroFocalProfile): string {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  return `${w}|${h}|${getGalaxyFoldViewportClass()}|${w > h ? 'L' : 'P'}`;
+  return `${profile}|${w}|${h}|${getGalaxyFoldViewportClass()}|${w > h ? 'L' : 'P'}`;
 }
 
-export function resolveHeroFocalForViewport(): HeroFocalResolved {
+export function resolveHeroFocalForViewport(
+  profile: HeroFocalProfile = heroFocalProfile,
+): HeroFocalResolved {
   const w = window.innerWidth;
   const h = window.innerHeight;
   const landscape = w > h;
   const foldClass = getGalaxyFoldViewportClass();
+  const effective = getEffectiveHeroFocalProfile(profile);
+  const points = effective === 'wormhole5Lab' ? HERO_FOCAL_POINT_WORMHOLE5_LAB : HERO_FOCAL_POINT;
 
-  let focal: HeroFocalPoint = HERO_FOCAL_POINT.portrait;
+  let focal: HeroFocalPoint = points.portrait;
   let diameter: string | null = null;
 
   if (w >= DESKTOP_LARGE_MIN_W) {
-    focal = HERO_FOCAL_POINT.desktopLarge;
+    focal = points.desktopLarge;
+  } else if (
+    effective === 'wormhole5Lab' &&
+    w >= DESKTOP_MIN_W &&
+    foldClass === 'standard' &&
+    !(landscape && h < SHORT_LANDSCAPE_MAX_H)
+  ) {
+    focal = HERO_FOCAL_POINT_WORMHOLE5_LAB.desktop;
   } else if (foldClass === 'folded') {
     diameter = HERO_COIN_DIAMETER.foldFolded;
   } else if (foldClass === 'unfolded') {
-    focal = HERO_FOCAL_POINT.foldUnfolded;
+    focal = points.foldUnfolded;
     diameter = HERO_COIN_DIAMETER.foldUnfolded;
   } else if (landscape && h < SHORT_LANDSCAPE_MAX_H) {
-    focal = HERO_FOCAL_POINT.landscape;
+    focal = points.landscape;
     diameter = HERO_COIN_DIAMETER.landscapeShort;
+  } else if (w >= DESKTOP_MIN_W) {
+    diameter = HERO_COIN_SIZE_DESKTOP;
+  } else if (!landscape) {
+    diameter = HERO_COIN_SIZE_MOBILE_PORTRAIT;
   }
 
   return { focal, diameter };
@@ -87,21 +161,26 @@ function toCssVars(resolved: HeroFocalResolved): HeroFocalCssVars {
 }
 
 /** Stable snapshot for `useSyncExternalStore` — must not return a new object every read. */
-export function getHeroFocalPointSnapshot(): HeroFocalResolved {
+export function getHeroFocalPointSnapshot(
+  profile: HeroFocalProfile = getHeroFocalProfile(),
+): HeroFocalResolved {
   if (typeof window === 'undefined') return SSR_RESOLVED;
 
-  const key = viewportCacheKey();
+  const effective = getEffectiveHeroFocalProfile(profile);
+  const key = viewportCacheKey(effective);
   if (key === cachedKey) return cachedResolved;
 
   cachedKey = key;
-  cachedResolved = resolveHeroFocalForViewport();
+  cachedResolved = resolveHeroFocalForViewport(profile);
   cachedSnapshot = toCssVars(cachedResolved);
   return cachedResolved;
 }
 
-export function getHeroFocalCssVarsSnapshot(): HeroFocalCssVars {
+export function getHeroFocalCssVarsSnapshot(
+  profile: HeroFocalProfile = getHeroFocalProfile(),
+): HeroFocalCssVars {
   if (typeof window === 'undefined') return SSR_SNAPSHOT;
-  getHeroFocalPointSnapshot();
+  getHeroFocalPointSnapshot(profile);
   return cachedSnapshot;
 }
 
@@ -123,11 +202,13 @@ export function subscribeHeroFocalCssVars(listener: () => void): () => void {
   };
   const orientationMq = window.matchMedia('(orientation: landscape)');
   const unsubFold = subscribeGalaxyFoldViewportClass(onChange);
+  profileListeners.add(onChange);
 
   orientationMq.addEventListener('change', onChange);
   window.addEventListener('resize', onChange);
 
   return () => {
+    profileListeners.delete(onChange);
     unsubFold();
     orientationMq.removeEventListener('change', onChange);
     window.removeEventListener('resize', onChange);

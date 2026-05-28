@@ -1453,6 +1453,7 @@ export function LogoCoinCanvas({ spin, tossToken = 0, spinSyncScroll = false }: 
       style={
         wormholeLabBigCanvas
           ? {
+              /* % of logo stage — halo bleed for GL; see WORMHOLE_LAB_COIN_CANVAS_PERCENT (was 222%). */
               width: `${WORMHOLE_LAB_COIN_CANVAS_PERCENT}%`,
               height: `${WORMHOLE_LAB_COIN_CANVAS_PERCENT}%`,
             }

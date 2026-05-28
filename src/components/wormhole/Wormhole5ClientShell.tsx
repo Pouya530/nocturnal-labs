@@ -47,6 +47,7 @@ import { runWormhole5ParallelCamIntro } from '@/lib/wormhole5ParallelCamIntro';
 import { OrientationTransitionFade } from '@/components/landing/OrientationTransitionFade';
 import { Wormhole5AmbientNavToggle } from '@/components/landing/Wormhole5AmbientNavToggle';
 import { useGalaxyFoldViewportClass, useWormholeHeroFocalPoint } from '@/hooks/useWormholeHeroFocalPoint';
+import { setHeroFocalProfile } from '@/lib/wormholeHeroFocalPoint';
 import {
   isWormhole5AmbientAudioRoute,
   startWormhole5AmbientImmediate,
@@ -320,6 +321,7 @@ export function Wormhole5ClientShell({
       wormhole5CoinDriftMoteLiveParticleReflectionEnabled: false,
       wormhole5CoinCinematicSpinLightingEnabled: false,
       ...tunnelLabDefaults,
+      wormholeDebugHeroFocalSync: true,
       ...(touchPrimary ? WORMHOLE5_COARSE_TOUCH_RENDER_TUNING : {}),
       /** Last so nothing in the spread can override; wormhole5 always boots in locked scroll (not free fly). */
       mode: 'locked',
@@ -422,8 +424,14 @@ export function Wormhole5ClientShell({
     return () => window.removeEventListener('nl-replay-lab-intro', onReplay);
   }, [localHomePresentation, runLabIntroSequence]);
 
-  const heroFocalVars = useWormholeHeroFocalPoint(true);
+  const heroFocalProfile = localHomePresentation ? 'home' : 'wormhole5Lab';
+  const heroFocalVars = useWormholeHeroFocalPoint(true, heroFocalProfile);
   const foldViewportClass = useGalaxyFoldViewportClass();
+
+  useLayoutEffect(() => {
+    setHeroFocalProfile(heroFocalProfile);
+    return () => setHeroFocalProfile('home');
+  }, [heroFocalProfile]);
 
   return (
     <div
