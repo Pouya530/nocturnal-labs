@@ -319,7 +319,7 @@ html[data-nl-intro-tz='progress'] .wormhole5-route .cinematic-hero-stage-subject
   .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
     --hero-logo-size: var(
       --hero-coin-debug-size,
-      min(143px, calc(100vw - 2rem), var(--hero-logo-vh-cap))
+      min(218px, calc(100vw - 2rem), var(--hero-logo-vh-cap))
     );
     --hero-logo-scale: 1.5;
   }

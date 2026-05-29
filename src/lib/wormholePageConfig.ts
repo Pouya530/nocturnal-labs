@@ -199,9 +199,9 @@ export const HERO_COIN_BASELINE_DESKTOP_PX = 292;
 export const HERO_COIN_BASELINE_MOBILE_PORTRAIT_PX = 280;
 export const HERO_COIN_MOBILE_PORTRAIT_SCALE = 1.5;
 
-/** Shipped targets in `globals.css` (263px desktop, 143px mobile portrait base). */
+/** Shipped targets in `globals.css` (263px desktop, 218px mobile portrait base → ~327px rendered at 1.5×). */
 export const HERO_COIN_DEBUG_SIZE_PCT_DEFAULT_DESKTOP = 90;
-export const HERO_COIN_DEBUG_SIZE_PCT_DEFAULT_MOBILE = 51;
+export const HERO_COIN_DEBUG_SIZE_PCT_DEFAULT_MOBILE = 78;
 
 /** Default desktop / tablet coin diameter on wormhole5 + home (matches lab). */
 export const HERO_COIN_SIZE_DESKTOP = 'min(237px, calc(100vw - 3rem))';
