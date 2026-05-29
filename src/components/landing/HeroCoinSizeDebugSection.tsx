@@ -171,7 +171,7 @@ export function HeroCoinSizeDebugSection({ localhost }: HeroCoinSizeDebugSection
 
         <p className="mb-1 text-[10px] font-medium text-zinc-300">Mobile portrait</p>
         <div className="mb-1 flex flex-wrap gap-1">
-          {[78, 80, 90, 100].map((pct) =>
+          {[80, 90, 100].map((pct) =>
             pctPresetButton(
               `${pct}%`,
               s.wormholeDebugCoinSizeMobilePct === pct,
