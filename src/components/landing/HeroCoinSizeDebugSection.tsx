@@ -16,8 +16,10 @@ import {
   persistHeroCoinDebugSize,
   readStoredHeroCoinDebugSize,
 } from '@/lib/heroCoinDebugSize';
+import { bumpHeroCoinDebugSizeRevision } from '@/lib/heroCoinDebugSize';
 import {
   subscribeHeroFocalCssVars,
+  invalidateHeroFocalCssCache,
   warmHeroCoinDebugSizeOnClientMount,
 } from '@/lib/wormholeHeroFocalPoint';
 import { rebuildWormholeCoinScrollCamera } from '@/lib/wormholeCoinScrollCamera';
@@ -89,12 +91,14 @@ export function HeroCoinSizeDebugSection({ localhost }: HeroCoinSizeDebugSection
 
   const patchCoinSize = (partial: Partial<typeof s>) => {
     tunnelStore.setState(partial);
-    warmHeroCoinDebugSizeOnClientMount();
+    invalidateHeroFocalCssCache();
+    bumpHeroCoinDebugSizeRevision();
     if (localhost) persistHeroCoinDebugSize();
   };
 
   const rebuildCoin = () => {
-    warmHeroCoinDebugSizeOnClientMount();
+    invalidateHeroFocalCssCache();
+    bumpHeroCoinDebugSizeRevision();
     rebuildWormholeCoinScrollCamera();
     window.dispatchEvent(new Event('resize'));
   };

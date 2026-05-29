@@ -124,13 +124,14 @@ export function invalidateHeroFocalCssCache(): void {
   cachedKey = '';
 }
 
-/** First client layout — apply debug coin size before paint (avoids small first frame). */
+let heroCoinDebugWarmDone = false;
+
+/** First client layout — refresh focal cache once (do not bump revision; that loops subscribers). */
 export function warmHeroCoinDebugSizeOnClientMount(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || heroCoinDebugWarmDone) return;
+  heroCoinDebugWarmDone = true;
   if (!tunnelStore.getState().wormholeDebugCoinSizeOverride) return;
   invalidateHeroFocalCssCache();
-  const rev = tunnelStore.getState().wormholeDebugCoinSizeRevision;
-  tunnelStore.setState({ wormholeDebugCoinSizeRevision: rev + 1 });
 }
 
 export function resolveHeroFocalForViewport(
@@ -209,12 +210,6 @@ export function getHeroFocalCssVarsSnapshot(
   profile: HeroFocalProfile = getHeroFocalProfile(),
 ): HeroFocalCssVars {
   if (typeof window === 'undefined') return SSR_SNAPSHOT;
-  if (
-    tunnelStore.getState().wormholeDebugCoinSizeOverride &&
-    !cachedSnapshot['--hero-coin-debug-size']
-  ) {
-    invalidateHeroFocalCssCache();
-  }
   getHeroFocalPointSnapshot(profile);
   return cachedSnapshot;
 }

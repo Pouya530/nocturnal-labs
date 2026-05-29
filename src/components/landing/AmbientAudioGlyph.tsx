@@ -47,19 +47,13 @@ export function AmbientAudioGlyph({ playing }: AmbientAudioGlyphProps): ReactEle
   const [pathD, setPathD] = useState(targetPath);
   const pathRef = useRef(targetPath);
   const playingRef = useRef(playing);
+  const reducedMotionRef = useRef(reducedMotion);
   const rafRef = useRef<number | null>(null);
 
+  reducedMotionRef.current = reducedMotion;
+
   useEffect(() => {
-    if (playingRef.current === playing) {
-      if (reducedMotion) {
-        const snapped = playing ? AMBIENT_GLYPH_PAUSE_PATH : AMBIENT_GLYPH_PLAY_PATH;
-        if (pathRef.current !== snapped) {
-          pathRef.current = snapped;
-          setPathD(snapped);
-        }
-      }
-      return;
-    }
+    if (playingRef.current === playing) return;
 
     const toPause = playing;
     playingRef.current = playing;
@@ -67,7 +61,7 @@ export function AmbientAudioGlyph({ playing }: AmbientAudioGlyphProps): ReactEle
       ? AMBIENT_GLYPH_PLAY_TO_PAUSE_FRAMES
       : [...AMBIENT_GLYPH_PLAY_TO_PAUSE_FRAMES].reverse();
 
-    if (reducedMotion) {
+    if (reducedMotionRef.current) {
       const snapped = toPause ? AMBIENT_GLYPH_PAUSE_PATH : AMBIENT_GLYPH_PLAY_PATH;
       setPathD(snapped);
       pathRef.current = snapped;
@@ -106,7 +100,19 @@ export function AmbientAudioGlyph({ playing }: AmbientAudioGlyphProps): ReactEle
         rafRef.current = null;
       }
     };
-  }, [playing, reducedMotion]);
+  }, [playing]);
+
+  useEffect(() => {
+    if (!reducedMotion) return;
+    const snapped = playing ? AMBIENT_GLYPH_PAUSE_PATH : AMBIENT_GLYPH_PLAY_PATH;
+    if (pathRef.current === snapped) return;
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    pathRef.current = snapped;
+    setPathD(snapped);
+  }, [reducedMotion, playing]);
 
   return (
     <svg
