@@ -1,9 +1,10 @@
 'use client';
 
-import type { ReactElement } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 import { useSyncExternalStore } from 'react';
 
 import { Logo } from '@/components/Hero/Logo';
+import { useHeroCoinDebugLogoSizeStyle } from '@/hooks/useHeroCoinDebugLogoSize';
 import { CinematicHeroStage } from '@/components/landing/CinematicHeroStage';
 import { WormholeCoinDepthScale } from '@/components/wormhole/WormholeCoinDepthScale';
 import { WormholeFallingCoin } from '@/components/wormhole/WormholeFallingCoin';
@@ -71,6 +72,7 @@ export function WormholePlanContent({
   const coinVisible = useWormholeCoinVisible();
   const blackHoleOverlay = useWormholeBlackHoleOverlayEnabled();
   const coinScrollForwardOpacity = useWormholeCoinScrollForwardOpacity();
+  const coinDebugLogoSizeStyle = useHeroCoinDebugLogoSizeStyle();
   const labIntro = useWormholeLabIntroName();
 
   const coinTree = (
@@ -109,7 +111,12 @@ export function WormholePlanContent({
       {coinVisible ? (
         <div
           className="hero-logo-size-var wormhole-hero-coin-anchor mx-auto flex w-full max-w-full justify-center"
-          style={{ opacity: coinScrollForwardOpacity }}
+          style={
+            {
+              opacity: coinScrollForwardOpacity,
+              ...coinDebugLogoSizeStyle,
+            } as CSSProperties
+          }
         >
           {heroStage}
         </div>

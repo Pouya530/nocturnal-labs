@@ -1,6 +1,10 @@
 'use client';
 
 import { wormholeCoinScrollCameraStorePatch } from '@/lib/wormholeCoinScrollCamera';
+import {
+  HERO_COIN_DEBUG_SIZE_PCT_DEFAULT_DESKTOP,
+  HERO_COIN_DEBUG_SIZE_PCT_DEFAULT_MOBILE,
+} from '@/lib/wormholePageConfig';
 import type { WormholeAtmospherePreset } from '@/tunnel/wormholeAtmospherePreset';
 import type { WormholeHelixTubeVariant } from '@/tunnel/wormholeHelixTubePreset';
 import type { WormholeJourneyMouseParallaxMode } from '@/tunnel/wormholeJourneyMouseParallax';
@@ -80,6 +84,16 @@ export type TunnelState = {
    * tube mouth aligns with the hero coin anchor (same source as CSS `--hero-focal-*-frac`).
    */
   wormholeDebugHeroFocalSync: boolean;
+  /**
+   * Tunnel debug — apply `--hero-coin-debug-size` from % of baselines (292 desktop, 280 mobile portrait).
+   */
+  wormholeDebugCoinSizeOverride: boolean;
+  /** % of {@link HERO_COIN_BASELINE_DESKTOP_PX} (100 = original, 120 = +20%). */
+  wormholeDebugCoinSizeDesktopPct: number;
+  /** % of {@link HERO_COIN_BASELINE_MOBILE_PORTRAIT_PX} before `--hero-logo-scale: 1.5`. */
+  wormholeDebugCoinSizeMobilePct: number;
+  /** Bumped on debug rebuild / apply so focal + coin anchor styles refresh. */
+  wormholeDebugCoinSizeRevision: number;
   /**
    * Journey / throat: pointer nudges `camera.lookAt` slightly (parallax). Does not change scroll.
    */
@@ -305,6 +319,10 @@ const initial: TunnelState = {
   wormholeDebugRandomCamTiltAmount: 1,
   wormholeDebugCircularCamTilt: false,
   wormholeDebugHeroFocalSync: true,
+  wormholeDebugCoinSizeOverride: true,
+  wormholeDebugCoinSizeDesktopPct: HERO_COIN_DEBUG_SIZE_PCT_DEFAULT_DESKTOP,
+  wormholeDebugCoinSizeMobilePct: HERO_COIN_DEBUG_SIZE_PCT_DEFAULT_MOBILE,
+  wormholeDebugCoinSizeRevision: 0,
   wormholeJourneyMouseParallax: 'off',
   wormholeBlackHoleOverlayEnabled: false,
   wormholeCoinClickTunnelBoost: false,

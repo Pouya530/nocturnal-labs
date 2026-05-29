@@ -3,10 +3,12 @@
  * CSS on `.wormhole5-route` reads `--hero-focal-*-frac` (and optional `--hero-coin-diameter`).
  */
 
+import { getHeroCoinDebugCssOverride } from '@/lib/heroCoinDebugSize';
 import {
   getGalaxyFoldViewportClass,
   subscribeGalaxyFoldViewportClass,
 } from '@/lib/galaxyFoldViewport';
+import { tunnelStore } from '@/tunnel/tunnelStore';
 import {
   HERO_COIN_SIZE_DESKTOP,
   HERO_COIN_DIAMETER,
@@ -22,6 +24,9 @@ export type HeroFocalCssVars = {
   '--hero-focal-x-frac': string;
   '--hero-focal-y-frac': string;
   '--hero-coin-diameter'?: string;
+  /** Tunnel debug — overrides `--hero-logo-size` when set (see `globals.css`). */
+  '--hero-coin-debug-size'?: string;
+  '--hero-logo-size'?: string;
 };
 
 export type HeroFocalResolved = {
@@ -107,7 +112,25 @@ let cachedSnapshot: HeroFocalCssVars = SSR_SNAPSHOT;
 function viewportCacheKey(profile: HeroFocalProfile): string {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  return `${profile}|${w}|${h}|${getGalaxyFoldViewportClass()}|${w > h ? 'L' : 'P'}`;
+  const s = tunnelStore.getState();
+  const debugKey = s.wormholeDebugCoinSizeOverride
+    ? `|dbg:${s.wormholeDebugCoinSizeDesktopPct}:${s.wormholeDebugCoinSizeMobilePct}:r${s.wormholeDebugCoinSizeRevision}`
+    : '';
+  return `${profile}|${w}|${h}|${getGalaxyFoldViewportClass()}|${w > h ? 'L' : 'P'}${debugKey}`;
+}
+
+/** Clears focal CSS cache (tunnel debug coin size, resize, profile change). */
+export function invalidateHeroFocalCssCache(): void {
+  cachedKey = '';
+}
+
+/** First client layout — apply debug coin size before paint (avoids small first frame). */
+export function warmHeroCoinDebugSizeOnClientMount(): void {
+  if (typeof window === 'undefined') return;
+  if (!tunnelStore.getState().wormholeDebugCoinSizeOverride) return;
+  invalidateHeroFocalCssCache();
+  const rev = tunnelStore.getState().wormholeDebugCoinSizeRevision;
+  tunnelStore.setState({ wormholeDebugCoinSizeRevision: rev + 1 });
 }
 
 export function resolveHeroFocalForViewport(
@@ -154,8 +177,14 @@ function toCssVars(resolved: HeroFocalResolved): HeroFocalCssVars {
     '--hero-focal-x-frac': String(resolved.focal.x),
     '--hero-focal-y-frac': String(resolved.focal.y),
   };
-  if (resolved.diameter) {
+  const debugOverride = tunnelStore.getState().wormholeDebugCoinSizeOverride;
+  if (resolved.diameter && !debugOverride) {
     vars['--hero-coin-diameter'] = resolved.diameter;
+  }
+  const debugSize = getHeroCoinDebugCssOverride();
+  if (debugSize) {
+    vars['--hero-coin-debug-size'] = debugSize;
+    vars['--hero-logo-size'] = debugSize;
   }
   return vars;
 }
@@ -180,6 +209,12 @@ export function getHeroFocalCssVarsSnapshot(
   profile: HeroFocalProfile = getHeroFocalProfile(),
 ): HeroFocalCssVars {
   if (typeof window === 'undefined') return SSR_SNAPSHOT;
+  if (
+    tunnelStore.getState().wormholeDebugCoinSizeOverride &&
+    !cachedSnapshot['--hero-coin-debug-size']
+  ) {
+    invalidateHeroFocalCssCache();
+  }
   getHeroFocalPointSnapshot(profile);
   return cachedSnapshot;
 }
@@ -197,11 +232,12 @@ export function subscribeHeroFocalCssVars(listener: () => void): () => void {
   if (typeof window === 'undefined') return () => {};
 
   const onChange = () => {
-    cachedKey = '';
+    invalidateHeroFocalCssCache();
     listener();
   };
   const orientationMq = window.matchMedia('(orientation: landscape)');
   const unsubFold = subscribeGalaxyFoldViewportClass(onChange);
+  const unsubTunnel = tunnelStore.subscribe(onChange);
   profileListeners.add(onChange);
 
   orientationMq.addEventListener('change', onChange);
@@ -210,6 +246,7 @@ export function subscribeHeroFocalCssVars(listener: () => void): () => void {
   return () => {
     profileListeners.delete(onChange);
     unsubFold();
+    unsubTunnel();
     orientationMq.removeEventListener('change', onChange);
     window.removeEventListener('resize', onChange);
   };

@@ -3,6 +3,7 @@
 import type { ReactElement } from 'react';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 
+import { AmbientAudioGlyph } from '@/components/landing/AmbientAudioGlyph';
 import {
   LANDING_NAV_MENU_TRIGGER_LABEL_CLASS,
   LANDING_NAV_TRIGGER_BTN_CLASS,
@@ -17,25 +18,6 @@ import {
 import { dmSans } from '@/lib/fonts';
 
 const AMBIENT_ICON_CLASS = 'landing-nav-trigger-icon landing-nav-trigger-icon--ambient';
-
-/** Pause — two iridescent pill bars (CSS gradient + `coming-soon-iridescent`). */
-function AmbientPauseIcon(): ReactElement {
-  return (
-    <span className={`${AMBIENT_ICON_CLASS} landing-nav-trigger-icon--pause`}>
-      <span className="landing-nav-burger-line landing-nav-burger-line--icon" />
-      <span className="landing-nav-burger-line landing-nav-burger-line--icon" />
-    </span>
-  );
-}
-
-/** Play — masked triangle; same CSS shimmer engine as pause bars (not burger-line / clip-path). */
-function AmbientPlayIcon(): ReactElement {
-  return (
-    <span className={`${AMBIENT_ICON_CLASS} landing-nav-trigger-icon--play`}>
-      <span className="landing-nav-ambient-play-glyph" />
-    </span>
-  );
-}
 
 /** Home `/` + `/wormhole5` — pause/play ambient loop beside MENU (`NOCTURNAL_LABS_NAV_AUDIO_TOGGLE_UX_UI_3.md`). */
 export function Wormhole5AmbientNavToggle(): ReactElement | null {
@@ -102,29 +84,8 @@ export function Wormhole5AmbientNavToggle(): ReactElement | null {
         toggleWormhole5AmbientPlayback();
       }}
     >
-      <span className="landing-nav-ambient-glyphs" aria-hidden>
-        <span
-          className={[
-            'landing-nav-ambient-glyph',
-            'landing-nav-ambient-glyph--play',
-            showPause ? 'landing-nav-ambient-glyph--hidden' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
-          <AmbientPlayIcon />
-        </span>
-        <span
-          className={[
-            'landing-nav-ambient-glyph',
-            'landing-nav-ambient-glyph--pause',
-            showPause ? '' : 'landing-nav-ambient-glyph--hidden',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-        >
-          <AmbientPauseIcon />
-        </span>
+      <span className={AMBIENT_ICON_CLASS}>
+        <AmbientAudioGlyph playing={showPause} />
       </span>
       <span className={LANDING_NAV_MENU_TRIGGER_LABEL_CLASS}>
         {loading ? 'AUDIO' : showPause ? 'PAUSE' : 'AUDIO'}

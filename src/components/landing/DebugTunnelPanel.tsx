@@ -50,6 +50,7 @@ import { JuliaAmbientEqualizerMonitor } from '@/components/landing/JuliaAmbientE
 import { JuliaAmbientSyncMonitor } from '@/components/landing/JuliaAmbientSyncMonitor';
 import { LabIntroDebugSection } from '@/components/wormhole/LabIntroDebugSection';
 import { HelixQualityDebugSection } from '@/components/landing/HelixQualityDebugSection';
+import { HeroCoinSizeDebugSection } from '@/components/landing/HeroCoinSizeDebugSection';
 import { TunnelQualityDebugSection } from '@/components/landing/TunnelQualityDebugSection';
 
 function useTunnelSnap() {
@@ -75,6 +76,11 @@ function isAmbientJuliaDebugRoute(pathname: string | null): boolean {
 
 function isWormhole5LabPath(pathname: string | null): boolean {
   return pathname === '/wormhole5' || pathname === '/wormhole5/';
+}
+
+function isHeroCoinSizeDebugRoute(pathname: string | null): boolean {
+  const p = pathname?.replace(/\/$/, '') ?? '';
+  return p === '/' || p === '/wormhole5' || p === '/wormhole20';
 }
 
 function useWormhole5LabHeroFocalReadout() {
@@ -357,6 +363,9 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
           />
         </label>
       </div>
+      {isHeroCoinSizeDebugRoute(pathname) ? (
+        <HeroCoinSizeDebugSection localhost={localhost} />
+      ) : null}
       {onWormhole5Lab ? (
         <div className="mb-2 rounded-md border border-emerald-800/35 bg-emerald-950/15 px-2 py-2">
           <p className="mb-1 text-[10px] font-semibold leading-snug text-emerald-100/90">

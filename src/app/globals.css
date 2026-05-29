@@ -287,12 +287,15 @@ html[data-nl-intro-tz='progress'] .wormhole5-route .cinematic-hero-stage-subject
 
 /* Touch-default lab anchor — vw cap on narrow viewports; desktop uses clamp block above. */
 .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
-  --hero-logo-size: var(--hero-coin-diameter, min(292px, calc(100vw - 2.75rem), var(--hero-logo-vh-cap)));
+  --hero-logo-size: var(
+    --hero-coin-debug-size,
+    var(--hero-coin-diameter, min(263px, calc(100vw - 2.75rem), var(--hero-logo-vh-cap)))
+  );
 }
 
 @media (min-width: 1024px) {
   .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
-    --hero-logo-size: var(--hero-coin-diameter, min(clamp(160px, 20vh, 240px), var(--hero-logo-vh-cap)));
+    --hero-logo-size: var(--hero-coin-debug-size, min(263px, var(--hero-logo-vh-cap)));
   }
 }
 
@@ -314,7 +317,10 @@ html[data-nl-intro-tz='progress'] .wormhole5-route .cinematic-hero-stage-subject
   }
 
   .wormhole5-route .wormhole5-hero-logo .wormhole-hero-coin-anchor.hero-logo-size-var {
-    --hero-logo-size: var(--hero-coin-diameter, min(280px, calc(100vw - 2rem), var(--hero-logo-vh-cap)));
+    --hero-logo-size: var(
+      --hero-coin-debug-size,
+      min(143px, calc(100vw - 2rem), var(--hero-logo-vh-cap))
+    );
     --hero-logo-scale: 1.5;
   }
 }
@@ -778,63 +784,19 @@ html[data-nl-intro-tz='progress'] .wormhole5-route .cinematic-hero-stage-subject
   }
 }
 
-.landing-nav-trigger-icon--pause {
-  flex-direction: row;
-  gap: var(--ambient-glyph-gap);
-}
-
 /*
- * Play slot: flexbox centers the play icon in the column (same box as pause + burger width).
+ * Unified ambient play/pause SVG — scoped under `--ambient` so `--ambient-glyph-h`
+ * always resolves (prod + dev). Size matches retired `.landing-nav-ambient-play-glyph`
+ * (1.36×1.08 of glyph height) for parity with pre-unified optical weight.
  */
-.landing-nav-trigger-icon--ambient.landing-nav-trigger-icon--play {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.landing-nav-trigger-icon--pause .landing-nav-burger-line--icon {
-  width: var(--ambient-pause-bar-w);
-  height: var(--ambient-glyph-h);
-  min-height: var(--ambient-glyph-h);
-  border-radius: 999px;
-}
-
-/*
- * Play triangle — CSS mask + `coming-soon-iridescent` (same engine as pause bars).
- * Do not use `.landing-nav-burger-line` + clip-path (renders as a stray horizontal bar).
- */
-.landing-nav-ambient-play-glyph {
+.landing-nav-trigger-icon--ambient .landing-nav-ambient-glyph-svg {
   display: block;
   flex-shrink: 0;
-  width: calc(var(--ambient-glyph-h) * 1.22);
-  height: var(--ambient-glyph-h);
-  background-image: linear-gradient(
-    95deg,
-    #ff0080 0%,
-    #c026d3 12%,
-    #7c3aed 24%,
-    #2563eb 36%,
-    #0ea5e9 48%,
-    #14b8a6 60%,
-    #22c55e 72%,
-    #eab308 84%,
-    #f97316 92%,
-    #ff0080 100%
-  );
-  background-size: 220% 100%;
-  background-repeat: no-repeat;
-  animation: coming-soon-iridescent 14s ease-in-out infinite;
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M8 5.5v13L19 12 8 5.5z'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M8 5.5v13L19 12 8 5.5z'/%3E%3C/svg%3E");
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.92)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.62))
-    drop-shadow(0 4px 14px rgba(0, 0, 0, 0.38)) drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))
-    drop-shadow(0 0 22px rgba(236, 72, 153, 0.22));
+  width: calc(var(--ambient-glyph-h) * 1.36);
+  height: calc(var(--ambient-glyph-h) * 1.08);
+  min-width: calc(var(--ambient-glyph-h) * 1.36);
+  min-height: calc(var(--ambient-glyph-h) * 1.08);
+  overflow: visible;
 }
 
 /* Ambient AUDIO / PAUSE — icon + label trigger (`NOCTURNAL_LABS_NAV_AUDIO_TOGGLE_UX_UI_3.md`). */
@@ -858,55 +820,7 @@ html[data-nl-intro-tz='progress'] .wormhole5-route .cinematic-hero-stage-subject
   transition: box-shadow 120ms ease-out;
 }
 
-/* Stacked glyphs — 180ms crossfade; both stay mounted so shimmer phase stays continuous. */
-.landing-nav-ambient-glyphs {
-  position: relative;
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  width: 22px;
-  min-width: 22px;
-  height: var(--ambient-glyph-h, 14px);
-}
-
-@media (min-width: 800px) and (max-width: 1199px) {
-  .landing-nav-ambient-glyphs {
-    width: 26px;
-    min-width: 26px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .landing-nav-ambient-glyphs {
-    width: 30px;
-    min-width: 30px;
-  }
-}
-
-.landing-nav-ambient-glyph {
-  position: absolute;
-  inset: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 1;
-  transition: opacity 180ms ease-out;
-  pointer-events: none;
-}
-
-.landing-nav-ambient-glyph--hidden {
-  opacity: 0;
-  visibility: hidden;
-  z-index: 0;
-}
-
-.landing-nav-ambient-glyph:not(.landing-nav-ambient-glyph--hidden) {
-  z-index: 2;
-}
-
-.landing-nav-ambient-audio--loading .landing-nav-ambient-glyphs,
+.landing-nav-ambient-audio--loading .landing-nav-trigger-icon--ambient,
 .landing-nav-ambient-audio--loading .landing-nav-menu-label-universal {
   opacity: 0.6;
 }
@@ -930,22 +844,12 @@ html[data-nl-intro-tz='progress'] .wormhole5-route .cinematic-hero-stage-subject
     transition-delay: 0s !important;
   }
 
-  .landing-nav-ambient-play-glyph {
-    animation: none !important;
-    background-position: 50% 50% !important;
-    background-size: 100% 100% !important;
-  }
-
   .landing-nav-ambient-audio {
     transition: none;
   }
 
   .landing-nav-ambient-audio:active {
     transform: none;
-  }
-
-  .landing-nav-ambient-glyph {
-    transition: none;
   }
 
   .landing-nav-ambient-audio:focus-visible {
@@ -1419,12 +1323,6 @@ html[data-nl-intro-tz='progress'] .wormhole5-route .cinematic-hero-stage-subject
   .landing-nav-burger-line {
     animation: none !important;
     background-position: 50% 50% !important;
-  }
-
-  .landing-nav-ambient-play-glyph {
-    animation: none !important;
-    background-position: 50% 50% !important;
-    background-size: 100% 100% !important;
   }
 }
 

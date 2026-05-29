@@ -47,6 +47,7 @@ import { runWormhole5ParallelCamIntro } from '@/lib/wormhole5ParallelCamIntro';
 import { OrientationTransitionFade } from '@/components/landing/OrientationTransitionFade';
 import { Wormhole5AmbientNavToggle } from '@/components/landing/Wormhole5AmbientNavToggle';
 import { useGalaxyFoldViewportClass, useWormholeHeroFocalPoint } from '@/hooks/useWormholeHeroFocalPoint';
+import { warmHeroCoinDebugSizeOnClientMount } from '@/lib/wormholeHeroFocalPoint';
 import { setHeroFocalProfile } from '@/lib/wormholeHeroFocalPoint';
 import {
   isWormhole5AmbientAudioRoute,
@@ -432,6 +433,10 @@ export function Wormhole5ClientShell({
     setHeroFocalProfile(heroFocalProfile);
     return () => setHeroFocalProfile('home');
   }, [heroFocalProfile]);
+
+  useLayoutEffect(() => {
+    warmHeroCoinDebugSizeOnClientMount();
+  }, []);
 
   return (
     <div
