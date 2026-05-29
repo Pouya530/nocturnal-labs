@@ -379,6 +379,66 @@
   }
 }
 
+/*
+ * Phone landscape (tilted): short viewport — override tablet/desktop menu tiers
+ * (width often ≥800px) so links fit without clipping.
+ */
+@media (orientation: landscape) and (max-height: 500px) and (hover: none),
+  (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  .menuInner {
+    justify-content: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  .listMain {
+    gap: 0;
+  }
+
+  .listMain :global(a) {
+    font-size: clamp(18px, 6.5dvh, 26px);
+    letter-spacing: -0.03em;
+  }
+
+  .divider {
+    margin: 10px 0 8px;
+  }
+
+  .listSecond {
+    gap: 8px 12px;
+  }
+
+  .listSecond :global(a) {
+    font-size: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  .menuFooter {
+    margin-top: 0.75rem;
+  }
+
+  .menuFooterLink {
+    font-size: 8px;
+    letter-spacing: 0.2em;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .listMain :global(a):hover,
+    .listMain :global(a):focus-visible {
+      padding-left: 6px;
+    }
+
+    .listSecond :global(a):hover,
+    .listSecond :global(a):focus-visible {
+      padding-left: 4px;
+    }
+  }
+}
+
 /* Ensures CSS Modules exports `noStagger` for compound `.menu.noStagger` rules above. */
 .noStagger {
 }
