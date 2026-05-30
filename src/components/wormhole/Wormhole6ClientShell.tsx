@@ -39,7 +39,6 @@ import { isLocalhostHostname } from '@/lib/isLocalhost';
 import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
-import { wormholeJourneyMouseParallaxForRoute } from '@/tunnel/wormholeJourneyMouseParallax';
 
 /**
  * Production home shell (`/` and `/wormhole6`): inversion Julia rings + journey camera; intro depth pullback from
@@ -133,7 +132,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       ...WORMHOLE2_HELIX_LAB_POSTFX,
       ...WORMHOLE_HOME_TUNNEL_VISUAL,
       ...(wormholeDesktopProductionHighQuality() ? WORMHOLE_HOME_DESKTOP_PROD_TUNNEL : {}),
-      wormholeJourneyMouseParallax: wormholeJourneyMouseParallaxForRoute({ productionHomeShell: true }),
+      wormholeJourneyMouseParallax: 'off',
       mode: 'locked',
     });
 

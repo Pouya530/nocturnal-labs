@@ -58,7 +58,6 @@ import {
 import { WormholeLabIntroProvider } from '@/components/wormhole/WormholeLabIntroContext';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
-import { wormholeJourneyMouseParallaxForRoute } from '@/tunnel/wormholeJourneyMouseParallax';
 
 function easeOutCubic(t: number): number {
   const x = Math.min(1, Math.max(0, t));
@@ -302,12 +301,12 @@ export function Wormhole5ClientShell({
       wormholeHelices3dEnabled: true,
       /** Helix glow/colour read like `/wormhole2` (wormhole4 debug bloom is much weaker). */
       ...WORMHOLE2_HELIX_LAB_POSTFX,
-      /** Lab screenshot — ribbon boost off; mouse parallax full on dev + prod home only. */
+      /** Lab screenshot — ribbon boost off, mouse parallax off. */
       wormhole8HelixBoostEnabled: false,
       wormholeDebugRandomCamTilt: false,
       wormholeDebugRandomCamTiltAmount: devRandomCamTiltAmount(),
       wormholeDebugCircularCamTilt: false,
-      wormholeJourneyMouseParallax: wormholeJourneyMouseParallaxForRoute({ localHomePresentation }),
+      wormholeJourneyMouseParallax: 'off',
       bloomRadius: 0.4,
       bloomThreshold: 0,
       fogDensity: 0.004,
