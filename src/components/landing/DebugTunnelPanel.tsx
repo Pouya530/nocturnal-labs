@@ -6,6 +6,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { warmWormhole5AmbientAudio } from '@/audio/wormhole5AmbientAudio';
+import {
+  WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_DEFAULT,
+  WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_FULL,
+  WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_SHADERS_ONLY,
+  WORMHOLE_JULIA_HELIX_SPIN_RATE_MAX,
+  WORMHOLE_JULIA_PATTERN_SYNC_RATE_MAX,
+} from '@/lib/wormholeJuliaAmbientSyncTimes';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
 import {
   computeWormholeCoinFollowCam,
@@ -186,7 +193,7 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
     if (rateRaw != null) {
       const v = Number(rateRaw);
       if (Number.isFinite(v)) {
-        partial.wormholeDebugJuliaAmbientSyncRate = clamp(v, 0.25, 3);
+        partial.wormholeDebugJuliaAmbientSyncRate = clamp(v, 0.25, WORMHOLE_JULIA_PATTERN_SYNC_RATE_MAX);
       }
     } else if (onAmbientLab && syncRaw == null) {
       const lab =
@@ -294,10 +301,7 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                     ...WORMHOLE5_DEBUG_START,
                     wormholeAtmospherePreset: WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeAtmospherePreset,
                     bloomStrength: WORMHOLE5_TUNNEL_LAB_DEFAULTS.bloomStrength,
-                    wormholeDebugJuliaAmbientSync:
-                      WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSync,
-                    wormholeDebugJuliaAmbientSyncRate:
-                      WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate,
+                    ...WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_DEFAULT,
                     wormholeDebugHeroFocalSync:
                       WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugHeroFocalSync,
                     wormholeDebugDriftMotesIdleBuzz:
@@ -1329,26 +1333,44 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                   </span>
                 </p>
                 <p className="mb-2 text-[10px] leading-snug text-zinc-500">
-                  Route default: sync on, rate{' '}
-                  {WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate.toFixed(2)}× (audio
-                  seconds → uTime)
+                  Route default: sync on, all targets MP3 — pattern{' '}
+                  {WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate.toFixed(2)}×, helix
+                  spin {WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaHelixSpinRate.toFixed(2)}× (MP3).
                 </p>
+                <div className="mb-2 flex gap-1">
+                  <button
+                    type="button"
+                    className="flex-1 rounded border border-violet-600/50 bg-violet-950/40 px-1.5 py-1 text-[9px] font-medium uppercase tracking-wide text-violet-200/90 hover:bg-violet-900/50"
+                    disabled={!s.wormhole3dBackgroundEnabled}
+                    onClick={() => {
+                      tunnelStore.setState(WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_SHADERS_ONLY);
+                      warmWormhole5AmbientAudio();
+                    }}
+                  >
+                    Shaders only
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 rounded border border-violet-600/50 bg-violet-950/40 px-1.5 py-1 text-[9px] font-medium uppercase tracking-wide text-violet-200/90 hover:bg-violet-900/50"
+                    disabled={!s.wormhole3dBackgroundEnabled}
+                    onClick={() => {
+                      tunnelStore.setState(WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_FULL);
+                      warmWormhole5AmbientAudio();
+                    }}
+                  >
+                    Full sync
+                  </button>
+                </div>
                 <button
                   type="button"
                   className="mb-2 w-full rounded border border-violet-600/50 bg-violet-950/40 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-violet-200/90 hover:bg-violet-900/50"
                   onClick={() => {
                     tunnelStore.setState({
-                      wormholeDebugJuliaAmbientSync:
-                        WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSync,
-                      wormholeDebugJuliaAmbientSyncRate:
-                        WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate,
+                      ...WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_DEFAULT,
                     });
                     warmWormhole5AmbientAudio();
                     if (localhost) {
-                      localStorage.setItem(
-                        JULIA_AMBIENT_SYNC_STORAGE_KEY,
-                        WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSync ? '1' : '0',
-                      );
+                      localStorage.setItem(JULIA_AMBIENT_SYNC_STORAGE_KEY, '1');
                       localStorage.setItem(
                         JULIA_AMBIENT_SYNC_RATE_STORAGE_KEY,
                         String(WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate),
@@ -1361,7 +1383,12 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                 <JuliaAmbientSyncMonitor
                   active={panelOpen}
                   syncEnabled={s.wormholeDebugJuliaAmbientSync}
-                  syncRate={s.wormholeDebugJuliaAmbientSyncRate}
+                  patternSyncRate={s.wormholeDebugJuliaAmbientSyncRate}
+                  helixSpinRate={s.wormholeDebugJuliaHelixSpinRate}
+                  helixSpinAudioSync={s.wormholeDebugJuliaHelixSpinAudioSync}
+                  syncShaders={s.wormholeDebugJuliaAmbientSyncShaders}
+                  syncHelixSpin={s.wormholeDebugJuliaAmbientSyncHelixSpin}
+                  syncStars={s.wormholeDebugJuliaAmbientSyncStars}
                 />
                 <label className="mb-1 flex cursor-pointer items-center gap-2">
                   <input
@@ -1383,8 +1410,47 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                       !s.wormhole3dBackgroundEnabled ? 'text-zinc-500' : 'leading-snug'
                     }
                   >
-                    Sync Julia pattern to ambient track (helix + rings + sky)
+                    Master sync to ambient MP3
                   </span>
+                </label>
+                <p className="mb-1.5 pl-6 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                  Sync targets
+                </p>
+                <label className="mb-1 flex cursor-pointer items-center gap-2 pl-6">
+                  <input
+                    type="checkbox"
+                    checked={s.wormholeDebugJuliaAmbientSyncShaders}
+                    disabled={!s.wormhole3dBackgroundEnabled || !s.wormholeDebugJuliaAmbientSync}
+                    onChange={(e) =>
+                      tunnelStore.setState({ wormholeDebugJuliaAmbientSyncShaders: e.target.checked })
+                    }
+                    className="rounded border-zinc-600 disabled:opacity-40"
+                  />
+                  <span className="leading-snug">Julia shaders (rings / helix tubes / sky)</span>
+                </label>
+                <label className="mb-1 flex cursor-pointer items-center gap-2 pl-6">
+                  <input
+                    type="checkbox"
+                    checked={s.wormholeDebugJuliaAmbientSyncHelixSpin}
+                    disabled={!s.wormhole3dBackgroundEnabled || !s.wormholeDebugJuliaAmbientSync}
+                    onChange={(e) =>
+                      tunnelStore.setState({ wormholeDebugJuliaAmbientSyncHelixSpin: e.target.checked })
+                    }
+                    className="rounded border-zinc-600 disabled:opacity-40"
+                  />
+                  <span className="leading-snug">Helix mesh rotation</span>
+                </label>
+                <label className="mb-2 flex cursor-pointer items-center gap-2 pl-6">
+                  <input
+                    type="checkbox"
+                    checked={s.wormholeDebugJuliaAmbientSyncStars}
+                    disabled={!s.wormhole3dBackgroundEnabled || !s.wormholeDebugJuliaAmbientSync}
+                    onChange={(e) =>
+                      tunnelStore.setState({ wormholeDebugJuliaAmbientSyncStars: e.target.checked })
+                    }
+                    className="rounded border-zinc-600 disabled:opacity-40"
+                  />
+                  <span className="leading-snug">Star rotation</span>
                 </label>
                 <label className="mb-0 block pl-6">
                   <span
@@ -1394,21 +1460,24 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                         : 'mb-1 block leading-snug'
                     }
                   >
-                    Sync rate{' '}
+                    Pattern sync rate{' '}
                     <span className="text-zinc-500">
-                      ({s.wormholeDebugJuliaAmbientSyncRate.toFixed(2)}× — default{' '}
-                      {WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate.toFixed(2)}×)
+                      ({s.wormholeDebugJuliaAmbientSyncRate.toFixed(2)}× — shader uTime)
                     </span>
                   </span>
                   <input
                     type="range"
                     min={0.25}
-                    max={3}
+                    max={WORMHOLE_JULIA_PATTERN_SYNC_RATE_MAX}
                     step={0.05}
                     disabled={!s.wormhole3dBackgroundEnabled || !s.wormholeDebugJuliaAmbientSync}
                     value={s.wormholeDebugJuliaAmbientSyncRate}
                     onChange={(e) => {
-                      const v = clamp(Number(e.target.value), 0.25, 3);
+                      const v = clamp(
+                        Number(e.target.value),
+                        0.25,
+                        WORMHOLE_JULIA_PATTERN_SYNC_RATE_MAX,
+                      );
                       tunnelStore.setState({ wormholeDebugJuliaAmbientSyncRate: v });
                       warmWormhole5AmbientAudio();
                       if (localhost) {
@@ -1418,8 +1487,56 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                     className="w-full disabled:cursor-not-allowed disabled:opacity-45"
                   />
                 </label>
+                <label className="mb-1 mt-1 block pl-6">
+                  <span
+                    className={
+                      !s.wormhole3dBackgroundEnabled || !s.wormholeDebugJuliaAmbientSync
+                        ? 'mb-1 block text-zinc-500'
+                        : 'mb-1 block leading-snug'
+                    }
+                  >
+                    Helix spin rate{' '}
+                    <span className="text-zinc-500">
+                      ({s.wormholeDebugJuliaHelixSpinRate.toFixed(2)}× — wall clock or MP3)
+                    </span>
+                  </span>
+                  <input
+                    type="range"
+                    min={0.25}
+                    max={WORMHOLE_JULIA_HELIX_SPIN_RATE_MAX}
+                    step={0.05}
+                    disabled={!s.wormhole3dBackgroundEnabled || !s.wormholeDebugJuliaAmbientSync}
+                    value={s.wormholeDebugJuliaHelixSpinRate}
+                    onChange={(e) => {
+                      const v = clamp(
+                        Number(e.target.value),
+                        0.25,
+                        WORMHOLE_JULIA_HELIX_SPIN_RATE_MAX,
+                      );
+                      tunnelStore.setState({ wormholeDebugJuliaHelixSpinRate: v });
+                    }}
+                    className="w-full disabled:cursor-not-allowed disabled:opacity-45"
+                  />
+                </label>
+                <label className="mb-0 flex cursor-pointer items-center gap-2 pl-6">
+                  <input
+                    type="checkbox"
+                    checked={s.wormholeDebugJuliaHelixSpinAudioSync}
+                    disabled={
+                      !s.wormhole3dBackgroundEnabled ||
+                      !s.wormholeDebugJuliaAmbientSync ||
+                      !s.wormholeDebugJuliaAmbientSyncHelixSpin
+                    }
+                    onChange={(e) =>
+                      tunnelStore.setState({ wormholeDebugJuliaHelixSpinAudioSync: e.target.checked })
+                    }
+                    className="rounded border-zinc-600 disabled:opacity-40"
+                  />
+                  <span className="leading-snug">Helix spin follows MP3 (not wall clock)</span>
+                </label>
                 <p className="mt-1.5 text-[10px] leading-snug text-zinc-500">
-                  Press ENTER on the preloader and play ambient audio; pattern freezes when paused.
+                  Press ENTER on the preloader and play ambient audio; audio-synced targets freeze
+                  when paused.
                 </p>
                 {pathname === '/wormhole20' || pathname === '/wormhole20/' ? (
                   <>

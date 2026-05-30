@@ -2,6 +2,8 @@
  * Tunable tunnel + scroll defaults for wormhole lab routes (`/wormhole`, `/wormhole3`).
  * Shells apply these via `tunnelStore` on mount and restore previous values on unmount.
  */
+import { WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_DEFAULT } from '@/lib/wormholeJuliaAmbientSyncTimes';
+
 export const WORMHOLE_CLASSIC_TUNNEL = {
   ringCount: 176,
   ringSpacing: 4,
@@ -284,8 +286,7 @@ export const WORMHOLE5_DEBUG_START = {
 export const WORMHOLE5_TUNNEL_LAB_DEFAULTS = {
   wormholeAtmospherePreset: 'glacier',
   bloomStrength: 0.3,
-  wormholeDebugJuliaAmbientSync: true,
-  wormholeDebugJuliaAmbientSyncRate: 3,
+  ...WORMHOLE_JULIA_AMBIENT_SYNC_PRESET_DEFAULT,
   wormholeCoinFollowCamEnabled: false,
   wormholeCoinFollowCamStrength: 1,
   /** Idle drift-mote XY buzz when scroll is fully idle (wormhole5 locked mouth). */

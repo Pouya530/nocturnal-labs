@@ -164,8 +164,18 @@ export type TunnelState = {
    * `/wormhole5` debug: drive Julia shader `uTime` from ambient MP3 `currentTime` (localhost panel).
    */
   wormholeDebugJuliaAmbientSync: boolean;
-  /** Scales audio playback seconds → Julia `uTime` when {@link wormholeDebugJuliaAmbientSync}. */
+  /** Scales audio playback seconds → Julia shader `uTime` when {@link wormholeDebugJuliaAmbientSync}. */
   wormholeDebugJuliaAmbientSyncRate: number;
+  /** Sync rings / helix tubes / sky Julia shaders to ambient MP3. */
+  wormholeDebugJuliaAmbientSyncShaders: boolean;
+  /** Sync helix mesh `rotation.z` to ambient (requires {@link wormholeDebugJuliaHelixSpinAudioSync}). */
+  wormholeDebugJuliaAmbientSyncHelixSpin: boolean;
+  /** Sync star field rotation to ambient MP3. */
+  wormholeDebugJuliaAmbientSyncStars: boolean;
+  /** Wall-clock multiplier for helix spin when not audio-synced. */
+  wormholeDebugJuliaHelixSpinRate: number;
+  /** When true + helix spin target on, helix spin follows MP3 × pattern rate. */
+  wormholeDebugJuliaHelixSpinAudioSync: boolean;
   /**
    * `/wormhole20` dev lab: FFT-reactive Julia (intensity / shimmer / uTime nudge) on top of timeline sync.
    */
@@ -341,6 +351,11 @@ const initial: TunnelState = {
   wormhole5CoinHelixReflectionEnabled: false,
   wormholeDebugJuliaAmbientSync: false,
   wormholeDebugJuliaAmbientSyncRate: 1,
+  wormholeDebugJuliaAmbientSyncShaders: true,
+  wormholeDebugJuliaAmbientSyncHelixSpin: false,
+  wormholeDebugJuliaAmbientSyncStars: false,
+  wormholeDebugJuliaHelixSpinRate: 1,
+  wormholeDebugJuliaHelixSpinAudioSync: false,
   wormholeDebugJuliaAmbientEqualizer: false,
   wormholeDebugJuliaAmbientEqualizerStrength: 1,
   wormholeTunnelQualityPreset: 'auto',

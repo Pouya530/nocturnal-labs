@@ -268,6 +268,11 @@ export function Wormhole5ClientShell({
     const prevHoleRadius = s.holeRadius;
     const prevJuliaSync = s.wormholeDebugJuliaAmbientSync;
     const prevJuliaSyncRate = s.wormholeDebugJuliaAmbientSyncRate;
+    const prevJuliaSyncShaders = s.wormholeDebugJuliaAmbientSyncShaders;
+    const prevJuliaSyncHelixSpin = s.wormholeDebugJuliaAmbientSyncHelixSpin;
+    const prevJuliaSyncStars = s.wormholeDebugJuliaAmbientSyncStars;
+    const prevJuliaHelixSpinRate = s.wormholeDebugJuliaHelixSpinRate;
+    const prevJuliaHelixSpinAudioSync = s.wormholeDebugJuliaHelixSpinAudioSync;
     const prevJuliaEq = s.wormholeDebugJuliaAmbientEqualizer;
     const prevJuliaEqStrength = s.wormholeDebugJuliaAmbientEqualizerStrength;
     const prevDriftMotesIdleBuzz = s.wormholeDebugDriftMotesIdleBuzz;
@@ -399,6 +404,11 @@ export function Wormhole5ClientShell({
           ? {
               wormholeDebugJuliaAmbientSync: prevJuliaSync,
               wormholeDebugJuliaAmbientSyncRate: prevJuliaSyncRate,
+              wormholeDebugJuliaAmbientSyncShaders: prevJuliaSyncShaders,
+              wormholeDebugJuliaAmbientSyncHelixSpin: prevJuliaSyncHelixSpin,
+              wormholeDebugJuliaAmbientSyncStars: prevJuliaSyncStars,
+              wormholeDebugJuliaHelixSpinRate: prevJuliaHelixSpinRate,
+              wormholeDebugJuliaHelixSpinAudioSync: prevJuliaHelixSpinAudioSync,
               wormholeDebugJuliaAmbientEqualizer: prevJuliaEq,
               wormholeDebugJuliaAmbientEqualizerStrength: prevJuliaEqStrength,
             }

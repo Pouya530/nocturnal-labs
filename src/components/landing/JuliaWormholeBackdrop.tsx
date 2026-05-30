@@ -39,7 +39,7 @@ import {
   WORMHOLE_MOBILE_MOUTH_CAM_Z_CAP,
   WORMHOLE_MOBILE_MOUTH_FOV_ADD_CAP,
 } from '@/lib/wormholeScrollMobile';
-import { resolveWormholeJuliaAnimTime } from '@/audio/wormhole5AmbientAudio';
+import { resolveWormholeJuliaAmbientSyncTimes } from '@/lib/wormholeJuliaAmbientSyncTimes';
 import { tickWormholeAmbientEqualizer } from '@/audio/wormholeAmbientEqualizer';
 import { wormholeDevRingCylinderLook } from '@/lib/wormholeDevRingCylinder';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
@@ -915,13 +915,20 @@ export function JuliaWormholeBackdrop({
 
       const dt = Math.min(clock.getDelta(), 0.05);
       const elapsed = clock.elapsedTime;
-      const anim = resolveWormholeJuliaAnimTime({
+      const syncTimes = resolveWormholeJuliaAmbientSyncTimes({
         syncEnabled: s.wormholeDebugJuliaAmbientSync,
-        syncRate: s.wormholeDebugJuliaAmbientSyncRate,
+        patternSyncRate: s.wormholeDebugJuliaAmbientSyncRate,
+        helixSpinRate: s.wormholeDebugJuliaHelixSpinRate,
+        helixSpinAudioSync: s.wormholeDebugJuliaHelixSpinAudioSync,
+        syncShaders: s.wormholeDebugJuliaAmbientSyncShaders,
+        syncHelixSpin: s.wormholeDebugJuliaAmbientSyncHelixSpin,
+        syncStars: s.wormholeDebugJuliaAmbientSyncStars,
         clockElapsed: elapsed,
         warmAudio: s.wormholeDebugJuliaAmbientSync,
       });
-      let juliaTime = anim.juliaTime;
+      let patternTime = syncTimes.patternTime;
+      const helixSpinTime = syncTimes.helixSpinTime;
+      const starTime = syncTimes.starTime;
 
       let eqIntensityMul = 1;
       let eqShimmerAdd = 0;
@@ -930,8 +937,8 @@ export function JuliaWormholeBackdrop({
         const k = THREE.MathUtils.clamp(s.wormholeDebugJuliaAmbientEqualizerStrength, 0, 2);
         eqIntensityMul = 1 + eq.rms * k * 1.45;
         eqShimmerAdd = eq.bass * k * 0.75 + eq.treble * k * 0.2;
-        juliaTime += (eq.bass * k * 5.5 + eq.mid * k * 2) * dt;
-        juliaTime += eq.treble * k * 0.035;
+        patternTime += (eq.bass * k * 5.5 + eq.mid * k * 2) * dt;
+        patternTime += eq.treble * k * 0.035;
       }
 
       const time = elapsed;
@@ -1213,7 +1220,7 @@ export function JuliaWormholeBackdrop({
           mat.uniforms.uScrollFade.value = introFade;
           mat.uniforms.uIntensity.value = introFade * 1.05 * eqIntensityMul;
           mat.uniforms.uDistAhead.value = Math.max(0, distAhead);
-          mat.uniforms.uTime.value = juliaTime;
+          mat.uniforms.uTime.value = patternTime;
           mat.uniforms.uDepth.value = s.depth;
           mat.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
           mat.uniforms.uDiscRadius.value = s.discRadius;
@@ -1223,14 +1230,14 @@ export function JuliaWormholeBackdrop({
       }
 
       for (const m of ringMats) {
-        m.uniforms.uTime.value = juliaTime;
+        m.uniforms.uTime.value = patternTime;
         m.uniforms.uDepth.value = s.depth;
         m.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
         m.uniforms.uDiscRadius.value = s.discRadius;
         m.uniforms.uHoleRadius.value = holeR;
       }
       if (skyJulia) {
-        skyJulia.uniforms.uTime.value = juliaTime * 0.4;
+        skyJulia.uniforms.uTime.value = patternTime * 0.4;
         skyJulia.uniforms.uDepth.value = s.depth * 0.05;
         skyJulia.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
         skyJulia.uniforms.uDiscRadius.value = s.discRadius;
@@ -1259,7 +1266,7 @@ export function JuliaWormholeBackdrop({
       if (helixShow && helixRibbonUsesJuliaShader) {
         for (let hi = 0; hi < helixMats.length; hi++) {
           const hm = helixMats[hi]!;
-          hm.uniforms.uTime.value = juliaTime;
+          hm.uniforms.uTime.value = patternTime;
           hm.uniforms.uDepth.value = s.depth;
           hm.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
           hm.uniforms.uDiscRadius.value = s.discRadius;
@@ -1297,7 +1304,7 @@ export function JuliaWormholeBackdrop({
         if (!helixShow) continue;
         const helixSpinT = helixWormhole2RibbonStyle ? 0.255 : 0.18;
         h.rotation.z =
-          juliaTime * helixSpinT +
+          helixSpinTime * helixSpinT +
           (h.userData.basePhase as number) * 0.3 +
           s.depth * 0.04 +
           helixVelStrafe +
@@ -1344,7 +1351,7 @@ export function JuliaWormholeBackdrop({
         publishLiveDriftMoteParticleSamples(positions, pCol, tunnelParticleCount, ringR);
       }
 
-      stars.rotation.z = juliaTime * 0.005;
+      stars.rotation.z = starTime * 0.005;
       if (useThroatCamera) {
         const sm = stars.material as THREE.PointsMaterial;
         sm.opacity = 0.7 * (1 - introB * 0.28 + exitBEff * 0.22);

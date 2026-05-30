@@ -4,15 +4,23 @@ import type { ReactElement } from 'react';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import {
-  computeWormhole5JuliaShaderTimes,
   isWormhole5AmbientGestureUnlocked,
   isWormhole5AmbientPlaying,
   subscribeWormhole5AmbientAudio,
 } from '@/audio/wormhole5AmbientAudio';
+import {
+  resolveWormholeJuliaAmbientSyncTimes,
+  wormholeJuliaHelixRadPerSec,
+} from '@/lib/wormholeJuliaAmbientSyncTimes';
 
 type JuliaAmbientSyncMonitorProps = {
   syncEnabled: boolean;
-  syncRate: number;
+  patternSyncRate: number;
+  helixSpinRate: number;
+  helixSpinAudioSync: boolean;
+  syncShaders: boolean;
+  syncHelixSpin: boolean;
+  syncStars: boolean;
   /** When false, pause rAF polling (panel hidden). */
   active?: boolean;
 };
@@ -24,15 +32,25 @@ function formatSec(t: number | null): string {
   return m > 0 ? `${m}:${s.toFixed(2).padStart(5, '0')}` : `${s.toFixed(2)}s`;
 }
 
+function formatRadPerSec(r: number | null): string {
+  if (r == null) return '—';
+  return `${r.toFixed(3)} rad/s`;
+}
+
 /**
- * Live readout for tunnel debug — mirrors {@link JuliaWormholeBackdrop} `uTime` wiring.
+ * Live readout for tunnel debug — mirrors {@link JuliaWormholeBackdrop} sync clocks.
  */
 export function JuliaAmbientSyncMonitor({
   syncEnabled,
-  syncRate,
+  patternSyncRate,
+  helixSpinRate,
+  helixSpinAudioSync,
+  syncShaders,
+  syncHelixSpin,
+  syncStars,
   active = true,
 }: JuliaAmbientSyncMonitorProps): ReactElement {
-  const [, tick] = useState(0);
+  const [clockElapsed, setClockElapsed] = useState(0);
   const playing = useSyncExternalStore(
     subscribeWormhole5AmbientAudio,
     isWormhole5AmbientPlaying,
@@ -47,22 +65,46 @@ export function JuliaAmbientSyncMonitor({
   useEffect(() => {
     if (!active) return;
     let raf = 0;
-    const loop = () => {
-      tick((n) => n + 1);
+    let last = performance.now();
+    let elapsed = 0;
+    const loop = (now: number) => {
+      elapsed += Math.min((now - last) / 1000, 0.05);
+      last = now;
+      setClockElapsed(elapsed);
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    raf = requestAnimationFrame((now) => {
+      last = now;
+      loop(now);
+    });
     return () => cancelAnimationFrame(raf);
   }, [active]);
 
-  const times = computeWormhole5JuliaShaderTimes(syncEnabled, syncRate);
+  const times = resolveWormholeJuliaAmbientSyncTimes({
+    syncEnabled,
+    patternSyncRate,
+    helixSpinRate,
+    helixSpinAudioSync,
+    syncShaders,
+    syncHelixSpin,
+    syncStars,
+    clockElapsed,
+    warmAudio: syncEnabled,
+  });
+
+  const helixRad = wormholeJuliaHelixRadPerSec({
+    helixSpinFromAudio: times.helixSpinFromAudio,
+    helixSpinRate,
+    patternSyncRate,
+  });
+
   const status = !unlocked
     ? 'Awaiting preloader ENTER'
     : times.audioSec == null
       ? 'No audio element'
       : playing
         ? 'Playing'
-        : 'Paused (pattern frozen)';
+        : 'Paused (audio clocks frozen)';
 
   return (
     <div
@@ -73,29 +115,46 @@ export function JuliaAmbientSyncMonitor({
         Julia ↔ ambient sync
       </p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5">
-        <dt className="text-zinc-500">Sync</dt>
+        <dt className="text-zinc-500">Master</dt>
         <dd className={syncEnabled ? 'text-emerald-300/90' : 'text-amber-300/90'}>
-          {syncEnabled ? 'ON → uTime from MP3' : 'OFF → uTime from Three.js clock'}
+          {syncEnabled ? 'ON' : 'OFF'}
         </dd>
-        <dt className="text-zinc-500">Rate</dt>
-        <dd>{syncRate.toFixed(2)}×</dd>
         <dt className="text-zinc-500">MP3</dt>
         <dd>{status}</dd>
         <dt className="text-zinc-500">currentTime</dt>
         <dd>{formatSec(times.audioSec)}</dd>
-        <dt className="text-zinc-500">uTime</dt>
+        <dt className="text-zinc-500">elapsed</dt>
+        <dd>{formatSec(times.clockElapsed)}</dd>
+        <dt className="text-zinc-500">patternTime</dt>
         <dd className="text-violet-200/95">
-          {times.uTime != null ? formatSec(times.uTime) : '— (clock)'}
+          {formatSec(times.patternTime)}
+          <span className="text-zinc-600">
+            {' '}
+            ({times.patternFromAudio ? 'MP3' : 'clock'})
+          </span>
         </dd>
-        <dt className="text-zinc-500">sky uTime</dt>
-        <dd className="text-zinc-400">
-          {times.skyUTime != null ? formatSec(times.skyUTime) : '—'}
-          <span className="text-zinc-600"> (×0.4)</span>
+        <dt className="text-zinc-500">helixSpinTime</dt>
+        <dd>
+          {formatSec(times.helixSpinTime)}
+          <span className="text-zinc-600">
+            {' '}
+            ({times.helixSpinFromAudio ? 'MP3' : 'clock'})
+          </span>
         </dd>
+        <dt className="text-zinc-500">starTime</dt>
+        <dd>
+          {formatSec(times.starTime)}
+          <span className="text-zinc-600"> ({times.starsFromAudio ? 'MP3' : 'clock'})</span>
+        </dd>
+        <dt className="text-zinc-500">helix ω (clock)</dt>
+        <dd>{formatRadPerSec(helixRad.wallClock)}</dd>
+        <dt className="text-zinc-500">helix ω (audio)</dt>
+        <dd className="text-violet-200/90">{formatRadPerSec(helixRad.audio)}</dd>
       </dl>
       {syncEnabled && playing ? (
         <p className="mt-1.5 font-sans text-[9px] leading-snug text-zinc-500">
-          Rings + helix use uTime; pause AUDIO to confirm the pattern stops.
+          Pause AUDIO to confirm audio-synced targets freeze; helix wall-clock spin keeps moving
+          unless helix audio sync is on.
         </p>
       ) : null}
     </div>
