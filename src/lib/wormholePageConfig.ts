@@ -285,7 +285,7 @@ export const WORMHOLE5_TUNNEL_LAB_DEFAULTS = {
   wormholeAtmospherePreset: 'glacier',
   bloomStrength: 0.3,
   wormholeDebugJuliaAmbientSync: true,
-  wormholeDebugJuliaAmbientSyncRate: 10,
+  wormholeDebugJuliaAmbientSyncRate: 3,
   wormholeCoinFollowCamEnabled: false,
   wormholeCoinFollowCamStrength: 1,
   /** Idle drift-mote XY buzz when scroll is fully idle (wormhole5 locked mouth). */
@@ -293,9 +293,6 @@ export const WORMHOLE5_TUNNEL_LAB_DEFAULTS = {
   /** Hero coin ↔ tunnel lookAt (also forced on `/wormhole5` via `shouldApplyHeroFocalTunnelSync`). */
   wormholeDebugHeroFocalSync: true,
 } as const;
-
-/** Tunnel debug slider + localStorage clamp for {@link WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate}. */
-export const WORMHOLE_JULIA_AMBIENT_SYNC_RATE_MAX = 10;
 
 /** `/wormhole20` — wormhole5 ambient sync + Web Audio equalizer (dev preview). */
 export const WORMHOLE20_TUNNEL_LAB_DEFAULTS = {
