@@ -39,7 +39,7 @@ import {
   WORMHOLE_MOBILE_MOUTH_CAM_Z_CAP,
   WORMHOLE_MOBILE_MOUTH_FOV_ADD_CAP,
 } from '@/lib/wormholeScrollMobile';
-import { getWormhole5AmbientPlaybackTime } from '@/audio/wormhole5AmbientAudio';
+import { resolveWormholeJuliaAnimTime } from '@/audio/wormhole5AmbientAudio';
 import { tickWormholeAmbientEqualizer } from '@/audio/wormholeAmbientEqualizer';
 import { wormholeDevRingCylinderLook } from '@/lib/wormholeDevRingCylinder';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
@@ -915,13 +915,13 @@ export function JuliaWormholeBackdrop({
 
       const dt = Math.min(clock.getDelta(), 0.05);
       const elapsed = clock.elapsedTime;
-      let juliaTime = elapsed;
-      if (s.wormholeDebugJuliaAmbientSync) {
-        const audioT = getWormhole5AmbientPlaybackTime();
-        if (audioT != null) {
-          juliaTime = audioT * Math.max(0.05, s.wormholeDebugJuliaAmbientSyncRate);
-        }
-      }
+      const anim = resolveWormholeJuliaAnimTime({
+        syncEnabled: s.wormholeDebugJuliaAmbientSync,
+        syncRate: s.wormholeDebugJuliaAmbientSyncRate,
+        clockElapsed: elapsed,
+        warmAudio: s.wormholeDebugJuliaAmbientSync,
+      });
+      let juliaTime = anim.juliaTime;
 
       let eqIntensityMul = 1;
       let eqShimmerAdd = 0;
@@ -1297,7 +1297,7 @@ export function JuliaWormholeBackdrop({
         if (!helixShow) continue;
         const helixSpinT = helixWormhole2RibbonStyle ? 0.255 : 0.18;
         h.rotation.z =
-          time * helixSpinT +
+          juliaTime * helixSpinT +
           (h.userData.basePhase as number) * 0.3 +
           s.depth * 0.04 +
           helixVelStrafe +
@@ -1344,7 +1344,7 @@ export function JuliaWormholeBackdrop({
         publishLiveDriftMoteParticleSamples(positions, pCol, tunnelParticleCount, ringR);
       }
 
-      stars.rotation.z = time * 0.005;
+      stars.rotation.z = juliaTime * 0.005;
       if (useThroatCamera) {
         const sm = stars.material as THREE.PointsMaterial;
         sm.opacity = 0.7 * (1 - introB * 0.28 + exitBEff * 0.22);

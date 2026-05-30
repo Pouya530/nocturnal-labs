@@ -5,6 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { warmWormhole5AmbientAudio } from '@/audio/wormhole5AmbientAudio';
 import { isLocalhostHostname } from '@/lib/isLocalhost';
 import {
   computeWormholeCoinFollowCam,
@@ -23,6 +24,7 @@ import {
   WORMHOLE5_DEBUG_START,
   WORMHOLE5_TUNNEL_LAB_DEFAULTS,
   WORMHOLE20_TUNNEL_LAB_DEFAULTS,
+  WORMHOLE_JULIA_AMBIENT_SYNC_RATE_MAX,
 } from '@/lib/wormholePageConfig';
 import {
   getHeroFocalPointSnapshot,
@@ -65,13 +67,11 @@ function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
-function isAmbientJuliaDebugRoute(pathname: string | null): boolean {
-  return (
-    pathname === '/wormhole5' ||
-    pathname === '/wormhole5/' ||
-    pathname === '/wormhole20' ||
-    pathname === '/wormhole20/'
-  );
+function isAmbientJuliaDebugRoute(pathname: string | null, localhost: boolean): boolean {
+  const p = (pathname ?? '').replace(/\/$/, '') || '/';
+  if (p === '/wormhole5' || p === '/wormhole20') return true;
+  if (localhost && p === '/') return true;
+  return false;
 }
 
 function isWormhole5LabPath(pathname: string | null): boolean {
@@ -169,11 +169,7 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
 
   useEffect(() => {
     if (!localhost || typeof window === 'undefined') return;
-    const onAmbientLab =
-      pathname === '/wormhole5' ||
-      pathname === '/wormhole5/' ||
-      pathname === '/wormhole20' ||
-      pathname === '/wormhole20/';
+    const onAmbientLab = isAmbientJuliaDebugRoute(pathname, true);
     const syncRaw = localStorage.getItem(JULIA_AMBIENT_SYNC_STORAGE_KEY);
     const rateRaw = localStorage.getItem(JULIA_AMBIENT_SYNC_RATE_STORAGE_KEY);
     const partial: {
@@ -185,7 +181,7 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
     if (rateRaw != null) {
       const v = Number(rateRaw);
       if (Number.isFinite(v)) {
-        partial.wormholeDebugJuliaAmbientSyncRate = clamp(v, 0.25, 3);
+        partial.wormholeDebugJuliaAmbientSyncRate = clamp(v, 0.25, WORMHOLE_JULIA_AMBIENT_SYNC_RATE_MAX);
       }
     } else if (onAmbientLab && syncRaw == null) {
       const lab =
@@ -1318,13 +1314,17 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
               <span className="leading-snug">Rim emissive shimmer (iridescent cylinder)</span>
             </label>
           </div>
-          {isAmbientJuliaDebugRoute(pathname) ? (
+          {isAmbientJuliaDebugRoute(pathname, localhost) ? (
             <>
               <div className="mb-2 rounded-md border border-violet-900/50 bg-violet-950/20 px-2 py-2">
                 <p className="mb-1.5 font-semibold leading-snug text-violet-100/95">
                   Ambient MP3{' '}
                   <span className="font-normal text-zinc-500">
-                    ({pathname === '/wormhole20' ? '/wormhole20' : '/wormhole5'})
+                    ({pathname === '/wormhole20' || pathname === '/wormhole20/'
+                      ? '/wormhole20'
+                      : pathname === '/' || pathname === ''
+                        ? '/'
+                        : '/wormhole5'})
                   </span>
                 </p>
                 <p className="mb-2 text-[10px] leading-snug text-zinc-500">
@@ -1342,6 +1342,7 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                       wormholeDebugJuliaAmbientSyncRate:
                         WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate,
                     });
+                    warmWormhole5AmbientAudio();
                     if (localhost) {
                       localStorage.setItem(JULIA_AMBIENT_SYNC_STORAGE_KEY, '1');
                       localStorage.setItem(
@@ -1366,6 +1367,7 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                     onChange={(e) => {
                       const on = e.target.checked;
                       tunnelStore.setState({ wormholeDebugJuliaAmbientSync: on });
+                      if (on) warmWormhole5AmbientAudio();
                       if (localhost) {
                         localStorage.setItem(JULIA_AMBIENT_SYNC_STORAGE_KEY, on ? '1' : '0');
                       }
@@ -1397,13 +1399,18 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                   <input
                     type="range"
                     min={0.25}
-                    max={3}
+                    max={WORMHOLE_JULIA_AMBIENT_SYNC_RATE_MAX}
                     step={0.05}
                     disabled={!s.wormhole3dBackgroundEnabled || !s.wormholeDebugJuliaAmbientSync}
                     value={s.wormholeDebugJuliaAmbientSyncRate}
                     onChange={(e) => {
-                      const v = clamp(Number(e.target.value), 0.25, 3);
+                      const v = clamp(
+                        Number(e.target.value),
+                        0.25,
+                        WORMHOLE_JULIA_AMBIENT_SYNC_RATE_MAX,
+                      );
                       tunnelStore.setState({ wormholeDebugJuliaAmbientSyncRate: v });
+                      warmWormhole5AmbientAudio();
                       if (localhost) {
                         localStorage.setItem(JULIA_AMBIENT_SYNC_RATE_STORAGE_KEY, String(v));
                       }

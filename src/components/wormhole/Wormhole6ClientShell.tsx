@@ -39,6 +39,7 @@ import { isLocalhostHostname } from '@/lib/isLocalhost';
 import { isCoarseOrTouchPrimaryViewport } from '@/lib/webglMobilePrefs';
 import type { ScrollMode } from '@/tunnel/tunnelStore';
 import { tunnelStore } from '@/tunnel/tunnelStore';
+import { wormholeJourneyMouseParallaxForRoute } from '@/tunnel/wormholeJourneyMouseParallax';
 
 /**
  * Production home shell (`/` and `/wormhole6`): inversion Julia rings + journey camera; intro depth pullback from
@@ -103,6 +104,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
     const prevScrollInputIdle = s.scrollInputIdle;
     const prevIntroDepthOv = s.wormholeIntroDepthOverride;
     const prevHomeIntroCam = s.wormholeHomeIntroCam01;
+    const prevJourneyMouseParallax = s.wormholeJourneyMouseParallax;
     const touchPrimary = isCoarseOrTouchPrimaryViewport();
     const introSettleDepth = touchPrimary
       ? WORMHOLE6_MOBILE_TUNNEL_START.depth
@@ -131,6 +133,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
       ...WORMHOLE2_HELIX_LAB_POSTFX,
       ...WORMHOLE_HOME_TUNNEL_VISUAL,
       ...(wormholeDesktopProductionHighQuality() ? WORMHOLE_HOME_DESKTOP_PROD_TUNNEL : {}),
+      wormholeJourneyMouseParallax: wormholeJourneyMouseParallaxForRoute({ productionHomeShell: true }),
       mode: 'locked',
     });
 
@@ -170,6 +173,7 @@ export function Wormhole6ClientShell({ children }: { children: ReactNode }): Rea
         wormholeHelixJuliaRibbonShaderEnabled: prevHelixJuliaRibbonShader,
         wormholeHelixTubeVariant: prevHelixTubeVariant,
         wormholeHelixTubeJuliaPatternEnabled: prevHelixTubeJuliaPatternEnabled,
+        wormholeJourneyMouseParallax: prevJourneyMouseParallax,
         bloomStrength: prevBloomStrength,
         bloomRadius: prevBloomRadius,
         bloomThreshold: prevBloomThreshold,

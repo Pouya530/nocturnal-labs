@@ -215,21 +215,63 @@ export function getWormhole5AmbientPlaybackTime(): number | null {
   return Number.isFinite(t) ? t : null;
 }
 
+export type WormholeJuliaAnimTime = {
+  /** Shader + helix/sky animation clock (audio×rate when synced, else Three.js elapsed). */
+  juliaTime: number;
+  audioSec: number | null;
+  /** True when uTime is driven from MP3 `currentTime` (sync on + element ready). */
+  synced: boolean;
+};
+
+/**
+ * Single source for Julia `uTime` — used by {@link JuliaWormholeBackdrop} and tunnel debug monitor.
+ * When sync is on, optionally warms the audio element so localhost debug works before first play.
+ */
+export function resolveWormholeJuliaAnimTime(opts: {
+  syncEnabled: boolean;
+  syncRate: number;
+  clockElapsed: number;
+  warmAudio?: boolean;
+}): WormholeJuliaAnimTime {
+  const { syncEnabled, syncRate, clockElapsed, warmAudio } = opts;
+  if (warmAudio && syncEnabled) warmWormhole5AmbientAudio();
+  const audioSec = getWormhole5AmbientPlaybackTime();
+  if (syncEnabled && audioSec != null) {
+    return {
+      juliaTime: audioSec * Math.max(0.05, syncRate),
+      audioSec,
+      synced: true,
+    };
+  }
+  return { juliaTime: clockElapsed, audioSec, synced: false };
+}
+
 /** Same formula as {@link JuliaWormholeBackdrop} — for tunnel debug monitor. */
 export function computeWormhole5JuliaShaderTimes(
   syncEnabled: boolean,
   syncRate: number,
+  clockElapsed = 0,
 ): {
   audioSec: number | null;
   uTime: number | null;
   skyUTime: number | null;
+  synced: boolean;
 } {
-  const audioSec = getWormhole5AmbientPlaybackTime();
-  if (!syncEnabled || audioSec == null) {
-    return { audioSec, uTime: null, skyUTime: null };
+  const resolved = resolveWormholeJuliaAnimTime({
+    syncEnabled,
+    syncRate,
+    clockElapsed,
+    warmAudio: syncEnabled,
+  });
+  if (!resolved.synced) {
+    return { audioSec: resolved.audioSec, uTime: null, skyUTime: null, synced: false };
   }
-  const uTime = audioSec * Math.max(0.05, syncRate);
-  return { audioSec, uTime, skyUTime: uTime * 0.4 };
+  return {
+    audioSec: resolved.audioSec,
+    uTime: resolved.juliaTime,
+    skyUTime: resolved.juliaTime * 0.4,
+    synced: true,
+  };
 }
 
 /**
