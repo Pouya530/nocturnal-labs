@@ -1329,8 +1329,7 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                   </span>
                 </p>
                 <p className="mb-2 text-[10px] leading-snug text-zinc-500">
-                  Route default: sync{' '}
-                  {WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSync ? 'on' : 'off'}, rate{' '}
+                  Route default: sync on, rate{' '}
                   {WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate.toFixed(2)}× (audio
                   seconds → uTime)
                 </p>
