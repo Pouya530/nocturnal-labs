@@ -284,7 +284,7 @@ export const WORMHOLE5_DEBUG_START = {
 export const WORMHOLE5_TUNNEL_LAB_DEFAULTS = {
   wormholeAtmospherePreset: 'glacier',
   bloomStrength: 0.3,
-  wormholeDebugJuliaAmbientSync: true,
+  wormholeDebugJuliaAmbientSync: false,
   wormholeDebugJuliaAmbientSyncRate: 3,
   wormholeCoinFollowCamEnabled: false,
   wormholeCoinFollowCamStrength: 1,

@@ -1329,7 +1329,8 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                   </span>
                 </p>
                 <p className="mb-2 text-[10px] leading-snug text-zinc-500">
-                  Route default: sync on, rate{' '}
+                  Route default: sync{' '}
+                  {WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSync ? 'on' : 'off'}, rate{' '}
                   {WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate.toFixed(2)}× (audio
                   seconds → uTime)
                 </p>
@@ -1345,7 +1346,10 @@ export function DebugTunnelPanel({ showWormholeControls = false, showIntroSequen
                     });
                     warmWormhole5AmbientAudio();
                     if (localhost) {
-                      localStorage.setItem(JULIA_AMBIENT_SYNC_STORAGE_KEY, '1');
+                      localStorage.setItem(
+                        JULIA_AMBIENT_SYNC_STORAGE_KEY,
+                        WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSync ? '1' : '0',
+                      );
                       localStorage.setItem(
                         JULIA_AMBIENT_SYNC_RATE_STORAGE_KEY,
                         String(WORMHOLE5_TUNNEL_LAB_DEFAULTS.wormholeDebugJuliaAmbientSyncRate),
